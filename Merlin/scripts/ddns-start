@@ -1,0 +1,5 @@
+#!/bin/sh
+# $1 = wan ip
+
+#logger -t ddns "Custom DDNS script is running..."
+inadyn -f "/jffs/inadyn.conf" --once --foreground --exec "/sbin/ddns_custom_updated 1" --continue-on-error "/sbin/ddns_custom_updated 0"

@@ -1,0 +1,18 @@
+[Unit]
+Description=Enable USB network when connected to Asus router
+After=systemd-modules-load.service
+
+# These delay the boot process but make sure that services
+# depending on "network-online.target" will not break.
+# If this will not be the only network then you can safely remove these.
+Before=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/asuswrt-usb-network start
+ExecStop=/usr/local/sbin/asuswrt-usb-network stop
+
+[Install]
+WantedBy=sysinit.target
