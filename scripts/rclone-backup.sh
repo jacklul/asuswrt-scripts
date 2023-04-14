@@ -14,6 +14,9 @@ REMOTE="remote:" # remote to use
 CONFIG_FILE="/jffs/rclone.conf" # Rclone configuration file
 FILTER_FILE="$(dirname "$0")/rclone-backup.list" # Rclone filter file
 RCLONE_PATH="" # Path to Rclone binary
+RCLONE_DOWNLOAD_URL="" # Rclone download URL, "https://downloads.rclone.org/rclone-current-linux-arm-v7.zip" should work
+RCLONE_DOWNLOAD_ZIP="$(basename "$RCLONE_DOWNLOAD_URL")" # Rclone download ZIP file name
+RCLONE_DOWNLOAD_UNZIP_DIR="/tmp/rclone-download" # Rclone download ZIP unpack destination, should be /tmp, make sure your router has enough RAM
 LOG_FILE="/tmp/rclone.log" # Log file
 NVRAM_FILE="/tmp/nvram.txt" # File to dump NVRAM to
 CRON_MINUTE=0
@@ -62,9 +65,35 @@ fi
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
-        [ ! -f "$RCLONE_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
         [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
         [ ! -f "$FILTER_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Could not find filter file: $FILTER_FILE"; exit 1; }
+
+        if [ ! -f "$RCLONE_PATH" ]; then
+            if [ -f "$RCLONE_DOWNLOAD_URL" ]; then
+                set -e
+
+                DOWNLOAD_DESTINATION="$(dirname "$RCLONE_DOWNLOAD_UNZIP_DIR")"
+                cd "$DOWNLOAD_DESTINATION"
+
+                echo "Downloading $RCLONE_DOWNLOAD_URL..."
+                curl -fsS "$RCLONE_DOWNLOAD_URL" -o "$DOWNLOAD_DESTINATION/$RCLONE_DOWNLOAD_ZIP"
+                
+                echo "Unpacking $RCLONE_DOWNLOAD_ZIP..."
+                mkdir -p "$RCLONE_DOWNLOAD_UNZIP_DIR"
+                busybox unzip "$RCLONE_DOWNLOAD_ZIP" -d "$RCLONE_DOWNLOAD_UNZIP_DIR"
+
+                echo "Moving Rclone binary..."
+                mv "$RCLONE_DOWNLOAD_UNZIP_DIR/"*"/rclone" "$DOWNLOAD_DESTINATION" && chmod +x "$DOWNLOAD_DESTINATION/rclone"
+                RCLONE_PATH="$DOWNLOAD_DESTINATION/rclone"
+
+                echo "Cleaning up..."
+                rm -fr "$RCLONE_DOWNLOAD_ZIP" "$RCLONE_DOWNLOAD_UNZIP_DIR"
+
+                set +e
+            fi
+
+            [ ! -f "$RCLONE_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
+        fi
 
         echo "" > "$LOG_FILE"
         nvram show > "$NVRAM_FILE"
@@ -73,6 +102,7 @@ case "$1" in
         "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" --log-file="$LOG_FILE" $PARAMETERS
         STATUS="$?"
 
+        [ -n "$RCLONE_ZIP" ] && rm -f "$RCLONE_PATH"
         rm -f "$NVRAM_FILE"
 
         if [ "$STATUS" = "0" ]; then
