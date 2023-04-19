@@ -56,7 +56,7 @@ case "$1" in
     ;;
     "install")
         [ ! -d "$SCRIPTS_PATH" ] && mkdir -v "$SCRIPTS_PATH"
-        [ ! -x "$SCRIPT_PATH" ] && chmod +x "$SCRIPTS_PATH"
+        [ ! -x "$SCRIPT_PATH" ] && chmod +x "$SCRIPT_PATH"
 
         NVRAM_SCRIPT="/bin/sh $SCRIPT_PATH start"
 

@@ -40,8 +40,16 @@ case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
 
-        NEW_VERSION="$(nvram get webs_state_info | awk -F '_' '{print $2 "_" $3}')"
-        CURRENT_VERSION="$(nvram get buildno)_$(nvram get extendno)"
+        BUILDNO=$(nvram get buildno)
+        EXTENDNO=$(nvram get extendno)
+        WEBS_STATE_INFO=$(nvram get webs_state_info)
+
+        if [ -z "$BUILDNO" ] || [ -z "$EXTENDNO" ] || [ -z "$WEBS_STATE_INFO" ]; then
+            exit
+        fi
+
+        NEW_VERSION="$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $2 "_" $3}')"
+        CURRENT_VERSION="${BUILDNO}_${EXTENDNO}"
 
         if [ -n "$NEW_VERSION" ] && [ "$CURRENT_VERSION" != "$NEW_VERSION" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$NEW_VERSION" ]; }; then
             if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
@@ -53,7 +61,7 @@ case "$1" in
 
                 [ -z "$ROUTER_NAME" ] && ROUTER_NAME="$ROUTER_IP"
 
-                MESSAGE="$(printf "\U26A0") <b>New router firmware notification @ $ROUTER_NAME</b>${LINE_BREAK}${LINE_BREAK}New firmware version <b>$VERSION</b> is now available for your router."
+                MESSAGE="<b>New router firmware notification @ $ROUTER_NAME</b>${LINE_BREAK}${LINE_BREAK}New firmware version <b>$NEW_VERSION</b> is now available for your router."
 
                 RESULT=$(curl --silent --insecure --data chat_id="$CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=${MESSAGE}" "https://api.telegram.org/bot$BOT_TOKEN/sendMessage")
 

@@ -68,17 +68,20 @@ case "$1" in
             
             if [ "$(printf "%.0f" "$CPU_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
                 logger -s -t "$SCRIPT_NAME" "CPU temperature warning: $CPU_TEMPERATURE C"
+                WARNING=1
             fi
 
             if [ -n "$WIFI_24G_TEMPERATURE" ] && [ "$WIFI_24G_TEMPERATURE" -ge "$TEMPERATURE_TARGET" ]; then
                 logger -s -t "$SCRIPT_NAME" "WiFi 2.4G temperature warning: $WIFI_24G_TEMPERATURE C"
+                WARNING=1
             fi
 
             if [ -n "$WIFI_5G_TEMPERATURE" ] && [ "$WIFI_5G_TEMPERATURE" -ge "$TEMPERATURE_TARGET" ]; then
                 logger -s -t "$SCRIPT_NAME" "WiFi 5G temperature warning: $WIFI_5G_TEMPERATURE C"
+                WARNING=1
             fi
 
-            echo "$UPTIME" > "$CACHE_FILE"
+            [ -n "$WARNING" ] && echo "$UPTIME" > "$CACHE_FILE"
         fi
     ;;
     "check")
