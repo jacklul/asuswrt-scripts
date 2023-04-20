@@ -45,8 +45,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-{ [ "$PERSISTENT" = "true" ] || [ "$PERSISTENT" = true ]; } && PERSISTENT="1"
-{ [ "$PERSISTENT" = "false" ] || [ "$PERSISTENT" = false ]; } && PERSISTENT="0"
+{ [ "$PERSISTENT" = "true" ] || [ "$PERSISTENT" = true ]; } && PERSISTENT="1" || PERSISTENT="0"
 
 PERSISTENT_STATE="$([ "$PERSISTENT" = "1" ] && echo " (preserved)")"
 

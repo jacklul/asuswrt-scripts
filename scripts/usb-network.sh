@@ -9,8 +9,8 @@
 
 #shellcheck disable=SC2155
 
-BRIDGE_INTERFACE="br0" # Bridge interface to add into
-EXECUTE_COMMAND="" # Execute a command each time status changes, will pass arguments action (add or remove) and with interface name
+BRIDGE_INTERFACE="br0" # bridge interface to add into
+EXECUTE_COMMAND="" # execute a command each time status changes, will pass arguments action (add or remove) and with interface name
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
