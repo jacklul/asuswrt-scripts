@@ -16,6 +16,8 @@ PERMIT_IP="" # space/comma separated allowed v4 IPs to bypass forced DNS, ranges
 PERMIT_IP6="" # space/comma separated allowed v6 IPs to bypass forced DNS, ranges supported
 BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces
 REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in /sys/class/net/, wildcards accepted
+FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
+FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # Execute a command after rules are applied or removed, will pass argument with action (add or remove)
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
@@ -105,6 +107,9 @@ iptables_chains() {
 }
 
 iptables_rules() {
+    _DNS_SERVER="$2"
+    _DNS_SERVER6="$3"
+
     [ -z "$DNS_SERVER" ] && { logger -s -t "Target DNS server is not set"; exit 1; }
 
     case "$1" in
@@ -124,10 +129,10 @@ iptables_rules() {
                 continue
             fi
 
-            _DNS_SERVER="$DNS_SERVER6"
+            _SET_DNS_SERVER="$_DNS_SERVER6"
             _PERMIT_IP="$PERMIT_IP6"
         else
-            _DNS_SERVER="$DNS_SERVER"
+            _SET_DNS_SERVER="$_DNS_SERVER"
             _PERMIT_IP="$PERMIT_IP"
         fi
 
@@ -157,8 +162,8 @@ iptables_rules() {
             $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$_PERMIT_IP" -j RETURN
         fi
 
-        $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j DNAT --to-destination "$_DNS_SERVER"
-        $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_DNS_SERVER" -j REJECT
+        $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j DNAT --to-destination "$_SET_DNS_SERVER"
+        $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_SET_DNS_SERVER" -j REJECT
     done
 }
 
@@ -170,14 +175,31 @@ setup_rules() {
         "add")
             iptables_chains remove
             iptables_chains add
-            iptables_rules add
+            iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
 
-            logger -s -t "$SCRIPT_NAME" "Forcing DNS server: ${DNS_SERVER}${_REASON}"
+            _DNS_SERVER="$DNS_SERVER"
+            if [ -n "$DNS_SERVER6" ]; then
+                _DNS_SERVER=" $DNS_SERVER6"
+            fi
+
+            logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}${_REASON}"
         ;;
         "remove")
             iptables_chains remove
 
-            logger -s -t "$SCRIPT_NAME" "DNS server is no longer forced$_REASON"
+            if [ -n "$FALLBACK_DNS_SERVER" ]; then
+                iptables_chains add
+                iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
+
+                _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
+                if [ -n "$FALLBACK_DNS_SERVER6" ]; then
+                    _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
+                fi
+
+                logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}${_REASON}"
+            else
+                logger -s -t "$SCRIPT_NAME" "DNS server is no longer forced$_REASON"
+            fi
         ;;
     esac
 
@@ -198,11 +220,11 @@ interface_exists() {
 
 case "$1" in
     "run")
-        CHAINS_EXIST="$({ iptables -n -L "$CHAIN_DOT" >/dev/null 2>&1 && iptables -t nat -n -L "$CHAIN" >/dev/null 2>&1; } && echo 1 || echo 0)"
+        RULES_EXIST="$({ $IPT -t nat -C "$CHAIN" -j DNAT --to-destination "$DNS_SERVER" >/dev/null 2>&1 && $IPT -C "$CHAIN_DOT" ! -d "$DNS_SERVER" -j REJECT >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
-            [ "$CHAINS_EXIST" = "1" ] && setup_rules remove "missing interface $REQUIRE_INTERFACE"
-        elif [ "$CHAINS_EXIST" = "0" ]; then
+            [ "$RULES_EXIST" = "1" ] && setup_rules remove "missing interface $REQUIRE_INTERFACE"
+        elif [ "$RULES_EXIST" = "0" ]; then
             setup_rules add "missing firewall rules"
         fi
     ;;
