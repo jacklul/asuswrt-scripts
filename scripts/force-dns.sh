@@ -49,6 +49,7 @@ fi
 
 FOR_IPTABLES="$IPT"
 ROUTER_IP="$(nvram get lan_ipaddr)"
+ROUTER_IP6="$(nvram get ipv6_rtr_addr)"
 
 if [ -z "$DNS_SERVER" ]; then
     DHCP_DNS1="$(nvram get dhcp_dns1_x)"
@@ -66,7 +67,7 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
     FOR_IPTABLES="$FOR_IPTABLES $IPT6"
 
     if [ -z "$DNS_SERVER6" ]; then
-        DNS_SERVER6="$(nvram get ipv6_rtr_addr)"
+        DNS_SERVER6="$ROUTER_IP6"
     elif [ "$DNS_SERVER6" = "block" ]; then
         DNS_SERVER6=""
     fi
@@ -94,12 +95,18 @@ iptables_chains() {
                 fi
 
                 if [ "$BLOCK_ROUTER_DNS" = "1" ] && ! $_IPTABLES -n -L "$CHAIN_BLOCK" >/dev/null 2>&1; then
+                    if [ "$_IPTABLES" = "$IPT6" ]; then
+                        _ROUTER_IP="$ROUTER_IP6"
+                    else
+                        _ROUTER_IP="$ROUTER_IP"
+                    fi
+
                     _INPUT_START="$($_IPTABLES -nvL INPUT --line | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
                     _INPUT_START_PLUS="$((_INPUT_START+1))"
 
                     $_IPTABLES -N "$CHAIN_BLOCK"
-                    $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -d "$ROUTER_IP" -j "$CHAIN_BLOCK"
-                    $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -d "$ROUTER_IP" -j "$CHAIN_BLOCK"
+                    $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                    $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
                 fi
             ;;
             "remove")
@@ -117,8 +124,14 @@ iptables_chains() {
                 fi
 
                 if $_IPTABLES -n -L "$CHAIN_BLOCK" >/dev/null 2>&1; then
-                    $_IPTABLES -D INPUT -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -d "$ROUTER_IP" -j "$CHAIN_BLOCK"
-                    $_IPTABLES -D INPUT -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -d "$ROUTER_IP" -j "$CHAIN_BLOCK"
+                    if [ "$_IPTABLES" = "$IPT6" ]; then
+                        _ROUTER_IP="$ROUTER_IP6"
+                    else
+                        _ROUTER_IP="$ROUTER_IP"
+                    fi
+
+                    $_IPTABLES -D INPUT -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                    $_IPTABLES -D INPUT -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
                     $_IPTABLES -F "$CHAIN_BLOCK"
                     $_IPTABLES -X "$CHAIN_BLOCK"
                 fi
@@ -142,7 +155,10 @@ iptables_rules() {
         ;;
     esac
 
+
     for _IPTABLES in $FOR_IPTABLES; do
+        _BLOCK_ROUTER_DNS="$BLOCK_ROUTER_DNS"
+
         if [ "$_IPTABLES" = "$IPT6" ]; then
             if [ -z "$DNS_SERVER6" ]; then
                 $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j REJECT
@@ -152,10 +168,14 @@ iptables_rules() {
 
             _SET_DNS_SERVER="$_DNS_SERVER6"
             _PERMIT_IP="$PERMIT_IP6"
+            _ROUTER_IP="$ROUTER_IP6"
         else
             _SET_DNS_SERVER="$_DNS_SERVER"
             _PERMIT_IP="$PERMIT_IP"
+            _ROUTER_IP="$ROUTER_IP"
         fi
+
+        [ "$_ROUTER_IP" = "$_SET_DNS_SERVER" ] && _BLOCK_ROUTER_DNS=0
 
         if [ -n "$PERMIT_MAC" ]; then
             for MAC in $(echo "$PERMIT_MAC" | tr ',' ' '); do
@@ -187,16 +207,12 @@ iptables_rules() {
             $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$_PERMIT_IP" -j RETURN
         fi
 
-        if [ "$BLOCK_ROUTER_DNS" = "1" ]; then
-            $_IPTABLES -t nat "$_ACTION" "$CHAIN" -d "$ROUTER_IP" -j RETURN
-        fi
+        [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN" -d "$_ROUTER_IP" -j RETURN
         
         $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j DNAT --to-destination "$_SET_DNS_SERVER"
         $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_SET_DNS_SERVER" -j REJECT
 
-        if [ "$BLOCK_ROUTER_DNS" = "1" ]; then
-            $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -j REJECT
-        fi
+        [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -j REJECT
     done
 }
 
@@ -211,9 +227,7 @@ setup_rules() {
             iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
 
             _DNS_SERVER="$DNS_SERVER"
-            if [ -n "$DNS_SERVER6" ]; then
-                _DNS_SERVER=" $DNS_SERVER6"
-            fi
+            [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
 
             logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}${_REASON}"
         ;;
@@ -225,9 +239,7 @@ setup_rules() {
                 iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
 
                 _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
-                if [ -n "$FALLBACK_DNS_SERVER6" ]; then
-                    _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
-                fi
+                [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
                 logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}${_REASON}"
             else
