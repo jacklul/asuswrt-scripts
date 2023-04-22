@@ -42,8 +42,6 @@ case "$1" in
             if [ "$CURRENT_UPTIME" -ge "$TARGET_UPTIME" ]; then
                 logger -s -t "$SCRIPT_NAME" "System uptime (${CURRENT_UPTIME}s) is bigger than target (${TARGET_UPTIME}s) - rebooting"
                 service reboot
-            else
-                logger -s -t "$SCRIPT_NAME" "System uptime (${CURRENT_UPTIME}s) is not bigger than target (${TARGET_UPTIME}s) - reboot skipped"
             fi
         fi
     ;;
