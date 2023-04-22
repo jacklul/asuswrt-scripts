@@ -2,7 +2,7 @@
 
 This makes any device capable of becoming USB Gadget to connect to LAN network through router's USB port.
 
-Great way to run [Pi-hole](https://pi-hole.net/) in your network on a Raspberry Pi Zero!
+Great way to run [Pi-hole](https://pi-hole.net/) in your network on Raspberry Pi Zero!
 
 **Warning: This cannot be used together with Entware/Optware/Asus Download Master on stock firmware.**
 

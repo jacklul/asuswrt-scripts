@@ -4,9 +4,13 @@ Requires some kind of USB storage plugged into the router for this to work.
 
 This uses known `script_usbmount` NVRAM variable to run "startup" script on USB mount event that starts things out.
 
+If you're running Asuswrt-Merlin you might be interested in using [my addon](Merlin/) instead.
+
+Bonus: [Using USB Ethernet Gadget to connect to LAN](usb-network/) - great way to run Pi-hole on the Pi Zero using just a single USB cable!
+
 ## Installation
 
-Install startup script.
+Install startup script:
 
 ```bash
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/startup.sh" -o /jffs/startup.sh && /bin/sh /jffs/startup.sh install
@@ -14,12 +18,4 @@ curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/startup.s
 
 If you would like for it to be called differently you can rename it before running it.
 
-## Usage
-
-Place your scripts in `/jffs/scripts`, make sure they handle "start" and "stop" arguments and are marked as executable.
-
-Look at [scripts](scripts/) directory to figure things out.
-
-## Extras
-
-### [Using USB Ethernet Gadget to connect to LAN](usb-network/)
+Then install scripts you want to use, grab them [from here](scripts/).
