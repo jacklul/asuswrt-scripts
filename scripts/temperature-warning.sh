@@ -19,11 +19,9 @@ if [ -f "/usr/sbin/helper.sh" ]; then
 
     TEMPERATURE_TARGET_=$(am_settings_get jl_twarning_ttarget)
     COOLDOWN_=$(am_settings_get jl_twarning_cooldown)
-    CACHE_FILE_=$(am_settings_get jl_twarning_cache_file)
 
     [ -n "$TEMPERATURE_TARGET_" ] && TEMPERATURE_TARGET=$TEMPERATURE_TARGET_
     [ -n "$COOLDOWN_" ] && COOLDOWN=$COOLDOWN_
-    [ -n "$CACHE_FILE_" ] && CACHE_FILE=$CACHE_FILE_
 fi
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"

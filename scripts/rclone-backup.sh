@@ -31,11 +31,7 @@ if [ -f "/usr/sbin/helper.sh" ]; then
 
     PARAMETERS_=$(am_settings_get jl_rbackup_parameters)
     REMOTE_=$(am_settings_get jl_rbackup_remote)
-    CONFIG_FILE_=$(am_settings_get jl_rbackup_config_file)
-    FILTER_FILE_=$(am_settings_get jl_rbackup_filter_file)
     RCLONE_PATH_=$(am_settings_get jl_rbackup_rclone_path)
-    LOG_FILE_=$(am_settings_get jl_rbackup_log_file)
-    NVRAM_FILE_=$(am_settings_get jl_rbackup_nvram_file)
     CRON_HOUR_=$(am_settings_get jl_rbackup_hour)
     CRON_MINUTE_=$(am_settings_get jl_rbackup_minute)
     CRON_MONTHDAY_=$(am_settings_get jl_rbackup_monthday)
@@ -43,11 +39,7 @@ if [ -f "/usr/sbin/helper.sh" ]; then
 
     [ -n "$PARAMETERS_" ] && PARAMETERS=$PARAMETERS_
     [ -n "$REMOTE_" ] && REMOTE=$REMOTE_
-    [ -n "$CONFIG_FILE_" ] && CONFIG_FILE=$CONFIG_FILE_
-    [ -n "$FILTER_FILE_" ] && FILTER_FILE=$FILTER_FILE_
     [ -n "$RCLONE_PATH_" ] && RCLONE_PATH=$RCLONE_PATH_
-    [ -n "$LOG_FILE_" ] && LOG_FILE=$LOG_FILE_
-    [ -n "$NVRAM_FILE_" ] && NVRAM_FILE=$NVRAM_FILE_
     [ -n "$CRON_HOUR_" ] && CRON_HOUR=$CRON_HOUR_
     [ -n "$CRON_MINUTE_" ] && CRON_MINUTE=$CRON_MINUTE_
     [ -n "$CRON_MONTHDAY_" ] && CRON_MONTHDAY=$CRON_MONTHDAY_

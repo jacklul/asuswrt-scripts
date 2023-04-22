@@ -17,7 +17,7 @@ CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
 # This means that this is a Merlin firmware
-[ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use Custom DDNS instead!"
+[ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"

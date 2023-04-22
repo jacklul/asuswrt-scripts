@@ -27,6 +27,16 @@
 			jl_creboot_hour: 4,
 			jl_creboot_minute: 0,
 			jl_disablewps: 'false',
+			jl_fdns: 'false',
+			jl_fdns_server: '',
+			jl_fdns_server6: '',
+			jl_fdns_permit_mac: '',
+			jl_fdns_permit_ip: '',
+			jl_fdns_permit_ip6: '',
+			jl_fdns_require_iface: '',
+			jl_fdns_fallback: '',
+			jl_fdns_fallback6: '',
+			jl_fdns_block_router_dns: 'false',
 			jl_ledcontrol: 'false',
 			jl_ledcontrol_on_hour: 6,
 			jl_ledcontrol_on_minute: 0,
@@ -37,11 +47,7 @@
 			jl_rbackup: 'false',
 			jl_rbackup_parameters: '--buffer-size 1M',
 			jl_rbackup_remote: 'remote:',
-			jl_rbackup_config_file: '/jffs/rclone.conf',
-			jl_rbackup_filter_file: '/jffs/scripts/rclone-backup.list',
 			jl_rbackup_rclone_path: '',
-			jl_rbackup_log_file: '/tmp/rclone.log',
-			jl_rbackup_nvram_file: '/tmp/nvram.txt',
 			jl_rbackup_hour: 6,
 			jl_rbackup_minute: 0,
 			jl_rbackup_monthday: '*',
@@ -49,6 +55,8 @@
 			jl_swap: 'false',
 			jl_swap_file: '',
 			jl_swap_size: 1310721,
+			jl_syslog: 'false',
+			jl_syslog_log_file: '/tmp/syslog-moved.log',
 			jl_twarning: 'false',
 			jl_twarning_ttarget: 80,
 			jl_twarning_cooldown: 300,
@@ -56,9 +64,6 @@
 			jl_unotify_bot_token: '',
 			jl_unotify_chat_id: '',
 			jl_usbnetwork: 'false',
-			jl_usbnetwork_bridge: 'br0',
-			jl_syslog: 'false',
-			jl_syslog_log_file: '/tmp/syslog-moved.log',
 		};
 
 		function initial() {
@@ -285,6 +290,66 @@
 												</tbody>
 											</table>
 
+
+											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+												<thead>
+													<tr>
+														<td colspan="2">Force DNS</td>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<th>Enabled</th>
+														<td>
+															<input type="radio" value="true" id="jl_fdns" name="jl_fdns" class="input" onchange="return handleRadioButton(this, event)">Yes
+															<input type="radio" value="false" id="jl_fdns" name="jl_fdns" class="input" onchange="return handleRadioButton(this, event)">No
+														</td>
+													</tr>
+													<tr>
+														<th>DNS Server</th>
+														<td>
+															IPv4: <input type="text" class="input_15_table" id="jl_fdns_server" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+															<br>
+															IPv6: <input type="text" class="input_15_table" id="jl_fdns_server6" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+														</td>
+													</tr>
+													<tr>
+														<th>Permitted hosts</th>
+														<td>
+															MAC: <input type="text" class="input_32_table" id="jl_fdns_permit_mac" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+															<br>
+															IPv4: <input type="text" class="input_32_table" id="jl_fdns_permit_ip" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+															<br>
+															IPv6: <input type="text" class="input_32_table" id="jl_fdns_permit_ip6" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+															<br>
+															<span id="faq" style="padding: 0;">Separated by space.</span>
+														</td>
+													</tr>
+													<tr>
+														<th>Require interface</th>
+														<td>
+															<input type="radio" value="true" id="jl_fdns_require_iface" name="jl_fdns_require_iface" class="input" onchange="return handleRadioButton(this, event)">Yes
+															<input type="radio" value="false" id="jl_fdns_require_iface" name="jl_fdns_require_iface" class="input" onchange="return handleRadioButton(this, event)">No
+														</td>
+													</tr>
+													<tr>
+														<th>Fallback DNS Server</th>
+														<td>
+															IPv4: <input type="text" class="input_15_table" id="jl_fdns_fallback" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+															<br>
+															IPv6: <input type="text" class="input_15_table" id="jl_fdns_fallback6" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+														</td>
+													</tr>
+													<tr>
+														<th>Block access to router's DNS</th>
+														<td>
+															<input type="radio" value="true" id="jl_fdns_block_router_dns" name="jl_fdns_block_router_dns" class="input" onchange="return handleRadioButton(this, event)">Yes
+															<input type="radio" value="false" id="jl_fdns_block_router_dns" name="jl_fdns_block_router_dns" class="input" onchange="return handleRadioButton(this, event)">No
+														</td>
+													</tr>
+												</tbody>
+											</table>
+
 											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 												<thead>
 													<tr>
@@ -394,6 +459,29 @@
 											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 												<thead>
 													<tr>
+														<td colspan="2">Move syslog to different location</td>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<th>Enabled</th>
+														<td>
+															<input type="radio" value="true" id="jl_syslog" name="jl_syslog" class="input" onchange="return handleRadioButton(this, event)">Yes
+															<input type="radio" value="false" id="jl_syslog" name="jl_syslog" class="input" onchange="return handleRadioButton(this, event)">No
+														</td>
+													</tr>
+													<tr>
+														<th>Log file</th>
+														<td>
+															<input type="text" maxlength="100" class="input_32_table" id="jl_syslog_log_file" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+														</td>
+													</tr>
+												</tbody>
+											</table>
+
+											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+												<thead>
+													<tr>
 														<td colspan="2">Temperature warning</td>
 													</tr>
 												</thead>
@@ -463,12 +551,6 @@
 															<input type="radio" value="false" id="jl_usbnetwork" name="jl_usbnetwork" class="input" onchange="return handleRadioButton(this, event)">No
 														</td>
 													</tr>
-													<tr>
-														<th>Bridge interface</th>
-														<td>
-															<input type="text" maxlength="100" class="input_32_table" id="jl_usbnetwork_bridge" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
-														</td>
-													</tr>
 												</tbody>
 											</table>
 
@@ -484,29 +566,6 @@
 														<td>
 															<input type="radio" value="true" id="jl_diskcheck" name="jl_diskcheck" class="input" onchange="return handleRadioButton(this, event)">Yes
 															<input type="radio" value="false" id="jl_diskcheck" name="jl_diskcheck" class="input" onchange="return handleRadioButton(this, event)">No
-														</td>
-													</tr>
-												</tbody>
-											</table>
-
-											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-												<thead>
-													<tr>
-														<td colspan="2">Move syslog to different location</td>
-													</tr>
-												</thead>
-												<tbody>
-													<tr>
-														<th>Enabled</th>
-														<td>
-															<input type="radio" value="true" id="jl_syslog" name="jl_syslog" class="input" onchange="return handleRadioButton(this, event)">Yes
-															<input type="radio" value="false" id="jl_syslog" name="jl_syslog" class="input" onchange="return handleRadioButton(this, event)">No
-														</td>
-													</tr>
-													<tr>
-														<th>Log file</th>
-														<td>
-															<input type="text" maxlength="100" class="input_32_table" id="jl_syslog_log_file" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
 														</td>
 													</tr>
 												</tbody>

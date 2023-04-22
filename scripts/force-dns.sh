@@ -6,6 +6,14 @@
 # Implements DNS Director feature from AsusWRT-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/DNS-Director
 #
+# Can set rules depending on whenever specific interface is available and 
+# define a fallback DNS server when it is not.
+# Can prevent clients from querying router's DNS server while the rules are applied.
+#
+# If you need per-device DNS settings then these will help you write your own script (which you can execute via EXECUTE_COMMAND variable):
+#  iptables -I "FORCEDNS" -m mac --mac-source "d9:32:cb:d0:fe:fe" -j DNAT --to-destination "1.1.1.1"
+#  iptables -I "FORCEDNS_DOT" -m mac --mac-source "d9:32:cb:d0:fe:fe" ! -d "1.1.1.1" -j REJECT
+#
 
 #shellcheck disable=SC2155
 
@@ -19,7 +27,7 @@ REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed, will pass argument with action (add or remove)
-BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, to be used with REQUIRE_INTERFACE and "Advertise router as DNS" option
+BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
@@ -30,12 +38,31 @@ CHAIN="FORCEDNS"
 CHAIN_DOT="FORCEDNS_DOT"
 CHAIN_BLOCK="FORCEDNS_BLOCK"
 
-# If you need per-device DNS settings then these will help you write your own script (which you can execute via EXECUTE_COMMAND variable):
-#iptables -I "FORCEDNS" -m mac --mac-source "d9:32:cb:d0:fe:fe" -j DNAT --to-destination "1.1.1.1"
-#iptables -I "FORCEDNS_DOT" -m mac --mac-source "d9:32:cb:d0:fe:fe" ! -d "1.1.1.1" -j REJECT
-
 # This means that this is a Merlin firmware
-[ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
+if [ -f "/usr/sbin/helper.sh" ]; then
+    #shellcheck disable=SC1091
+    . /usr/sbin/helper.sh
+
+    DNS_SERVER_=$(am_settings_get jl_fdns_server)
+    DNS_SERVER6_=$(am_settings_get jl_fdns_server6)
+    PERMIT_MAC_=$(am_settings_get jl_fdns_permit_mac)
+    PERMIT_IP_=$(am_settings_get jl_fdns_permit_ip)
+    PERMIT_IP6_=$(am_settings_get jl_fdns_permit_ip6)
+    REQUIRE_INTERFACE_=$(am_settings_get jl_fdns_require_iface)
+    FALLBACK_DNS_SERVER_=$(am_settings_get jl_fdns_fallback)
+    FALLBACK_DNS_SERVER6_=$(am_settings_get jl_fdns_fallback6)
+    BLOCK_ROUTER_DNS_=$(am_settings_get jjl_fdns_block_router_dnsl_)
+
+    [ -n "$DNS_SERVER_" ] && DNS_SERVER=$DNS_SERVER_
+    [ -n "$DNS_SERVER6_" ] && DNS_SERVER6=$DNS_SERVER6_
+    [ -n "$PERMIT_MAC_" ] && PERMIT_MAC=$PERMIT_MAC_
+    [ -n "$PERMIT_IP_" ] && PERMIT_IP=$PERMIT_IP_
+    [ -n "$PERMIT_IP6_" ] && PERMIT_IP6=$PERMIT_IP6_
+    [ -n "$REQUIRE_INTERFACE_" ] && REQUIRE_INTERFACE=$REQUIRE_INTERFACE_
+    [ -n "$FALLBACK_DNS_SERVER_" ] && FALLBACK_DNS_SERVER=$FALLBACK_DNS_SERVER_
+    [ -n "$FALLBACK_DNS_SERVER6_" ] && FALLBACK_DNS_SERVER6=$FALLBACK_DNS_SERVER6_
+    [ -n "$BLOCK_ROUTER_DNS_" ] && BLOCK_ROUTER_DNS=$BLOCK_ROUTER_DNS_
+fi
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -74,6 +101,11 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
 fi
 
 { [ "$BLOCK_ROUTER_DNS" = "true" ] || [ "$BLOCK_ROUTER_DNS" = true ]; } && BLOCK_ROUTER_DNS="1" || BLOCK_ROUTER_DNS="0"
+
+# This means that this is a Merlin firmware
+if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
+    logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
+fi
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {

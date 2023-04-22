@@ -19,11 +19,9 @@ if [ -f "/usr/sbin/helper.sh" ]; then
 
     BOT_TOKEN_=$(am_settings_get jl_unotify_bot_token)
     CHAT_ID_=$(am_settings_get jl_unotify_chat_id)
-    CACHE_FILE_=$(am_settings_get jl_unotify_cache_file)
 
     [ -n "$BOT_TOKEN_" ] && BOT_TOKEN=$BOT_TOKEN_
     [ -n "$CHAT_ID_" ] && CHAT_ID=$CHAT_ID_
-    [ -n "$CACHE_FILE_" ] && CACHE_FILE=$CACHE_FILE_
 fi
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"

@@ -14,17 +14,6 @@ EXECUTE_COMMAND="" # execute a command each time status changes, will pass argum
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    BRIDGE_INTERFACE_=$(am_settings_get jl_usbnetwork_bridge)
-    # For security reasons EXECUTE_COMMAND cannot be set from the web UI
-
-    [ -n "$BRIDGE_INTERFACE_" ] && BRIDGE_INTERFACE=$BRIDGE_INTERFACE_
-fi
-
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"

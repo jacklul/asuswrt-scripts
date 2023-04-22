@@ -28,13 +28,11 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     ON_MINUTE_=$(am_settings_get jl_ledcontrol_on_minute)
     OFF_HOUR_=$(am_settings_get jl_ledcontrol_off_hour)
     OFF_MINUTE_=$(am_settings_get jl_ledcontrol_off_minute)
-    PERSISTENT_=$(am_settings_get jl_ledcontrol_persistent)
 
     [ -n "$ON_HOUR_" ] && ON_HOUR=$ON_HOUR_
     [ -n "$ON_MINUTE_" ] && ON_MINUTE=$ON_MINUTE_
     [ -n "$OFF_HOUR_" ] && OFF_HOUR=$OFF_HOUR_
     [ -n "$OFF_MINUTE_" ] && OFF_MINUTE=$OFF_MINUTE_
-    [ -n "$PERSISTENT_" ] && PERSISTENT=$PERSISTENT_
 fi
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
