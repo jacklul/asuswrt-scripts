@@ -33,8 +33,6 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-INTERFACE_WAS_ADDED=0
-
 hotplug_config() {
     case "$1" in
         "modify")
@@ -100,8 +98,6 @@ setup_inteface() {
             brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" || brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"
 
             logger -s -t "$SCRIPT_NAME" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
-
-            INTERFACE_WAS_ADDED=1
         ;;
         "remove")
             brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" && brctl delif "$BRIDGE_INTERFACE" "$_INTERFACE"
@@ -137,6 +133,8 @@ case "$1" in
         BRIDGE_MEMBERS="$(brctl show "$BRIDGE_INTERFACE")"
 
         for INTERFACE in /sys/class/net/usb*; do
+            INTERFACE="$(basename "$INTERFACE")"
+
             if ! echo "$BRIDGE_MEMBERS" | grep -q "$INTERFACE"; then
                 setup_inteface add "$INTERFACE"
             fi
@@ -158,6 +156,11 @@ case "$1" in
             esac
         fi
     ;;
+    "retry_until_success")
+        "$SCRIPT_PATH" run
+
+        brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && cru l | grep "$SCRIPT_NAME" | grep -q "retry_until_success" && cru d "$SCRIPT_NAME"
+    ;;
     "start")
         [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - bridge interface is not set"; exit 1; }
 
@@ -167,8 +170,8 @@ case "$1" in
             setup_inteface add "$(basename "$INTERFACE")"
         done
 
-        if [ "$INTERFACE_WAS_ADDED" = "0" ] && ! cru l | grep -q "$SCRIPT_NAME"; then
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH wait"
+        if ! brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && ! cru l | grep -q "$SCRIPT_NAME"; then
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH retry_until_success"
 
             logger -s -t "$SCRIPT_NAME" "Could not find any matching interface - will retry using crontab"
         fi
@@ -180,21 +183,8 @@ case "$1" in
             setup_inteface remove "$(basename "$INTERFACE")"
         done
     ;;
-    "wait")
-        BRIDGE_MEMBERS="$(brctl show "$BRIDGE_INTERFACE")"
-
-        for INTERFACE in /sys/class/net/usb*; do
-            if ! echo "$BRIDGE_MEMBERS" | grep -q "$INTERFACE"; then
-                setup_inteface add "$(basename "$INTERFACE")"
-            else
-                INTERFACE_WAS_ADDED=1
-            fi
-        done
-
-        [ "$INTERFACE_WAS_ADDED" = "1" ] && cru l | grep "$SCRIPT_NAME" | grep -q "wait" && cru d "$SCRIPT_NAME"
-    ;;
     *)
-        echo "Usage: $0 run|hotplug|start|stop|wait"
+        echo "Usage: $0 run|hotplug|start|stop"
         exit 1
     ;;
 esac
