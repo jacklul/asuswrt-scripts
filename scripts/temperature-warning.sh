@@ -69,12 +69,12 @@ case "$1" in
                 WARNING=1
             fi
 
-            if [ -n "$WIFI_24G_TEMPERATURE" ] && [ "$WIFI_24G_TEMPERATURE" -ge "$TEMPERATURE_TARGET" ]; then
+            if [ -n "$WIFI_24G_TEMPERATURE" ] && [ "$(printf "%.0f\n" "$WIFI_24G_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
                 logger -s -t "$SCRIPT_NAME" "WiFi 2.4G temperature warning: $WIFI_24G_TEMPERATURE C"
                 WARNING=1
             fi
 
-            if [ -n "$WIFI_5G_TEMPERATURE" ] && [ "$WIFI_5G_TEMPERATURE" -ge "$TEMPERATURE_TARGET" ]; then
+            if [ -n "$WIFI_5G_TEMPERATURE" ] && [ "$(printf "%.0f\n" "$WIFI_5G_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
                 logger -s -t "$SCRIPT_NAME" "WiFi 5G temperature warning: $WIFI_5G_TEMPERATURE C"
                 WARNING=1
             fi
