@@ -1,6 +1,7 @@
 # My AsusWRT-Merlin addon
 
-This addon adds easier configuration for most of the [scripts](/scripts) to the router's web UI.
+This addon adds easier configuration for most of the [scripts](/scripts) to the router's web UI.  
+It will also automatically download required scripts.
 
 ### **Untested code alert!**
 
