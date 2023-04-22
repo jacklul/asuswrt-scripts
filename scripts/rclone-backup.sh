@@ -69,7 +69,7 @@ case "$1" in
 
                 echo "Downloading $RCLONE_DOWNLOAD_URL..."
                 curl -fsS "$RCLONE_DOWNLOAD_URL" -o "$DOWNLOAD_DESTINATION/$RCLONE_DOWNLOAD_ZIP"
-                
+
                 echo "Unpacking $RCLONE_DOWNLOAD_ZIP..."
                 mkdir -p "$RCLONE_DOWNLOAD_UNZIP_DIR"
                 busybox unzip "$RCLONE_DOWNLOAD_ZIP" -d "$RCLONE_DOWNLOAD_UNZIP_DIR"

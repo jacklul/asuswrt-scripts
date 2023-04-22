@@ -37,7 +37,7 @@ case "$1" in
         if [ -n "$PROCESSES_TO_KILL" ]; then
             for PROCESS in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
                 FILEPATH="$PROCESS"
-                
+
                 if [ ! -f "$FILEPATH" ]; then
                     TMP=$(which "$PROCESS")
 

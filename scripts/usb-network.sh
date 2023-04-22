@@ -51,7 +51,7 @@ hotplug_config() {
                     fi
                 fi
             fi
-            
+
             cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 
             logger -s -t "$SCRIPT_NAME" "Failed to modify hotplug configuration - using crontab"

@@ -63,7 +63,7 @@ case "$1" in
 
         if [ -z "$UPTIME_CACHED" ] || [ "$((UPTIME_CACHED+COOLDOWN))" -le "$UPTIME" ]; then
             get_temperatures
-            
+
             if [ "$(printf "%.0f" "$CPU_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
                 logger -s -t "$SCRIPT_NAME" "CPU temperature warning: $CPU_TEMPERATURE C"
                 WARNING=1

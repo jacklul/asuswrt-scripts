@@ -31,7 +31,7 @@ if ! grep -q "# asuswrt-usb-raspberry-pi #" "/tmp/startup.sh"; then
     LINE="$(grep -Fn "f \"\$CHECK_FILE\" ]; then" "/tmp/startup.sh")"
 
     [ -z "$LINE" ] && { echo "Failed to modify /tmp/startup.sh - unable to find correct line"; exit 1; }
-    
+
     LINE="$(echo "$LINE" | cut -d":" -f1)"
     LINE=$((LINE-1))
     MD5="$(md5sum "/tmp/startup.sh")"

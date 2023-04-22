@@ -83,7 +83,7 @@ case "$1" in
         { [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; } && { logger -s -t "$SCRIPT_NAME" "Unable to start - configuration not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
-        
+
         sh "$SCRIPT_PATH" run &
     ;;
     "stop")

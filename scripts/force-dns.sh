@@ -119,7 +119,7 @@ iptables_chains() {
                 if ! $_IPTABLES -n -L "$CHAIN_DOT" >/dev/null 2>&1; then
                     _FORWARD_START="$($_IPTABLES -nvL FORWARD --line | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
-                    
+
                     $_IPTABLES -N "$CHAIN_DOT"
                     $_IPTABLES -I FORWARD "$_FORWARD_START_PLUS" -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
                 fi
@@ -244,7 +244,7 @@ iptables_rules() {
         fi
 
         [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN" -d "$_ROUTER_IP" -j RETURN
-        
+
         $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j DNAT --to-destination "$_SET_DNS_SERVER"
         $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_SET_DNS_SERVER" -j REJECT
 

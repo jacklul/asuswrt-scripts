@@ -34,7 +34,7 @@ case "$1" in
         if ! mount | grep -q "$DEFAULT_LOG_FILE"; then
             cp "$DEFAULT_LOG_FILE" "$LOG_FILE"
             touch "${LOG_FILE}-1"
-            
+
             mount --bind "$LOG_FILE" "$DEFAULT_LOG_FILE"
             mount --bind "${LOG_FILE}-1" "${DEFAULT_LOG_FILE}-1"
 

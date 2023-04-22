@@ -51,7 +51,7 @@ manage_swap() {
         "disable")
             sync
             echo 3 > /proc/sys/vm/drop_caches
-        
+
             if swapoff "$SWAP_FILE" ; then
                 logger -s -t "$SCRIPT_PATH" "Disabled swap on $SWAP_FILE"
             else
@@ -60,11 +60,11 @@ manage_swap() {
         ;;
         "create")
             set -e
-            
+
             [ -z "$SWAP_SIZE" ] && { logger -s -t "$SCRIPT_NAME" "Swap size is not set"; exit 1; }
-            
+
             logger -s -t "$SCRIPT_NAME" "Creating swap file..."
-            
+
             touch "$SWAP_FILE"
             chattr -f +C "$SWAP_FILE" || true
             dd if=/dev/zero of="$SWAP_FILE" bs=1k count="$SWAP_SIZE"
@@ -88,7 +88,7 @@ case "$1" in
             sh "$SCRIPT_PATH" create_and_start &
             exit
         fi
-        
+
         manage_swap enable
     ;;
     "stop")

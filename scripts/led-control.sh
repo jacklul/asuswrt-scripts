@@ -125,13 +125,13 @@ case "$1" in
                 on="$(date --date="$ON_HOUR:$ON_MINUTE" +%s)"
                 off="$(date --date="$OFF_HOUR:$OFF_MINUTE" +%s)"
                 now="$(date +%s)"
-            
+
                 if [ "$on" -le "$off" ]; then
                     [ "$on" -le "$now" ] && [ "$now" -lt "$off" ] && setLedsOn=1 || setLedsOn=0
                 else
                     [ "$on" -gt "$now" ] && [ "$now" -ge "$off" ] && setLedsOn=0 || setLedsOn=1
                 fi
-                
+
                 if [ "$setLedsOn" = 1 ]; then
                     if [ -f "/usr/sbin/helper.sh" ]; then
                         [ "$(nvram get led_disable)" = 1 ] && sh "$SCRIPT_PATH" off
