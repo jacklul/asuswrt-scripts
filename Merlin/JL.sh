@@ -32,6 +32,17 @@ jl_register_custom_page() {
 }
 
 jl_services() {
+	if [ "$(am_settings_get jl_syslog)" = "true" ] && [ "$1" != "uninstall" ]; then
+		if [ ! -f "$SCRIPTS_DIR/syslog-move.sh" ]; then
+			curl "$DOWNLOAD_BASE_SCRIPTS/syslog-move.sh" -o "$SCRIPTS_DIR/syslog-move.sh" && \
+			chmod +x "$SCRIPTS_DIR/syslog-move.sh"
+		fi
+
+		"$SCRIPTS_DIR/syslog-move.sh" start &
+	elif [ -f "$SCRIPTS_DIR/syslog-move.sh" ]; then
+		"$SCRIPTS_DIR/syslog-move.sh" stop
+	fi
+	
 	if [ "$(am_settings_get jl_pkiller)" = "true" ] && [ "$1" != "uninstall" ]; then
 		if [ ! -f "$SCRIPTS_DIR/process-killer.sh" ]; then
 			curl "$DOWNLOAD_BASE_SCRIPTS/process-killer.sh" -o "$SCRIPTS_DIR/process-killer.sh" && \
@@ -239,6 +250,7 @@ case "$1" in
 		[ -f "$SCRIPTS_DIR/rclone-backup.sh" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/rclone-backup.sh" "$SCRIPTS_DIR/rclone-backup.sh"
 		[ -f "$SCRIPTS_DIR/rclone-backup.list" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/rclone-backup.list" "$SCRIPTS_DIR/rclone-backup.list"
 		[ -f "$SCRIPTS_DIR/swap.sh" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/swap.sh" "$SCRIPTS_DIR/swap.sh"
+		[ -f "$SCRIPTS_DIR/syslog-move.sh" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/syslog-move.sh" "$SCRIPTS_DIR/syslog-move.sh"
 		[ -f "$SCRIPTS_DIR/temperature-warning.sh" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/temperature-warning.sh" "$SCRIPTS_DIR/temperature-warning.sh"
 		[ -f "$SCRIPTS_DIR/update-notify.sh" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/update-notify.sh" "$SCRIPTS_DIR/update-notify.sh"
 		[ -f "$SCRIPTS_DIR/usb-network.sh" ] && jl_download_and_check "$DOWNLOAD_BASE_SCRIPTS/usb-network.sh" "$SCRIPTS_DIR/usb-network.sh"

@@ -57,6 +57,8 @@
 			jl_unotify_chat_id: '',
 			jl_usbnetwork: 'false',
 			jl_usbnetwork_iface: 'br0',
+			jl_syslog: 'false',
+			jl_syslog_log_file: '/tmp/syslog-moved.log',
 		};
 
 		function initial() {
