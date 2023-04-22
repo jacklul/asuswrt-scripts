@@ -56,7 +56,7 @@
 			jl_unotify_bot_token: '',
 			jl_unotify_chat_id: '',
 			jl_usbnetwork: 'false',
-			jl_usbnetwork_iface: 'br0',
+			jl_usbnetwork_bridge: 'br0',
 			jl_syslog: 'false',
 			jl_syslog_log_file: '/tmp/syslog-moved.log',
 		};
@@ -466,7 +466,7 @@
 													<tr>
 														<th>Bridge interface</th>
 														<td>
-															<input type="text" maxlength="100" class="input_32_table" id="jl_usbnetwork_iface" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
+															<input type="text" maxlength="100" class="input_32_table" id="jl_usbnetwork_bridge" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
 														</td>
 													</tr>
 												</tbody>
@@ -484,6 +484,29 @@
 														<td>
 															<input type="radio" value="true" id="jl_diskcheck" name="jl_diskcheck" class="input" onchange="return handleRadioButton(this, event)">Yes
 															<input type="radio" value="false" id="jl_diskcheck" name="jl_diskcheck" class="input" onchange="return handleRadioButton(this, event)">No
+														</td>
+													</tr>
+												</tbody>
+											</table>
+
+											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+												<thead>
+													<tr>
+														<td colspan="2">Move syslog to different location</td>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<th>Enabled</th>
+														<td>
+															<input type="radio" value="true" id="jl_syslog" name="jl_syslog" class="input" onchange="return handleRadioButton(this, event)">Yes
+															<input type="radio" value="false" id="jl_syslog" name="jl_syslog" class="input" onchange="return handleRadioButton(this, event)">No
+														</td>
+													</tr>
+													<tr>
+														<th>Log file</th>
+														<td>
+															<input type="text" maxlength="100" class="input_32_table" id="jl_syslog_log_file" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
 														</td>
 													</tr>
 												</tbody>
