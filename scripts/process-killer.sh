@@ -35,8 +35,6 @@ fi
 case "$1" in
     "run")
         if [ -n "$PROCESSES_TO_KILL" ]; then
-            [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ] && sleep 60 # delay when freshly booted
-
             for PROCESS in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
                 FILEPATH="$PROCESS"
                 
@@ -71,7 +69,11 @@ case "$1" in
         fi
     ;;
     "start")
-        "$SCRIPT_PATH" run &
+        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
+            { sleep 60 && "$SCRIPT_PATH" run; } & # delay when freshly booted
+        else
+            "$SCRIPT_PATH" run
+        fi
     ;;
     "stop")
         logger -s -t "$SCRIPT_NAME" "Operations made by this script cannot be reverted - disable it then reboot the router!"

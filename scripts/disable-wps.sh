@@ -23,8 +23,6 @@ fi
 case "$1" in
     "run")
         if [ "$(nvram get wl0_wps_mode)" != "disabled" ] || [ "$(nvram get wps_enable)" != "0" ] || [ "$(nvram get wps_enable_x)" != "0" ]; then
-            [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ] && sleep 60 # delay when freshly booted
-
             nvram set wl0_wps_mode=disabled
             nvram set wps_enable=0
             nvram set wps_enable_x=0
@@ -37,7 +35,11 @@ case "$1" in
     "start")
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 
-        "$SCRIPT_PATH" run &
+        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
+            { sleep 60 &&  "$SCRIPT_PATH" run; } & # delay when freshly booted
+        else
+            "$SCRIPT_PATH" run
+        fi
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
