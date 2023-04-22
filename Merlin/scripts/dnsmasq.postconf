@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# Do not assign IPs sequentially
-sed -e '/dhcp-sequential-ip/s/^#*/#/' -i "$1"
-
-# Improve privacy
-grep -q domain-needed "$1" || echo "domain-needed" >> "$1"
-grep -q bogus-priv "$1" || echo "bogus-priv" >> "$1"

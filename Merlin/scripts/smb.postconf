@@ -1,8 +1,0 @@
-#!/bin/sh
-
-CONFIG=$1
-
-sed -i "/deadtime/d;/strict locking/d;/socket options/d" "$CONFIG"
-sed -i "/global/a\socket options = IPTOS_LOWDELAY TCP_NODELAY SO_KEEPALIVE" "$CONFIG"
-sed -i "/global/a\strict locking = no" "$CONFIG"
-sed -i "/global/a\deadtime = 10" "$CONFIG"
