@@ -28,6 +28,7 @@ FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIR
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed, will pass argument with action (add or remove)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
+CACHE_FILE="/tmp/last_firewall_restart" # where to store last log line when firewall was restarted
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
@@ -106,6 +107,9 @@ fi
 if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
     logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
 fi
+
+#shellcheck disable=SC2009
+#WATCHDOG_PID="$(ps | grep "$SCRIPT_NAME.sh watchdog" | grep -v grep | awk '{print $1}')"
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
@@ -297,6 +301,7 @@ interface_exists() {
 
 case "$1" in
     "run")
+        [ -z "$DNS_SERVER" ] && exit
         RULES_EXIST="$({ $IPT -t nat -C "$CHAIN" -j DNAT --to-destination "$DNS_SERVER" >/dev/null 2>&1 && $IPT -C "$CHAIN_DOT" ! -d "$DNS_SERVER" -j REJECT >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
@@ -305,20 +310,44 @@ case "$1" in
             setup_rules add "missing firewall rules"
         fi
     ;;
+    "watchdog")
+        set -e
+
+        [ ! -f "$CACHE_FILE" ] && touch "$CACHE_FILE"
+
+        INIT=
+        while true; do
+            LAST_MATCHING="$(tail /tmp/syslog.log -n 25 | grep 'rc_service.*restart_firewall' | tail -n 1)"
+
+            if [ -n "$LAST_MATCHING" ] && [ "$LAST_MATCHING" != "$(cat "$CACHE_FILE")" ]; then
+                echo "$LAST_MATCHING" > "$CACHE_FILE"
+
+                [ -n "$INIT" ] && sh "$SCRIPT_PATH" run
+            fi
+
+            [ -z "$INIT" ] && INIT=1
+
+            sleep 1
+        done
+    ;;
     "start")
         [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - target DNS server is not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+
+        #[ -z "$WATCHDOG_PID" ] && nohup sh "$SCRIPT_PATH" watchdog 0<&- &>/dev/null &
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && setup_rules add
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
 
+        #[ -n "$WATCHDOG_PID" ] && kill "$WATCHDOG_PID"
+
         setup_rules remove
     ;;
     *)
-        echo "Usage: $0 run|start|stop"
+        echo "Usage: $0 run|watchdog|start|stop"
         exit 1
     ;;
 esac
