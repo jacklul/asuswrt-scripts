@@ -86,7 +86,7 @@ case "$1" in
 
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
         
-        "$SCRIPT_PATH" run &
+        sh "$SCRIPT_PATH" run &
     ;;
     "stop")
         cru d "$SCRIPT_NAME"

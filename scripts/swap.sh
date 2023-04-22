@@ -85,7 +85,7 @@ case "$1" in
     ;;
     "start")
         if [ -d "$(dirname "$SWAP_FILE")" ] && [ ! -f "$SWAP_FILE" ]; then
-            "$SCRIPT_PATH" create_and_start &
+            sh "$SCRIPT_PATH" create_and_start &
             exit
         fi
         

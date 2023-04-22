@@ -36,9 +36,9 @@ case "$1" in
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 
         if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
-            { sleep 60 &&  "$SCRIPT_PATH" run; } & # delay when freshly booted
+            { sleep 60 &&  sh "$SCRIPT_PATH"run; } & # delay when freshly booted
         else
-            "$SCRIPT_PATH" run
+            sh "$SCRIPT_PATH"run
         fi
     ;;
     "stop")

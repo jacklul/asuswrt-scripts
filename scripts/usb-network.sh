@@ -157,7 +157,7 @@ case "$1" in
         fi
     ;;
     "retry_until_success")
-        "$SCRIPT_PATH" run
+        sh "$SCRIPT_PATH" run
 
         brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && cru l | grep "$SCRIPT_NAME" | grep -q "retry_until_success" && cru d "$SCRIPT_NAME"
     ;;

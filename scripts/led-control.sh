@@ -136,15 +136,15 @@ case "$1" in
                 
                 if [ "$setLedsOn" = 1 ]; then
                     if [ -f "/usr/sbin/helper.sh" ]; then
-                        [ "$(nvram get led_disable)" = 1 ] && "$SCRIPT_PATH" off
+                        [ "$(nvram get led_disable)" = 1 ] && sh "$SCRIPT_PATH" off
                     else
-                        "$SCRIPT_PATH" off
+                        sh "$SCRIPT_PATH" off
                     fi
                 elif [ "$setLedsOn" = 0 ]; then
                     if [ -f "/usr/sbin/helper.sh" ]; then
-                        [ "$(nvram get led_disable)" = 0 ] && "$SCRIPT_PATH" on
+                        [ "$(nvram get led_disable)" = 0 ] && sh "$SCRIPT_PATH" on
                     else
-                        "$SCRIPT_PATH" on
+                        sh "$SCRIPT_PATH" on
                     fi
                 fi
             else
@@ -159,7 +159,7 @@ case "$1" in
 
             logger -s -t "$SCRIPT_NAME" "LED control schedule has been enabled"
 
-            "$SCRIPT_PATH" run &
+            sh "$SCRIPT_PATH" run &
         else
             logger -s -t "$SCRIPT_NAME" "LED control schedule is not set"
         fi
