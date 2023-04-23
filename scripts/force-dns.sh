@@ -103,11 +103,6 @@ fi
 
 { [ "$BLOCK_ROUTER_DNS" = "true" ] || [ "$BLOCK_ROUTER_DNS" = true ]; } && BLOCK_ROUTER_DNS="1" || BLOCK_ROUTER_DNS="0"
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
-    logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
-fi
-
 #shellcheck disable=SC2009
 #WATCHDOG_PID="$(ps | grep "$SCRIPT_NAME.sh watchdog" | grep -v grep | awk '{print $1}')"
 
@@ -332,6 +327,9 @@ case "$1" in
     ;;
     "start")
         [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - target DNS server is not set"; exit 1; }
+        if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
+            logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
+        fi
 
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 

@@ -8,7 +8,7 @@
 
 TEMPERATURE_TARGET="80" # target temperature at which send the warning
 COOLDOWN=300 # how long to wait (seconds) before sending another warning
-CACHE_FILE="/tmp/last_temp_warning" # where to cache last warning uptime value
+CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 

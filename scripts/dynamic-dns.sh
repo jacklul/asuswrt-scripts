@@ -16,9 +16,6 @@ IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL addre
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
-# This means that this is a Merlin firmware
-[ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
-
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
@@ -56,6 +53,8 @@ case "$1" in
         fi
     ;;
     "start")
+        [ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
+
         [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - Inadyn config file ($CONFIG_FILE) not found"; exit 1; }
         inadyn -f "$CONFIG_FILE" --check-config >/dev/null || { logger -s -t "$SCRIPT_NAME" "Unable to start - Inadyn config is not valid"; exit 1; }
 
