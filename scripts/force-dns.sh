@@ -28,7 +28,9 @@ FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIR
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed, will pass argument with action (add or remove)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
+USE_WATCHDOG=true # should we monitor the syslog for firewall restart event to restore the rules after
 CACHE_FILE="/tmp/last_firewall_restart" # where to store last log line when firewall was restarted
+WATCHDOG_SLEEP=1 # the amount of time to sleep each loop when monitoring for firewall restart, set to 0 to disable monitoring
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
@@ -102,9 +104,10 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
 fi
 
 { [ "$BLOCK_ROUTER_DNS" = "true" ] || [ "$BLOCK_ROUTER_DNS" = true ]; } && BLOCK_ROUTER_DNS="1" || BLOCK_ROUTER_DNS="0"
+{ [ "$USE_WATCHDOG" = "true" ] || [ "$USE_WATCHDOG" = true ]; } && USE_WATCHDOG="1" || USE_WATCHDOG="0"
 
 #shellcheck disable=SC2009
-#WATCHDOG_PID="$(ps | grep "$SCRIPT_NAME.sh watchdog" | grep -v grep | awk '{print $1}')"
+WATCHDOG_PID="$(ps | grep "$SCRIPT_NAME.sh watchdog" | grep -v grep | awk '{print $1}')"
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
@@ -322,25 +325,35 @@ case "$1" in
 
             [ -z "$INIT" ] && INIT=1
 
-            sleep 1
+            sleep $WATCHDOG_SLEEP
         done
     ;;
+    "run-watchdog")
+        cru d "${SCRIPT_NAME}-watchdog"
+
+        #shellcheck disable=SC3020
+        [ -z "$WATCHDOG_PID" ] && nohup sh "$SCRIPT_PATH" watchdog 0<&- &>/dev/null &
+    ;;
     "start")
-        [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - target DNS server is not set"; exit 1; }
         if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
             logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
         fi
 
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - target DNS server is not set"; exit 1; }
 
-        #[ -z "$WATCHDOG_PID" ] && nohup sh "$SCRIPT_PATH" watchdog 0<&- &>/dev/null &
+        if [ "$USE_WATCHDOG" = "1" ]; then
+            [ -z "$WATCHDOG_PID" ] && cru a "${SCRIPT_NAME}-watchdog" "*/1 * * * * $SCRIPT_PATH run-watchdog"
+        else
+            cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        fi
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && setup_rules add
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
+        cru d "${SCRIPT_NAME}-watchdog"
 
-        #[ -n "$WATCHDOG_PID" ] && kill "$WATCHDOG_PID"
+        [ -n "$WATCHDOG_PID" ] && kill "$WATCHDOG_PID"
 
         setup_rules remove
     ;;
