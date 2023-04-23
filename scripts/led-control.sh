@@ -178,7 +178,7 @@ case "$1" in
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 on|off|run|start|stop|restart"
+        echo "Usage: $0 run|on|off|start|stop|restart"
         exit 1
     ;;
 esac

@@ -79,7 +79,6 @@ case "$1" in
         logger -s -t "$SCRIPT_NAME" "Operations made by this script cannot be reverted - disable it then reboot the router!"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
         sh "$SCRIPT_PATH" start
     ;;
     *)
