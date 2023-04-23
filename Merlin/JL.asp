@@ -55,8 +55,6 @@
 			jl_swap: 'false',
 			jl_swap_file: '',
 			jl_swap_size: 1310721,
-			jl_syslog: 'false',
-			jl_syslog_log_file: '/tmp/syslog-moved.log',
 			jl_twarning: 'false',
 			jl_twarning_ttarget: 80,
 			jl_twarning_cooldown: 300,

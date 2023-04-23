@@ -19,8 +19,6 @@ curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/r
 
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/swap.sh" -o /jffs/scripts/swap.sh
 
-curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/syslog-move.sh" -o /jffs/scripts/syslog-move.sh
-
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/temperature-warning.sh" -o /jffs/scripts/temperature-warning.sh
 
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
