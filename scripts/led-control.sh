@@ -7,8 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/led_control.mod
 #
-# This script will probably not fully work on stock as each device controls
-# LED differently - would require to reverse engineer Merlin's compiled binaries!
+# This script will probably not fully work on stock as each device controls LED differently - would require to reverse engineer Merlin's compiled binaries!
 #
 
 #shellcheck disable=SC2155

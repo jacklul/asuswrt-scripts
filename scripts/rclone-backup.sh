@@ -3,8 +3,7 @@
 #
 # Backup important stuff using Rclone
 #
-# Keep in mind that that Rclone binary is over 40MB and
-# should not be stored on the /jffs partition!
+# Keep in mind that that Rclone binary is over 40MB and should not be stored on the /jffs partition!
 #
 
 #shellcheck disable=SC2155

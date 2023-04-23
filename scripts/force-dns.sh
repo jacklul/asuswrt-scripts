@@ -6,9 +6,8 @@
 # Implements DNS Director feature from AsusWRT-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/DNS-Director
 #
-# Can set rules depending on whenever specific interface is available and 
-# define a fallback DNS server when it is not.
-# Can prevent clients from querying router's DNS server while the rules are applied.
+# Can set rules depending on whenever specific interface is available and define a fallback DNS server when it is not.
+# Can also prevent clients from querying router's DNS server while the rules are applied.
 #
 # If you need per-device DNS settings then these will help you write your own script (which you can execute via EXECUTE_COMMAND variable):
 #  iptables -I "FORCEDNS" -m mac --mac-source "d9:32:cb:d0:fe:fe" -j DNAT --to-destination "1.1.1.1"
