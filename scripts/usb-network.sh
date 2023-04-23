@@ -49,10 +49,6 @@ hotplug_config() {
                     fi
                 fi
             fi
-
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
-
-            logger -s -t "$SCRIPT_NAME" "Failed to modify hotplug configuration - using crontab"
         ;;
         "restore")
             if [ -f "/etc/hotplug2.rules" ] && [ -f "/etc/hotplug2.rules.bak" ]; then
@@ -65,8 +61,6 @@ hotplug_config() {
 
                 logger -s -t "$SCRIPT_NAME" "Restored original hotplug configuration"
             fi
-
-            cru d "$SCRIPT_NAME"
         ;;
     esac
 }
@@ -151,6 +145,8 @@ case "$1" in
     "start")
         [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - bridge interface is not set"; exit 1; }
 
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+
         hotplug_config modify
 
         for INTERFACE in /sys/class/net/usb*; do
@@ -164,6 +160,8 @@ case "$1" in
         fi
     ;;
     "stop")
+        cru d "$SCRIPT_NAME"
+
         hotplug_config restore
 
         for INTERFACE in /sys/class/net/usb*; do
