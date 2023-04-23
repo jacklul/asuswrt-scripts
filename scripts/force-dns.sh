@@ -53,7 +53,7 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     REQUIRE_INTERFACE_=$(am_settings_get jl_fdns_require_iface)
     FALLBACK_DNS_SERVER_=$(am_settings_get jl_fdns_fallback)
     FALLBACK_DNS_SERVER6_=$(am_settings_get jl_fdns_fallback6)
-    BLOCK_ROUTER_DNS_=$(am_settings_get jjl_fdns_block_router_dnsl_)
+    BLOCK_ROUTER_DNS_=$(am_settings_get jl_fdns_block_router_dns)
 
     [ -n "$DNS_SERVER_" ] && DNS_SERVER=$DNS_SERVER_
     [ -n "$DNS_SERVER6_" ] && DNS_SERVER6=$DNS_SERVER6_
