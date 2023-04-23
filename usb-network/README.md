@@ -1,6 +1,6 @@
-# Connect to LAN through USB Ethernet Gadget
+# Connect Raspberry Pi to LAN through USB Ethernet Gadget
 
-This makes any device capable of becoming USB Gadget to connect to LAN network through router's USB port.
+This makes any Raspberry Pi capable of becoming USB Gadget to connect to LAN network through router's USB port.
 
 Great way to run [Pi-hole](https://pi-hole.net/) in your network on Raspberry Pi Zero!
 
