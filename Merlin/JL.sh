@@ -196,25 +196,29 @@ jl_services() {
 }
 
 jl_md5_compare() {
-	if [ -n "$1" ] && [ -n "$2" ]; then
-		if [ "$(md5sum "$1" | awk '{print $1}')" = "$(md5sum "$2" | awk '{print $1}')" ]; then
-			return 0
-		fi
-	fi
+    if [ -n "$1" ] && [ -n "$2" ]; then
+        if [ "$(md5sum "$1" | awk '{print $1}')" = "$(md5sum "$2" | awk '{print $1}')" ]; then
+            return 0
+        fi
+    fi
 
-	return 1
+    return 1
 }
 
 jl_download_and_check() {
 	if [ -n "$1" ] && [ -n "$2" ]; then
-		if curl "$1" -o "/tmp/download_tmp"; then
-			if ! jl_md5_compare "/tmp/download_tmp" "$2"; then
-				mv "/tmp/download_tmp" "$2"
-			fi
-		fi
+        if curl -sf "$1" -o "/tmp/download_tmp"; then
+            if ! md5_compare "/tmp/download_tmp" "$2"; then
+				echo "Updating '$2'..."
 
-		rm -f "/tmp/download_tmp"
-	fi
+                cat "/tmp/download_tmp" > "$2"
+            fi
+        else
+            echo "Failed to download from url '$1'"
+        fi
+
+        rm -f "/tmp/download_tmp"
+    fi
 }
 
 case "$1" in

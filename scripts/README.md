@@ -22,6 +22,8 @@ curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/t
 
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
 
+curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
+
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
 
 chmod +x /jffs/scripts/*.sh
