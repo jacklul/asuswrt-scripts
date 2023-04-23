@@ -312,6 +312,8 @@ case "$1" in
 
         [ ! -f "$CACHE_FILE" ] && touch "$CACHE_FILE"
 
+        logger -s -t "$SCRIPT_NAME" "Watchdog started, monitoring for firewall restart event..."
+
         INIT=
         while true; do
             LAST_MATCHING="$(tail /tmp/syslog.log -n 25 | grep 'rc_service.*restart_firewall' | tail -n 1)"
