@@ -173,8 +173,12 @@ case "$1" in
 
         logger -s -t "$SCRIPT_NAME" "LED control schedule has been disabled"
     ;;
+    "restart")
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
+    ;;
     *)
-        echo "Usage: $0 on|off|run|start|stop"
+        echo "Usage: $0 on|off|run|start|stop|restart"
         exit 1
     ;;
 esac

@@ -63,8 +63,12 @@ case "$1" in
     "stop")
         cru d "$SCRIPT_NAME"
     ;;
+    "restart")
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
+    ;;
     *)
-        echo "Usage: $0 run|start|stop"
+        echo "Usage: $0 run|start|stop|restart"
         exit 1
     ;;
 esac

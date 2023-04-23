@@ -172,8 +172,12 @@ case "$1" in
             setup_inteface remove "$(basename "$INTERFACE")"
         done
     ;;
+    "restart")
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
+    ;;
     *)
-        echo "Usage: $0 run|hotplug|start|stop"
+        echo "Usage: $0 run|hotplug|start|stop|restart"
         exit 1
     ;;
 esac

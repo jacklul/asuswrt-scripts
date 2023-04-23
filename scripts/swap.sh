@@ -94,8 +94,12 @@ case "$1" in
     "stop")
         manage_swap disable
     ;;
+    "restart")
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
+    ;;
     *)
-        echo "Usage: $0 start|stop"
+        echo "Usage: $0 start|stop|restart"
         exit 1
     ;;
 esac

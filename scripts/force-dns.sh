@@ -357,8 +357,12 @@ case "$1" in
 
         setup_rules remove
     ;;
+    "restart")
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
+    ;;
     *)
-        echo "Usage: $0 run|watchdog|start|stop"
+        echo "Usage: $0 run|watchdog|start|stop|restart"
         exit 1
     ;;
 esac

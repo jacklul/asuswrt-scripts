@@ -53,8 +53,12 @@ case "$1" in
     "stop")
         logger -s -t "$SCRIPT_NAME" "Operations made by this script cannot be reverted - disable it then reboot the router!"
     ;;
+    "restart")
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
+    ;;
     *)
-        echo "Usage: $0 run|start|stop"
+        echo "Usage: $0 run|start|stop|restart"
         exit 1
     ;;
 esac
