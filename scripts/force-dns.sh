@@ -27,8 +27,6 @@ FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIR
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed, will pass argument with action (add or remove)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
-CRON_MINUTE="*/1"
-CRON_HOUR="*"
 
 # These should not be changed but they can
 IPT="/usr/sbin/iptables"
@@ -307,7 +305,7 @@ case "$1" in
 
         [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - target DNS server is not set"; exit 1; }
 
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && setup_rules add
     ;;

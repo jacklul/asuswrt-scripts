@@ -13,8 +13,6 @@ CONFIG_FILE="/jffs/inadyn.conf" # Inadyn configuration file to use
 CACHE_FILE="/tmp/last_wan_ip" # where to cache last public IP
 IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr", can use URL like "https://ipecho.net/plain" here or empty to not check
 IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL address
-CRON_MINUTE="*/1"
-CRON_HOUR="*"
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -58,7 +56,7 @@ case "$1" in
         [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - Inadyn config file ($CONFIG_FILE) not found"; exit 1; }
         inadyn -f "$CONFIG_FILE" --check-config >/dev/null || { logger -s -t "$SCRIPT_NAME" "Unable to start - Inadyn config is not valid"; exit 1; }
 
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"

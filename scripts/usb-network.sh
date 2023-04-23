@@ -11,8 +11,6 @@
 
 BRIDGE_INTERFACE="br0" # bridge interface to add into
 EXECUTE_COMMAND="" # execute a command each time status changes, will pass arguments action (add or remove) and with interface name
-CRON_MINUTE="*/1"
-CRON_HOUR="*"
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -52,7 +50,7 @@ hotplug_config() {
                 fi
             fi
 
-            cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
             logger -s -t "$SCRIPT_NAME" "Failed to modify hotplug configuration - using crontab"
         ;;
