@@ -22,6 +22,7 @@ esac
 
 case "${1}_${2}" in
     "ipsec_set"|"ipsec_start"|"ipsec_restart")
-        sh "$(readlink -f "$0")" restart firewall
+        sleep 5
+        sh "$(readlink -f "$0")" "restart" "firewall"
     ;;
 esac

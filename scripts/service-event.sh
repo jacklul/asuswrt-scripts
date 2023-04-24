@@ -10,9 +10,10 @@
 
 #shellcheck disable=SC2155
 
-TARGET_SCRIPT="/jffs/scripts/service-event"
-SYSLOG_FILE="/tmp/syslog.log"
-SLEEP=1
+TARGET_SCRIPT="/jffs/scripts/service-event" # target script to execute
+SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
+CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
+SLEEP=1 # how to long to wait between each iteration
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -23,7 +24,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 #shellcheck disable=SC2009
-PROCESS_PID="$(ps | grep "$SCRIPT_NAME.sh run" | grep -v grep | awk '{print $1}')"
+PROCESS_PID="$(ps w | grep "$SCRIPT_NAME.sh run" | grep -v grep | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1')"
 
 case "$1" in
     "run")
@@ -36,8 +37,12 @@ case "$1" in
 
         logger -s -t "$SCRIPT_NAME" "Started service event monitoring..."
         
-        LAST_LINE="$(wc -l < "$SYSLOG_FILE")"
-        LAST_LINE="$((LAST_LINE+1))"
+        if [ -f "$CACHE_FILE" ]; then
+            LAST_LINE="$(cat "$CACHE_FILE")"
+        else
+            LAST_LINE="$(wc -l < "$SYSLOG_FILE")"
+            LAST_LINE="$((LAST_LINE+1))"
+        fi
 
         while true; do
             TOTAL_LINES="$(wc -l < "$SYSLOG_FILE")"
@@ -83,20 +88,20 @@ case "$1" in
                 fi
             fi
 
+            echo "$LAST_LINE" > "$CACHE_FILE"
+
             [ -z "$INIT" ] && INIT=1
 
             sleep "$SLEEP"
         done
     ;;
     "init-run")
-        cru d "$SCRIPT_NAME"
-
         [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
     ;;
     "start")
         [ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, using this script is redundant!"; exit 1; }
 
-        [ -z "$PROCESS_PID" ] && cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
