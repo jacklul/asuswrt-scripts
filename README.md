@@ -6,8 +6,6 @@ This uses known `script_usbmount` NVRAM variable to run "startup" script on USB 
 
 If you're running Asuswrt-Merlin you might be interested in using [my addon](Merlin/) instead.
 
-Bonus: [Connecting Raspberry Pi to LAN through USB Ethernet Gadget](usb-network/) - great way to run Pi-hole on the Pi Zero using just a single USB cable!
-
 ## Installation
 
 Install startup script:
