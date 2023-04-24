@@ -17,6 +17,9 @@ curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/p
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.list" -o /jffs/scripts/rclone-backup.list
 
+curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
+curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event" -o /jffs/scripts/service-event
+
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/swap.sh" -o /jffs/scripts/swap.sh
 
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/temperature-warning.sh" -o /jffs/scripts/temperature-warning.sh

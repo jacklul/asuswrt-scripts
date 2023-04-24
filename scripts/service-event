@@ -1,0 +1,27 @@
+#!/bin/sh
+# $1 = event, $2 = target
+
+case "$2" in
+    "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnd"|"pptpd"|"openvpnd"|"yadns"|"dnsfilter"|"tr"|"tor")
+        [ ! -f "/jffs/scripts/force-dns.sh" ] && exit
+
+        sleep 1
+        /jffs/scripts/force-dns.sh run
+    ;;
+    "net"|"net_and_phy"|"wan"|"wan_if")
+        [ ! -f "/jffs/scripts/usb-network.sh" ] && [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/dynamic-dns.sh" ] && exit
+
+        sleep 15
+        [ -f "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh run &
+        [ -f "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
+        
+        sleep 15
+        [ -f "/jffs/scripts/dynamic-dns.sh" ] && /jffs/scripts/dynamic-dns.sh run &
+    ;;
+esac
+
+case "${1}_${2}" in
+    "ipsec_set"|"ipsec_start"|"ipsec_restart")
+        sh "$(readlink -f "$0")" restart firewall
+    ;;
+esac
