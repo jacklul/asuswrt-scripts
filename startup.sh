@@ -17,7 +17,7 @@ fi
 scripts() {
     readonly _ACTION="$1"
 
-    for ENTRY in "$SCRIPTS_PATH"/*; do
+    for ENTRY in "$SCRIPTS_PATH"/*.sh; do
         [ "$(basename "$ENTRY" .sh)" = "$SCRIPT_NAME" ] && continue
 
         if [ -x "$ENTRY" ]; then
