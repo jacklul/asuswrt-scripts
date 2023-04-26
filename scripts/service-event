@@ -1,6 +1,8 @@
 #!/bin/sh
 # $1 = event, $2 = target
 
+[ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "This service-event script is not compatible with Merlin firmware!"; exit 1; }
+
 case "$2" in
     "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnd"|"pptpd"|"openvpnd"|"yadns"|"dnsfilter"|"tr"|"tor")
         [ ! -f "/jffs/scripts/force-dns.sh" ] && exit
@@ -27,5 +29,6 @@ case "${1}_${2}" in
     "ipsec_set"|"ipsec_start"|"ipsec_restart")
         sleep 5
         sh "$(readlink -f "$0")" "restart" "firewall"
+        exit
     ;;
 esac

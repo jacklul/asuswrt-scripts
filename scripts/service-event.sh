@@ -5,7 +5,8 @@
 #
 # Implements basic service-event script handler from AsusWRT-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts
-# There is no guarantee that this script will run before the event happens.
+# There is no blocking so there is no guarantee that this script will run before the event happens.
+# You will probably want add extra code if you want to run code after the event happens.
 #
 
 #shellcheck disable=SC2155
