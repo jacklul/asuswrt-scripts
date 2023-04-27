@@ -111,7 +111,7 @@ case "$1" in
             [ ! -f "$TAILSCALE_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
         fi
 
-        if [ -z "$PROCESS_PID" ]; then
+        if [ -z "$TAILSCALED_PID" ]; then
             logger -s -t "$SCRIPT_NAME" "Starting Tailscale daemon..."
 
             ! lsmod | grep -q tun && modprobe tun && sleep 1
@@ -132,7 +132,11 @@ case "$1" in
         sh "$SCRIPT_PATH" firewall
     ;;
     "firewall")
-        firewall_rules add
+        if [ -n "$TAILSCALED_PID" ]; then
+            firewall_rules add
+        else
+            firewall_rules remove
+        fi
     ;;
     "start")
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
