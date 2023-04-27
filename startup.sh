@@ -55,6 +55,10 @@ case "$1" in
         rm "$CHECK_FILE"
     ;;
     "install")
+        if [ -f "/usr/sbin/helper.sh" ]; then
+            logger -s -t "$SCRIPT_NAME" "Merlin firmware not supported, use /jffs/scripts/services-start script instead!"
+        fi
+
         [ ! -d "$SCRIPTS_PATH" ] && mkdir -v "$SCRIPTS_PATH"
         [ ! -x "$SCRIPT_PATH" ] && chmod +x "$SCRIPT_PATH"
 
