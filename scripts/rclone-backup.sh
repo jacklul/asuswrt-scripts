@@ -18,10 +18,7 @@ RCLONE_DOWNLOAD_ZIP="$(basename "$RCLONE_DOWNLOAD_URL")" # Rclone download ZIP f
 RCLONE_DOWNLOAD_UNZIP_DIR="/tmp/rclone-download" # Rclone download ZIP unpack destination, should be /tmp, make sure your router has enough RAM
 LOG_FILE="/tmp/rclone.log" # log file
 NVRAM_FILE="/tmp/nvram.txt" # file to dump NVRAM to
-CRON_MINUTE=0
-CRON_HOUR=6
-CRON_MONTHDAY="*"
-CRON_WEEKDAY=7
+CRON="0 6 * * 7"
 
 # This means that this is a Merlin firmware
 if [ -f "/usr/sbin/helper.sh" ]; then
@@ -34,15 +31,19 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     CRON_HOUR_=$(am_settings_get jl_rbackup_hour)
     CRON_MINUTE_=$(am_settings_get jl_rbackup_minute)
     CRON_MONTHDAY_=$(am_settings_get jl_rbackup_monthday)
+    CRON_MONTH_=$(am_settings_get jl_rbackup_month)
     CRON_WEEKDAY_=$(am_settings_get jl_rbackup_weekday)
 
     [ -n "$PARAMETERS_" ] && PARAMETERS=$PARAMETERS_
     [ -n "$REMOTE_" ] && REMOTE=$REMOTE_
     [ -n "$RCLONE_PATH_" ] && RCLONE_PATH=$RCLONE_PATH_
-    [ -n "$CRON_HOUR_" ] && CRON_HOUR=$CRON_HOUR_
-    [ -n "$CRON_MINUTE_" ] && CRON_MINUTE=$CRON_MINUTE_
-    [ -n "$CRON_MONTHDAY_" ] && CRON_MONTHDAY=$CRON_MONTHDAY_
-    [ -n "$CRON_WEEKDAY_" ] && CRON_WEEKDAY=$CRON_WEEKDAY_
+    [ -n "$CRON_HOUR_" ] && CRON_HOUR=$CRON_HOUR_ || CRON_HOUR=6
+    [ -n "$CRON_MINUTE_" ] && CRON_MINUTE=$CRON_MINUTE_ || CRON_MINUTE_=0
+    [ -n "$CRON_MONTHDAY_" ] && CRON_MONTHDAY=$CRON_MONTHDAY_ || CRON_MONTHDAY="*"
+    [ -n "$CRON_MONTH_" ] && CRON_MONTH=$CRON_MONTH_ || CRON_MONTH="*"
+    [ -n "$CRON_WEEKDAY_" ] && CRON_WEEKDAY=$CRON_WEEKDAY_ || CRON_WEEKDAY=7
+    
+    CRON="$CRON_MINUTE $CRON_HOUR $CRON_MONTHDAY $CRON_MONTH $CRON_WEEKDAY"
 fi
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
@@ -107,7 +108,7 @@ case "$1" in
     "start")
         [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
 
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR $CRON_MONTHDAY * $CRON_WEEKDAY $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"

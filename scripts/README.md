@@ -1,5 +1,7 @@
 **You can override config variables for scripts by creating `.conf` with the same base name as the script.**
 
+**If there is another file with the same base name as the script then it is required for that script to work.**
+
 Convenient install commands (install what you need, not everything!):
 ```sh
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
