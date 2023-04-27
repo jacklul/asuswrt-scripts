@@ -35,5 +35,7 @@ cur -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scri
 
 cur -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
 
+cur -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/vpn-killswitch.sh" -o /jffs/scripts/vpn-killswitch.sh
+
 chmod +x /jffs/scripts/*.sh
 ```

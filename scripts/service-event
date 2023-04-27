@@ -5,9 +5,10 @@
 
 case "$2" in
     "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnd"|"pptpd"|"openvpnd"|"yadns"|"dnsfilter"|"tr"|"tor")
-        [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/tailscale.sh" ] && exit
+        [ ! -f "/jffs/scripts/vpn-kill-switch.sh" ] && [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/tailscale.sh" ] && exit
 
         _TIMER=0; while { # wait till our chains disappear
+            iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
             iptables -t nat -n -L "FORCEDNS" >/dev/null 2>&1 ||
             iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
             iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
@@ -16,6 +17,7 @@ case "$2" in
             sleep 1
         done
 
+        /jffs/scripts/vpn-kill-switch.sh run &
         /jffs/scripts/force-dns.sh run &
         /jffs/scripts/tailscale.sh firewall &
         
