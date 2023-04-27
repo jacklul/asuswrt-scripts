@@ -6,7 +6,7 @@
 # Based on:
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/swap.mod
 #
-# Will probably not work without 'swapon' command that supports files
+# Will probably not work without 'swapon' command that supports files.
 # This might actually not work on stock at all!
 #
 

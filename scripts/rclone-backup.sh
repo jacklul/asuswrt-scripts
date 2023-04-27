@@ -3,7 +3,7 @@
 #
 # Backup important stuff using Rclone
 #
-# Keep in mind that that Rclone binary is over 40MB and should not be stored on the /jffs partition!
+# Note that automatic download of Rclone binary stores it in /tmp directory - make sure you have enough free RAM!
 #
 
 #shellcheck disable=SC2155
