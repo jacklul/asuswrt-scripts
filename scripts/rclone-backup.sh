@@ -8,13 +8,13 @@
 
 #shellcheck disable=SC2155
 
-PARAMETERS="--buffer-size 1M" # optional parameters
+PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose" # optional parameters
 REMOTE="remote:" # remote to use
 CONFIG_FILE="/jffs/rclone.conf" # Rclone configuration file
-FILTER_FILE="$(dirname "$0")/rclone-backup.list" # Rclone filter file
+FILTER_FILE="$(readlink -f "$(dirname "$0")")/rclone-backup.list" # Rclone filter file
 RCLONE_PATH="" # path to Rclone binary
 RCLONE_DOWNLOAD_URL="" # Rclone download URL, "https://downloads.rclone.org/rclone-current-linux-arm-v7.zip" should work
-RCLONE_DOWNLOAD_ZIP="$(basename "$RCLONE_DOWNLOAD_URL")" # Rclone download ZIP file name
+RCLONE_DOWNLOAD_ZIP="" # Rclone download ZIP file name, when left empty will be automatically taken from RCLONE_DOWNLOAD_URL
 RCLONE_DOWNLOAD_UNZIP_DIR="/tmp/rclone-download" # Rclone download ZIP unpack destination, should be /tmp, make sure your router has enough RAM
 LOG_FILE="/tmp/rclone.log" # log file
 NVRAM_FILE="/tmp/nvram.txt" # file to dump NVRAM to
@@ -54,6 +54,8 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+[ -z "$RCLONE_DOWNLOAD_ZIP" ] && RCLONE_DOWNLOAD_ZIP="$(basename "$RCLONE_DOWNLOAD_URL")"
+
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
@@ -61,10 +63,11 @@ case "$1" in
         [ ! -f "$FILTER_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Could not find filter file: $FILTER_FILE"; exit 1; }
 
         if [ ! -f "$RCLONE_PATH" ]; then
-            if [ -f "$RCLONE_DOWNLOAD_URL" ]; then
+            if [ -n "$RCLONE_DOWNLOAD_URL" ]; then
                 set -e
 
                 DOWNLOAD_DESTINATION="$(dirname "$RCLONE_DOWNLOAD_UNZIP_DIR")"
+
                 cd "$DOWNLOAD_DESTINATION"
 
                 echo "Downloading $RCLONE_DOWNLOAD_URL..."
@@ -94,7 +97,7 @@ case "$1" in
         "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" --log-file="$LOG_FILE" $PARAMETERS
         STATUS="$?"
 
-        [ -n "$RCLONE_ZIP" ] && rm -f "$RCLONE_PATH"
+        [ -n "$RCLONE_DOWNLOAD_ZIP" ] && rm -f "$RCLONE_PATH"
         rm -f "$NVRAM_FILE"
 
         if [ "$STATUS" = "0" ]; then
