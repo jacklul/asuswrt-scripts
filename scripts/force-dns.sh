@@ -241,9 +241,6 @@ iptables_rules() {
 }
 
 setup_rules() {
-    _REASON=""
-    [ -n "$2" ] && _REASON=" ($2)"
-
     case "$1" in
         "add")
             iptables_chains remove
@@ -253,7 +250,7 @@ setup_rules() {
             _DNS_SERVER="$DNS_SERVER"
             [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
 
-            logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}${_REASON}"
+            logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}"
         ;;
         "remove")
             iptables_chains remove
@@ -265,9 +262,9 @@ setup_rules() {
                 _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
                 [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
-                logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}${_REASON}"
+                logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
             else
-                logger -s -t "$SCRIPT_NAME" "DNS server is no longer forced$_REASON"
+                logger -s -t "$SCRIPT_NAME" "DNS server is not forced"
             fi
         ;;
     esac
@@ -293,9 +290,9 @@ case "$1" in
         RULES_EXIST="$({ $IPT -t nat -C "$CHAIN" -j DNAT --to-destination "$DNS_SERVER" >/dev/null 2>&1 && $IPT -C "$CHAIN_DOT" ! -d "$DNS_SERVER" -j REJECT >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
-            [ "$RULES_EXIST" = "1" ] && setup_rules remove "missing interface $REQUIRE_INTERFACE"
+            [ "$RULES_EXIST" = "1" ] && setup_rules remove
         elif [ "$RULES_EXIST" = "0" ]; then
-            setup_rules add "missing firewall rules"
+            setup_rules add
         fi
     ;;
     "start")
