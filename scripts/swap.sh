@@ -6,6 +6,9 @@
 # Based on:
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/swap.mod
 #
+# Will probably not work without 'swapon' command that supports files
+# This might actually not work on stock at all!
+#
 
 #shellcheck disable=SC2155
 
@@ -33,11 +36,11 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 manage_swap() {
-    [ ! -f "$SWAP_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Swap path is not set"; exit 1; }
+    [ -z "$SWAP_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Swap file is not set"; exit 1; }
 
     case "$1" in
         "enable")
-            if [ "$(nvram get usb_idle_timeout)" != "0" ]; then
+            if [ "$(nvram get usb_idle_enable)" != "0" ]; then
                 logger -s -t "$SCRIPT_PATH" "Unable to enable swap - USB Idle timeout is set"
             else
                 if swapon "$SWAP_FILE" ; then
@@ -66,12 +69,8 @@ manage_swap() {
             logger -s -t "$SCRIPT_NAME" "Creating swap file..."
 
             touch "$SWAP_FILE"
-            chattr -f +C "$SWAP_FILE" || true
             dd if=/dev/zero of="$SWAP_FILE" bs=1k count="$SWAP_SIZE"
-
             mkswap "$SWAP_FILE"
-            chown root:root "$SWAP_FILE"
-            chmod 0600 "$SWAP_FILE"
 
             set +e
         ;;
