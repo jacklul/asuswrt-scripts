@@ -3,7 +3,7 @@
 #
 # Randomize guest network passwords and generate HTML pages for them
 #
-# Pages will be available at www.asusrouter.com/user/guest-INTERFACE.html and www.asusrouter.com/user/guests.html
+# Pages will be available at www.asusrouter.com/user/guest-INTERFACE.html and www.asusrouter.com/user/guest-list.html
 #
 # Based on:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Guest-WIFI-QR-code-generator-for-display-on-local-network-webpage-(visible-from-TV,-smartphones...)-and-random-password-rotation
@@ -15,7 +15,7 @@ HTML_WL="wl0.1 wl0.2 wl0.3 wl1.1 wl1.2 wl1.3 wl2.1 wl2.2 wl2.3 wl3.1 wl3.2 wl3.3
 ROTATE_WL="wl0.1 wl1.1" # guest networks to randomize passwords for (find them using 'nvram show | grep "^wl[0-9]\.[0-9]_ssid"' command), separated by space
 CHAR_LIST="ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz123456789" # characters list for generated passwords
 PASSWORD_LENGTH=20 # length of generated passwords
-ROTATE_ON_START=false
+ROTATE_ON_START=false # should we rotate passwords on script start
 CRON="0 4 * * *"
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
