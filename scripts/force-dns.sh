@@ -286,7 +286,7 @@ interface_exists() {
 case "$1" in
     "run")
         [ -z "$DNS_SERVER" ] && exit
-        RULES_EXIST="$({ $IPT -t nat -C "$CHAIN" -j DNAT --to-destination "$DNS_SERVER" >/dev/null 2>&1 && $IPT -C "$CHAIN_DOT" ! -d "$DNS_SERVER" -j REJECT >/dev/null 2>&1; } && echo 1 || echo 0)"
+        RULES_EXIST="$({ $IPT -t nat -n -L "$CHAIN" >/dev/null 2>&1 && $IPT -n -L "$CHAIN_DOT" >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
             [ "$RULES_EXIST" = "1" ] && setup_rules remove
