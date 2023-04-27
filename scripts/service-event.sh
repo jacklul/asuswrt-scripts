@@ -29,7 +29,7 @@ PROCESS_PID="$(ps w | grep "$SCRIPT_NAME.sh run" | grep -v grep | awk '{print $1
 
 case "$1" in
     "run")
-        [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -gt 2 ] && { echo "Already running!"; exit 1; }
+        [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -gt 2 ] && { echo "Already running! (PID: $PROCESS_PID)"; exit 1; }
         [ ! -f "$SYSLOG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
         [ ! -f "$TARGET_SCRIPT" ] && { logger -s -t "$SCRIPT_NAME" "Target script does not exist: $TARGET_SCRIPT"; exit 1; }
         [ ! -x "$TARGET_SCRIPT" ] && { logger -s -t "$SCRIPT_NAME" "Target script is not executable!"; exit 1; }
@@ -100,7 +100,7 @@ case "$1" in
         [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, using this script is redundant!"; exit 1; }
+        [ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - this script is redundant!"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
     ;;
