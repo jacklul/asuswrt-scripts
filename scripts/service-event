@@ -5,10 +5,11 @@
 
 case "$2" in
     "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnd"|"pptpd"|"openvpnd"|"yadns"|"dnsfilter"|"tr"|"tor")
-        [ ! -f "/jffs/scripts/force-dns.sh" ] && exit
+        [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/tailscale.sh" ] && exit
 
         sleep 1
-        /jffs/scripts/force-dns.sh run
+        /jffs/scripts/force-dns.sh run &
+        /jffs/scripts/tailscale.sh firewall &
         exit
     ;;
     "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
