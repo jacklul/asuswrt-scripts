@@ -37,8 +37,3 @@ curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/u
 
 chmod +x /jffs/scripts/*.sh
 ```
-
-### Untested scripts
-
-- `led-control.sh` is unfinished - needs a lot of work to support multiple routers
-- `process-killer.sh`, `swap.sh` and `rclone-backup` are more of a concepts
