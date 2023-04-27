@@ -7,28 +7,37 @@ case "$2" in
     "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnd"|"pptpd"|"openvpnd"|"yadns"|"dnsfilter"|"tr"|"tor")
         [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/tailscale.sh" ] && exit
 
-        sleep 1
+        _TIMER=0; while { # wait till our chains disappear
+            iptables -t nat -n -L "FORCEDNS" >/dev/null 2>&1 ||
+            iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
+            iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
+        } && [ "$_TIMER" -lt "60" ]; do
+            _TIMER=$((_TIMER+1))
+            sleep 1
+        done
+
         /jffs/scripts/force-dns.sh run &
         /jffs/scripts/tailscale.sh firewall &
+        
         exit
     ;;
     "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
         [ ! -f "/jffs/scripts/usb-network.sh" ] && [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/dynamic-dns.sh" ] && exit
 
-        sleep 15
+        _TIMER=0; while [ "$(nvram get wan0_state_t)" = "2" ] && [ "$_TIMER" -lt "15" ]; do _TIMER=$((_TIMER+1)); sleep 1; done # wait until wan goes down
+        _TIMER=0; while [ "$(nvram get wan0_state_t)" != "2" ] && [ "$_TIMER" -lt "60" ]; do _TIMER=$((_TIMER+1)); sleep 1; done # wait until wan goes up
+
         [ -f "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh run &
         [ -f "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
-        
-        sleep 15
         [ -f "/jffs/scripts/dynamic-dns.sh" ] && /jffs/scripts/dynamic-dns.sh run &
         
         exit
     ;;
 esac
 
+# these do not follow the naming rules ("ACTION_SERVICE")
 case "${1}_${2}" in
     "ipsec_set"|"ipsec_start"|"ipsec_restart")
-        sleep 5
         sh "$(readlink -f "$0")" "restart" "firewall"
         exit
     ;;
