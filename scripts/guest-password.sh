@@ -83,7 +83,7 @@ case "$1" in
         generate_html_pages
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
+        [ -n "$ROTATE_WL" ] && cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
         if [ "$ROTATE_ON_START" = "1" ]; then
             if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
