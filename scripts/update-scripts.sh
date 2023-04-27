@@ -3,6 +3,8 @@
 #
 # Update all installed scripts
 #
+# For security and reliability reasons this cannot be run at boot
+#
 
 #shellcheck disable=SC2155
 
@@ -62,17 +64,10 @@ case "$1" in
             )
         fi
     ;;
-    "start")
-        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
-            { sleep 90 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
-        else
-            sh "$SCRIPT_PATH" run
-        fi
-    ;;
-    "stop"|"restart")
+    "start"|"stop"|"restart")
+        echo "Unsupported"
     ;;
     *)
-        echo "Usage: $0 run|start"
-        exit 1
+        sh "$SCRIPT_PATH" run
     ;;
 esac
