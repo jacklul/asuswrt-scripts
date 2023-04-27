@@ -15,7 +15,6 @@ TAILSCALE_ARGUMENTS="--accept-dns=false --advertise-exit-node" # 'tailscale up' 
 TAILSCALED_PATH="" # path to tailscaled binary, fill TAILSCALE_DOWNLOAD_URL to automatically download
 TAILSCALE_PATH="" # path to tailscale binary, fill TAILSCALE_DOWNLOAD_URL to automatically download
 TAILSCALE_DOWNLOAD_URL="" # Tailscale tgz download URL, "https://pkgs.tailscale.com/stable/tailscale_latest_arm.tgz" should work
-USE_IPV6=false
 
 # This means that this is a Merlin firmware
 if [ -f "/usr/sbin/helper.sh" ]; then
@@ -26,16 +25,14 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     TAILSCALE_ARGUMENTS_=$(am_settings_get jl_tailscale_t_args)
     TAILSCALED_PATH_=$(am_settings_get jl_tailscale_td_path)
     TAILSCALE_PATH_=$(am_settings_get jl_tailscale_t_path)
-    USE_IPV6_=$(am_settings_get jl_tailscale_ipv6)
 
     [ -n "$TAILSCALED_ARGUMENTS_" ] && TAILSCALED_ARGUMENTS=$TAILSCALED_ARGUMENTS_
     [ -n "$TAILSCALE_ARGUMENTS_" ] && TAILSCALE_ARGUMENTS=$TAILSCALE_ARGUMENTS_
     [ -n "$TAILSCALED_PATH_" ] && TAILSCALED_PATH=$TAILSCALED_PATH_
     [ -n "$TAILSCALE_PATH_" ] && TAILSCALE_PATH=$TAILSCALE_PATH_
-    [ -n "$USE_IPV6_" ] && USE_IPV6=$USE_IPV6_
 fi
 
-# These should not be changed but they can
+# These should not be changed
 IPT="/usr/sbin/iptables"
 IPT6="/usr/sbin/ip6tables"
 CHAIN="TAILSCALE"
@@ -49,7 +46,12 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 FOR_IPTABLES="$IPT"
-{ [ "$USE_IPV6" = "true" ] || [ "$USE_IPV6" = true ]; } && FOR_IPTABLES="$FOR_IPTABLES $IPT6"
+
+if [ "$(nvram get ipv6_service)" != "disabled" ]; then
+    [ ! -f "$IPT6" ] && { echo "Missing ip6tables binary: $IPT6"; exit 1; }
+
+    FOR_IPTABLES="$FOR_IPTABLES $IPT6"
+fi
 
 download_tailscale() {
     if [ -n "$TAILSCALE_DOWNLOAD_URL" ]; then
@@ -76,7 +78,7 @@ firewall_rules() {
         case "$1" in
             "add")
                 if ! $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
-                    _INPUT_END="$(iptables -L INPUT --line | sed '/^num\|^$\|^Chain/d' | wc -l)"
+                    _INPUT_END="$(iptables -L INPUT --line-numbers | sed '/^num\|^$\|^Chain/d' | wc -l)"
 
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I INPUT "$_INPUT_END" -i "$INTERFACE" -j "$CHAIN"
@@ -127,9 +129,11 @@ case "$1" in
         sh "$SCRIPT_PATH" firewall
     ;;
     "init-run")
-        [ -z "$TAILSCALED_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
-
-        sh "$SCRIPT_PATH" firewall
+        if [ -z "$TAILSCALED_PID" ]; then
+            nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
+        else
+            sh "$SCRIPT_PATH" firewall
+        fi
     ;;
     "firewall")
         if [ -n "$TAILSCALED_PID" ]; then

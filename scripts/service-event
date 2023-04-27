@@ -22,20 +22,22 @@ case "$2" in
         exit
     ;;
     "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
-        [ ! -f "/jffs/scripts/usb-network.sh" ] && [ ! -f "/jffs/scripts/force-dns.sh" ] && [ ! -f "/jffs/scripts/dynamic-dns.sh" ] && exit
+        [ ! -f "/jffs/scripts/usb-network.sh" ] && [ ! -f "/jffs/scripts/dynamic-dns.sh" ] && exit
 
         _TIMER=0; while [ "$(nvram get wan0_state_t)" = "2" ] && [ "$_TIMER" -lt "15" ]; do _TIMER=$((_TIMER+1)); sleep 1; done # wait until wan goes down
         _TIMER=0; while [ "$(nvram get wan0_state_t)" != "2" ] && [ "$_TIMER" -lt "60" ]; do _TIMER=$((_TIMER+1)); sleep 1; done # wait until wan goes up
 
         [ -f "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh run &
-        [ -f "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
         [ -f "/jffs/scripts/dynamic-dns.sh" ] && /jffs/scripts/dynamic-dns.sh run &
+
+        # most of these also restart firewall so execute that too just in case
+        sh "$(readlink -f "$0")" "restart" "firewall"
         
         exit
     ;;
 esac
 
-# these do not follow the naming rules ("ACTION_SERVICE")
+# these do not follow the naming scheme ("ACTION_SERVICE")
 case "${1}_${2}" in
     "ipsec_set"|"ipsec_start"|"ipsec_restart")
         sh "$(readlink -f "$0")" "restart" "firewall"

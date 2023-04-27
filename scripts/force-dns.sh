@@ -54,7 +54,7 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$BLOCK_ROUTER_DNS_" ] && BLOCK_ROUTER_DNS=$BLOCK_ROUTER_DNS_
 fi
 
-# These should not be changed but they can
+# These should not be changed
 IPT="/usr/sbin/iptables"
 IPT6="/usr/sbin/ip6tables"
 CHAIN="FORCEDNS"
@@ -105,7 +105,7 @@ iptables_chains() {
         case "$1" in
             "add")
                 if ! $_IPTABLES -n -L "$CHAIN_DOT" >/dev/null 2>&1; then
-                    _FORWARD_START="$($_IPTABLES -L FORWARD --line | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
+                    _FORWARD_START="$($_IPTABLES -L FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
                     $_IPTABLES -N "$CHAIN_DOT"
@@ -125,7 +125,7 @@ iptables_chains() {
                         _ROUTER_IP="$ROUTER_IP"
                     fi
 
-                    _INPUT_START="$($_IPTABLES -L INPUT --line | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
+                    _INPUT_START="$($_IPTABLES -L INPUT --line-numbers | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
                     _INPUT_START_PLUS="$((_INPUT_START+1))"
 
                     $_IPTABLES -N "$CHAIN_BLOCK"

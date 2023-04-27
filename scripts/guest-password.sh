@@ -77,7 +77,7 @@ case "$1" in
 
         [ -n "$CHANGED" ] && nvram commit && service restart_wireless
         
-        sh "$SCRIPT_PATH" html
+        generate_html_pages
     ;;
     "html")
         generate_html_pages
