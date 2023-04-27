@@ -5,6 +5,7 @@
 #
 # To be used with devices that can use USB Gadget mode.
 # Raspberry Pi Zero will probably be the best for this.
+# See https://github.com/jacklul/asuswrt-usb-raspberry-pi
 #
 
 #shellcheck disable=SC2155
