@@ -46,6 +46,8 @@ download_and_check() {
     fi
 }
 
+[ -z "$1" ] && { sh "$SCRIPT_PATH" run; exit; }
+
 case "$1" in
     "run")
         if echo "$SCRIPT_PATH" | grep -q "/tmp/"; then
@@ -64,10 +66,6 @@ case "$1" in
             )
         fi
     ;;
-    "start"|"stop"|"restart")
-        echo "Unsupported"
-    ;;
     *)
-        sh "$SCRIPT_PATH" run
     ;;
 esac

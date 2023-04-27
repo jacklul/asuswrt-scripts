@@ -100,7 +100,7 @@ case "$1" in
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 run|check|start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart|check"
         exit 1
     ;;
 esac

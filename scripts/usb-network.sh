@@ -173,7 +173,7 @@ case "$1" in
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 run|hotplug|start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart"
         exit 1
     ;;
 esac

@@ -77,6 +77,9 @@ case "$1" in
 
         [ -n "$CHANGED" ] && nvram commit && service restart_wireless
         
+        sh "$SCRIPT_PATH" html
+    ;;
+    "html")
         generate_html_pages
     ;;
     "start")
@@ -100,7 +103,7 @@ case "$1" in
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart|html"
         exit 1
     ;;
 esac
