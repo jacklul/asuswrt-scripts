@@ -7,8 +7,8 @@
 #shellcheck disable=SC2155
 
 TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
-CRON_MINUTE=5
-CRON_HOUR=4
+CRON_MINUTE=0
+CRON_HOUR=5
 
 # This means that this is a Merlin firmware
 if [ -f "/usr/sbin/helper.sh" ]; then
