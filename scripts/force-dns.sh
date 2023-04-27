@@ -28,13 +28,6 @@ FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined i
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed, will pass argument with action (add or remove)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 
-# These should not be changed but they can
-IPT="/usr/sbin/iptables"
-IPT6="/usr/sbin/ip6tables"
-CHAIN="FORCEDNS"
-CHAIN_DOT="FORCEDNS_DOT"
-CHAIN_BLOCK="FORCEDNS_BLOCK"
-
 # This means that this is a Merlin firmware
 if [ -f "/usr/sbin/helper.sh" ]; then
     #shellcheck disable=SC1091
@@ -60,6 +53,13 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$FALLBACK_DNS_SERVER6_" ] && FALLBACK_DNS_SERVER6=$FALLBACK_DNS_SERVER6_
     [ -n "$BLOCK_ROUTER_DNS_" ] && BLOCK_ROUTER_DNS=$BLOCK_ROUTER_DNS_
 fi
+
+# These should not be changed but they can
+IPT="/usr/sbin/iptables"
+IPT6="/usr/sbin/ip6tables"
+CHAIN="FORCEDNS"
+CHAIN_DOT="FORCEDNS_DOT"
+CHAIN_BLOCK="FORCEDNS_BLOCK"
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -105,7 +105,7 @@ iptables_chains() {
         case "$1" in
             "add")
                 if ! $_IPTABLES -n -L "$CHAIN_DOT" >/dev/null 2>&1; then
-                    _FORWARD_START="$($_IPTABLES -nvL FORWARD --line | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
+                    _FORWARD_START="$($_IPTABLES -L FORWARD --line | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
                     $_IPTABLES -N "$CHAIN_DOT"
@@ -125,7 +125,7 @@ iptables_chains() {
                         _ROUTER_IP="$ROUTER_IP"
                     fi
 
-                    _INPUT_START="$($_IPTABLES -nvL INPUT --line | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
+                    _INPUT_START="$($_IPTABLES -L INPUT --line | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
                     _INPUT_START_PLUS="$((_INPUT_START+1))"
 
                     $_IPTABLES -N "$CHAIN_BLOCK"
@@ -178,7 +178,6 @@ iptables_rules() {
             _ACTION="-D"
         ;;
     esac
-
 
     for _IPTABLES in $FOR_IPTABLES; do
         _BLOCK_ROUTER_DNS="$BLOCK_ROUTER_DNS"
