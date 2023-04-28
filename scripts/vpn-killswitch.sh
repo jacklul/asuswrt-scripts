@@ -6,12 +6,8 @@
 
 #shellcheck disable=SC2155
 
-BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces
 
-# These should not be changed
-IPT="/usr/sbin/iptables"
-IPT6="/usr/sbin/ip6tables"
-CHAIN="VPN_KILLSWITCH"
+BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -21,14 +17,11 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-FOR_IPTABLES="$IPT"
+CHAIN="VPN_KILLSWITCH"
+FOR_IPTABLES="iptables"
 
-if [ "$(nvram get ipv6_service)" != "disabled" ]; then
-    [ ! -f "$IPT6" ] && { echo "Missing ip6tables binary: $IPT6"; exit 1; }
-
-    FOR_IPTABLES="$FOR_IPTABLES $IPT6"
-fi
-
+[ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
+    
 get_wan_interface() {
     _INTERFACE="$(nvram get wan0_ifname)"
 

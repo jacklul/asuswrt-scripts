@@ -32,11 +32,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$TAILSCALE_PATH_" ] && TAILSCALE_PATH=$TAILSCALE_PATH_
 fi
 
-# These should not be changed
-IPT="/usr/sbin/iptables"
-IPT6="/usr/sbin/ip6tables"
-CHAIN="TAILSCALE"
-
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
@@ -45,13 +40,10 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-FOR_IPTABLES="$IPT"
+CHAIN="TAILSCALE"
+FOR_IPTABLES="iptables"
 
-if [ "$(nvram get ipv6_service)" != "disabled" ]; then
-    [ ! -f "$IPT6" ] && { echo "Missing ip6tables binary: $IPT6"; exit 1; }
-
-    FOR_IPTABLES="$FOR_IPTABLES $IPT6"
-fi
+[ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
 download_tailscale() {
     if [ -n "$TAILSCALE_DOWNLOAD_URL" ]; then

@@ -54,13 +54,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$BLOCK_ROUTER_DNS_" ] && BLOCK_ROUTER_DNS=$BLOCK_ROUTER_DNS_
 fi
 
-# These should not be changed
-IPT="/usr/sbin/iptables"
-IPT6="/usr/sbin/ip6tables"
-CHAIN="FORCEDNS"
-CHAIN_DOT="FORCEDNS_DOT"
-CHAIN_BLOCK="FORCEDNS_BLOCK"
-
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
@@ -69,9 +62,10 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-[ ! -f "$IPT" ] && { echo "Missing iptables binary: $IPT"; exit 1; }
-
-FOR_IPTABLES="$IPT"
+CHAIN="FORCEDNS"
+CHAIN_DOT="FORCEDNS_DOT"
+CHAIN_BLOCK="FORCEDNS_BLOCK"
+FOR_IPTABLES="iptables"
 ROUTER_IP="$(nvram get lan_ipaddr)"
 ROUTER_IP6="$(nvram get ipv6_rtr_addr)"
 
@@ -86,9 +80,7 @@ if [ -z "$DNS_SERVER" ]; then
 fi
 
 if [ "$(nvram get ipv6_service)" != "disabled" ]; then
-    [ ! -f "$IPT6" ] && { echo "Missing ip6tables binary: $IPT6"; exit 1; }
-
-    FOR_IPTABLES="$FOR_IPTABLES $IPT6"
+    FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
     if [ -z "$DNS_SERVER6" ]; then
         DNS_SERVER6="$ROUTER_IP6"
@@ -119,7 +111,7 @@ iptables_chains() {
                 fi
 
                 if [ "$BLOCK_ROUTER_DNS" = "1" ] && ! $_IPTABLES -n -L "$CHAIN_BLOCK" >/dev/null 2>&1; then
-                    if [ "$_IPTABLES" = "$IPT6" ]; then
+                    if [ "$_IPTABLES" = "ip6tables" ]; then
                         _ROUTER_IP="$ROUTER_IP6"
                     else
                         _ROUTER_IP="$ROUTER_IP"
@@ -148,7 +140,7 @@ iptables_chains() {
                 fi
 
                 if $_IPTABLES -n -L "$CHAIN_BLOCK" >/dev/null 2>&1; then
-                    if [ "$_IPTABLES" = "$IPT6" ]; then
+                    if [ "$_IPTABLES" = "ip6tables" ]; then
                         _ROUTER_IP="$ROUTER_IP6"
                     else
                         _ROUTER_IP="$ROUTER_IP"
@@ -182,7 +174,7 @@ iptables_rules() {
     for _IPTABLES in $FOR_IPTABLES; do
         _BLOCK_ROUTER_DNS="$BLOCK_ROUTER_DNS"
 
-        if [ "$_IPTABLES" = "$IPT6" ]; then
+        if [ "$_IPTABLES" = "ip6tables" ]; then
             if [ -z "$DNS_SERVER6" ]; then
                 $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j REJECT
                 $_IPTABLES "$_ACTION" "$CHAIN_DOT" -j REJECT
@@ -286,7 +278,7 @@ interface_exists() {
 case "$1" in
     "run")
         [ -z "$DNS_SERVER" ] && exit
-        RULES_EXIST="$({ $IPT -t nat -n -L "$CHAIN" >/dev/null 2>&1 && $IPT -n -L "$CHAIN_DOT" >/dev/null 2>&1; } && echo 1 || echo 0)"
+        RULES_EXIST="$({ iptables -t nat -n -L "$CHAIN" >/dev/null 2>&1 && iptables -n -L "$CHAIN_DOT" >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
             [ "$RULES_EXIST" = "1" ] && setup_rules remove
