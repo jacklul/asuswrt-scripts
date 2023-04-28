@@ -108,12 +108,14 @@ case "$1" in
                 if
                     [ -x "/jffs/scripts/vpn-killswitch.sh" ] ||
                     [ -x "/jffs/scripts/force-dns.sh" ] ||
+                    [ -x "/jffs/scripts/samba-masquerade.sh" ]
                     [ -x "/jffs/scripts/tailscale.sh" ]
                 then
                     _TIMER=0; while { # wait till our chains disappear
                         iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
-                        iptables -t nat -n -L "FORCEDNS" >/dev/null 2>&1 ||
+                        iptables -n -L "FORCEDNS" -t nat >/dev/null 2>&1 ||
                         iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
+                        iptables -n -L "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
                         iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
                     } && [ "$_TIMER" -lt "60" ]; do
                         _TIMER=$((_TIMER+1))
@@ -122,6 +124,7 @@ case "$1" in
 
                     [ -x "/jffs/scripts/vpn-killswitch.sh" ] && /jffs/scripts/vpn-killswitch.sh run &
                     [ -x "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
+                    [ -x "/jffs/scripts/samba-masquerade.sh" ] && /jffs/scripts/samba-masquerade.sh run &
                     [ -x "/jffs/scripts/tailscale.sh" ] && /jffs/scripts/tailscale.sh firewall &
                 fi
 
