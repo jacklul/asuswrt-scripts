@@ -76,15 +76,15 @@ case "$1" in
                     done
                 fi
             done
-        else
-            (
-                cp "$0" "/tmp/$SCRIPT_NAME.sh"
-                sh "/tmp/$SCRIPT_NAME.sh" run
-                rm -f "/tmp/$SCRIPT_NAME.sh"
-                exit
-            ) && exit
+            
+            exit
         fi
     ;;
     *)
+        exit
     ;;
 esac
+
+cp "$0" "/tmp/$SCRIPT_NAME.sh"
+sh "/tmp/$SCRIPT_NAME.sh" run
+rm -f "/tmp/$SCRIPT_NAME.sh"
