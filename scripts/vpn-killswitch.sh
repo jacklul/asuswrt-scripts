@@ -3,6 +3,9 @@
 #
 # Prevent access to internet without VPN connection
 #
+# Based on:
+#  https://github.com/ZebMcKayhan/WireguardManager/blob/main/wg_manager.sh
+#
 
 #shellcheck disable=SC2155
 
