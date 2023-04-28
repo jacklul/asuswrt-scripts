@@ -11,22 +11,23 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 HTML_WL="wl0.1 wl0.2 wl0.3 wl1.1 wl1.2 wl1.3 wl2.1 wl2.2 wl2.3 wl3.1 wl3.2 wl3.3" # list of guest networks to generate HTML pages for, separated by space
 ROTATE_WL="wl0.1 wl1.1" # guest networks to randomize passwords for (find them using 'nvram show | grep "^wl[0-9]\.[0-9]_ssid"' command), separated by space
 CHAR_LIST="ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz123456789" # characters list for generated passwords
 PASSWORD_LENGTH=20 # length of generated passwords
 ROTATE_ON_START=false # should we rotate passwords on script start
+HTML_FILE="$SCRIPT_DIR/$SCRIPT_NAME.html" # base html file, "#INTERFACE#" string is replaced with interface name
 CRON="0 4 * * *"
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
 fi
-
-HTML_FILE="$(dirname "$0")/$SCRIPT_NAME.html"
 
 { [ "$ROTATE_ON_START" = "true" ] || [ "$ROTATE_ON_START" = true ]; } && ROTATE_ON_START="1" || ROTATE_ON_START="0"
 

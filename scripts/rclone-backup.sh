@@ -8,10 +8,15 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose" # optional parameters
 REMOTE="remote:" # remote to use
 CONFIG_FILE="/jffs/rclone.conf" # Rclone configuration file
-FILTER_FILE="$(readlink -f "$(dirname "$0")")/rclone-backup.list" # Rclone filter file
+FILTER_FILE="$SCRIPT_DIR/$SCRIPT_NAME.list" # Rclone filter file
 RCLONE_PATH="" # path to Rclone binary, fill RCLONE_DOWNLOAD_URL to automatically download
 RCLONE_DOWNLOAD_URL="" # Rclone zip download URL, "https://downloads.rclone.org/rclone-current-linux-arm-v7.zip" should work
 REMOVE_BINARY_AFTER=true # remove the binary after script is done, only works when RCLONE_DOWNLOAD_URL is set
@@ -45,9 +50,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     CRON="$CRON_MINUTE $CRON_HOUR $CRON_MONTHDAY $CRON_MONTH $CRON_WEEKDAY"
 fi
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
