@@ -9,14 +9,16 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 CONFIG_FILE="/jffs/inadyn.conf" # Inadyn configuration file to use
 CACHE_FILE="/tmp/last_wan_ip" # where to cache last public IP
 IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr", can use URL like "https://ipecho.net/plain" here or empty to not check
 IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL address
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

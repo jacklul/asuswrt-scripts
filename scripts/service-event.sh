@@ -12,14 +12,16 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each iteration
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

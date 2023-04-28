@@ -12,6 +12,11 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 
 # This means that this is a Merlin firmware
@@ -24,9 +29,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$PROCESSES_TO_KILL_" ] && PROCESSES_TO_KILL=$PROCESSES_TO_KILL_
 fi
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

@@ -6,6 +6,11 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 TEMPERATURE_TARGET="80" # target temperature at which send the warning
 COOLDOWN=300 # how long to wait (seconds) before sending another warning
 CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
@@ -24,9 +29,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$COOLDOWN_" ] && COOLDOWN=$COOLDOWN_
 fi
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

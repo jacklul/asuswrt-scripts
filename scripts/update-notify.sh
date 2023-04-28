@@ -6,6 +6,11 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 BOT_TOKEN="" # Telegram bot token
 CHAT_ID="" # Telegram chat identifier, can also be a group id or channel id/username
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
@@ -24,9 +29,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$CHAT_ID_" ] && CHAT_ID=$CHAT_ID_
 fi
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

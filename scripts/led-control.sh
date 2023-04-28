@@ -12,6 +12,11 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 ON_HOUR=6 # hour to turn on the leds
 ON_MINUTE=0 # minute to turn on the leds
 OFF_HOUR=0 # hour to turn off the leds
@@ -34,9 +39,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$OFF_MINUTE_" ] && OFF_MINUTE=$OFF_MINUTE_
 fi
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

@@ -6,6 +6,11 @@
 
 #shellcheck disable=SC2155
 
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
 TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
 CRON_MINUTE=0
 CRON_HOUR=5
@@ -24,9 +29,6 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$CRON_MINUTE_" ] && CRON_MINUTE=$CRON_MINUTE_
 fi
 
-readonly SCRIPT_NAME="$(basename "$0" .sh)"
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
