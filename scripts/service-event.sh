@@ -7,13 +7,14 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts
 # There is no blocking so there is no guarantee that this script will run before the event happens.
 # You will probably want add extra code if you want to run code after the event happens.
+# Scripts from this repository are already handled by build-in script.
 #
 
 #shellcheck disable=SC2155
 
-TARGET_SCRIPT="/jffs/scripts/service-event" # target script to execute
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
+EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each iteration
 
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
@@ -76,8 +77,10 @@ case "$1" in
                                     EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
                                     EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2-)"
 
-                                    logger -s -t "$SCRIPT_NAME" "Running $TARGET_SCRIPT (args: $EVENT_ACTION $EVENT_TARGET)"
-                                    sh "$TARGET_SCRIPT" "$EVENT_ACTION" "$EVENT_TARGET" &
+                                    logger -s -t "$SCRIPT_NAME" "Running service event script (args: $EVENT_ACTION $EVENT_TARGET)"
+
+                                    sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
+                                    [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &
                                 fi
                             done
                             IFS=$OLDIFS
@@ -95,6 +98,72 @@ case "$1" in
 
             sleep "$SLEEP"
         done
+    ;;
+    "event")
+        # $2 = event, $3 = target
+
+        case "$3" in
+            "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnd"|"pptpd"|"openvpnd"|"yadns"|"dnsfilter"|"tr"|"tor")
+                if
+                    [ -x "/jffs/scripts/vpn-killswitch.sh" ] ||
+                    [ -x "/jffs/scripts/force-dns.sh" ] ||
+                    [ -x "/jffs/scripts/tailscale.sh" ]
+                then
+                    _TIMER=0; while { # wait till our chains disappear
+                        iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
+                        iptables -t nat -n -L "FORCEDNS" >/dev/null 2>&1 ||
+                        iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
+                        iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
+                    } && [ "$_TIMER" -lt "60" ]; do
+                        _TIMER=$((_TIMER+1))
+                        sleep 1
+                    done
+
+                    [ -x "/jffs/scripts/vpn-killswitch.sh" ] && /jffs/scripts/vpn-killswitch.sh run &
+                    [ -x "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
+                    [ -x "/jffs/scripts/tailscale.sh" ] && /jffs/scripts/tailscale.sh firewall &
+                fi
+
+                exit
+            ;;
+            "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
+                if
+                    [ -x "/jffs/scripts/usb-network.sh" ] ||
+                    [ -x "/jffs/scripts/dynamic-dns.sh" ]
+                then
+                    _TIMER=0; while { # wait until wan goes down
+                        [ "$(nvram get wan0_state_t)" = "2" ] &&
+                        [ "$(nvram get wan1_state_t)" = "2" ];
+                    } && [ "$_TIMER" -lt "15" ]; do
+                        _TIMER=$((_TIMER+1))
+                        sleep 1
+                    done
+
+                    _TIMER=0; while { # wait until wan goes up
+                        [ "$(nvram get wan0_state_t)" != "2" ] &&
+                        [ "$(nvram get wan1_state_t)" != "2" ];
+                    } && [ "$_TIMER" -lt "60" ]; do
+                        _TIMER=$((_TIMER+1))
+                        sleep 1
+                    done
+
+                    [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh run &
+                    [ -x "/jffs/scripts/dynamic-dns.sh" ] && /jffs/scripts/dynamic-dns.sh run &
+                fi
+
+                # most of these also restart firewall so execute that too just in case
+                sh "$SCRIPT_PATH" event restart firewall
+
+                exit
+            ;;
+        esac
+
+        # these do not follow the naming scheme ("ACTION_SERVICE")
+        case "${2}_${3}" in
+            "ipsec_set"|"ipsec_start"|"ipsec_restart")
+                sh "$SCRIPT_PATH" event restart firewall
+            ;;
+        esac
     ;;
     "init-run")
         [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
