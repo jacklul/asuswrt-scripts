@@ -81,7 +81,8 @@ case "$1" in
                 cp "$0" "/tmp/$SCRIPT_NAME.sh"
                 sh "/tmp/$SCRIPT_NAME.sh" run
                 rm -f "/tmp/$SCRIPT_NAME.sh"
-            )
+                exit
+            ) && exit
         fi
     ;;
     *)
