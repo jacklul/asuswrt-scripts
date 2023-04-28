@@ -14,7 +14,7 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
-BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces
+BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -43,6 +43,9 @@ get_wan_interface() {
 firewall_rules() {
     _WAN_INTERFACE="$(get_wan_interface)"
 
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Bridge interface is not set"; exit 1; }
+    [ -z "$_WAN_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Couldn't get WAN interface name"; exit 1; }
+
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
@@ -50,8 +53,6 @@ firewall_rules() {
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I "$CHAIN" -j REJECT
                     $_IPTABLES -I FORWARD -i "$BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
-
-                    logger -s -t "$SCRIPT_NAME" "Added firewall rules for VPN Kill-switch"
                 fi
             ;;
             "remove")
@@ -63,6 +64,8 @@ firewall_rules() {
             ;;
         esac
     done
+
+    [ "$1" = "add" ] && logger -s -t "$SCRIPT_NAME" "Added firewall rules for VPN Kill-switch"
 }
 
 case "$1" in

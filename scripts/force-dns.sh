@@ -233,7 +233,9 @@ iptables_rules() {
     done
 }
 
-setup_rules() {
+firewall_rules() {
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Bridge interface is not set"; exit 1; }
+
     case "$1" in
         "add")
             iptables_chains remove
@@ -256,8 +258,6 @@ setup_rules() {
                 [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
                 logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
-            else
-                logger -s -t "$SCRIPT_NAME" "DNS server is not forced"
             fi
         ;;
     esac
@@ -283,9 +283,9 @@ case "$1" in
         RULES_EXIST="$({ iptables -t nat -n -L "$CHAIN" >/dev/null 2>&1 && iptables -n -L "$CHAIN_DOT" >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
-            [ "$RULES_EXIST" = "1" ] && setup_rules remove
+            [ "$RULES_EXIST" = "1" ] && firewall_rules remove
         elif [ "$RULES_EXIST" = "0" ]; then
-            setup_rules add
+            firewall_rules add
         fi
     ;;
     "start")
@@ -297,13 +297,13 @@ case "$1" in
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
-        { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && setup_rules add
+        { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && firewall_rules add
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
 
-        FALLBACK_DNS_SERVER=""
-        setup_rules remove
+        FALLBACK_DNS_SERVER="" # prevent changing to fallback instead of removing everything...
+        firewall_rules remove
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop

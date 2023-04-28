@@ -23,6 +23,24 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+is_interface_up() {
+    [ ! -d "/sys/class/net/$1" ] && return 1
+
+    _OPERSTATE="$(cat "/sys/class/net/$1/operstate")"
+
+    case "$_OPERSTATE" in
+        "up")
+            return 0
+        ;;
+        "unknown")
+            [ "$(cat "/sys/class/net/$1/carrier")" = "1" ] && return 0
+        ;;
+    esac
+
+    # All other states: down, notpresent, lowerlayerdown, testing, dormant
+    return 1
+}
+
 hotplug_config() {
     case "$1" in
         "modify")
@@ -92,24 +110,6 @@ setup_inteface() {
     esac
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$_INTERFACE"
-}
-
-is_interface_up() {
-    [ ! -d "/sys/class/net/$1" ] && return 1
-
-    _OPERSTATE="$(cat "/sys/class/net/$1/operstate")"
-
-    case "$_OPERSTATE" in
-        "up")
-            return 0
-        ;;
-        "unknown")
-            [ "$(cat "/sys/class/net/$1/carrier")" = "1" ] && return 0
-        ;;
-    esac
-
-    # All other states: down, notpresent, lowerlayerdown, testing, dormant
-    return 1
 }
 
 case "$1" in

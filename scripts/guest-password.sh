@@ -48,7 +48,7 @@ generate_html_pages() {
                 cp "$HTML_FILE" "/www/user/guest-$INTERFACE.html"
                 sed -i "s/#INTERFACE#/$INTERFACE/g" "/www/user/guest-$INTERFACE.html"
 
-                [ -n "$SSID" ] && echo "<li><a href=\"/user/guest-$INTERFACE.html\">$SSID</a></li>" >> "$LIST_HTML"
+                echo "<li><a href=\"/user/guest-$INTERFACE.html\">$INTERFACE - $SSID</a></li>" >> "$LIST_HTML"
             fi
         done
         echo "</ul>" >> "$LIST_HTML"

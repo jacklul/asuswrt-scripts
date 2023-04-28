@@ -28,11 +28,12 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 #shellcheck disable=SC2009
-PROCESS_PID="$(ps w | grep "$SCRIPT_NAME.sh run" | grep -v grep | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1')"
+PROCESS_PID="$(ps w | grep "$SCRIPT_NAME.sh run" | grep -v "grep\|$$" | awk '{print $1}')"
+PROCESS_PID_LIST="$(echo "$PROCESS_PID" | tr '\n' ' ' | awk '{$1=$1};1')"
 
 case "$1" in
     "run")
-        [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -gt 2 ] && { echo "Already running! (PID: $PROCESS_PID)"; exit 1; }
+        [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -ge 2 ] && { echo "Already running!"; exit 1; }
         [ ! -f "$SYSLOG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
         set -e
@@ -156,6 +157,23 @@ case "$1" in
 
                 exit
             ;;
+            "wireless")
+                if
+                    [ -x "/jffs/scripts/guest-password.sh" ]
+                then
+                    _TIMER=0; while { # wait until wlan restarts
+                        [ "$(nvram get restart_wifi)" = "1" ] ||
+                        [ "$(nvram get wlready)" = "0" ];
+                    } && [ "$_TIMER" -lt "60" ]; do
+                        _TIMER=$((_TIMER+1))
+                        sleep 1
+                    done
+
+                    /jffs/scripts/guest-password.sh html &
+                fi
+
+                exit
+            ;;
         esac
 
         # these do not follow the naming scheme ("ACTION_SERVICE")
@@ -168,7 +186,8 @@ case "$1" in
         exit
     ;;
     "init-run")
-        [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
+        #[ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
+        [ -z "$PROCESS_PID" ] && "$SCRIPT_PATH" run &
     ;;
     "start")
         [ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - this script is redundant!"; exit 1; }
@@ -178,7 +197,7 @@ case "$1" in
     "stop")
         cru d "$SCRIPT_NAME"
 
-        [ -n "$PROCESS_PID" ] && kill "$PROCESS_PID"
+        [ -n "$PROCESS_PID" ] && kill "$PROCESS_PID_LIST"
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
