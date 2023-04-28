@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Randomize guest network passwords and generate HTML pages for them
+# Randomize Guest WiFi passwords and generate HTML pages for them
 #
 # Pages will be available at www.asusrouter.com/user/guest-INTERFACE.html and www.asusrouter.com/user/guest-list.html
 #
@@ -16,8 +16,8 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
-HTML_WL="wl0.1 wl0.2 wl0.3 wl1.1 wl1.2 wl1.3 wl2.1 wl2.2 wl2.3 wl3.1 wl3.2 wl3.3" # list of guest networks to generate HTML pages for, separated by space
-ROTATE_WL="wl0.1 wl1.1" # guest networks to randomize passwords for (find them using 'nvram show | grep "^wl[0-9]\.[0-9]_ssid"' command), separated by space
+HTML_WL="wl0.1 wl0.2 wl0.3 wl1.1 wl1.2 wl1.3 wl2.1 wl2.2 wl2.3 wl3.1 wl3.2 wl3.3" # list of guest network interfaces to generate HTML pages for, separated by space
+ROTATE_WL="wl0.1 wl1.1" # guest network interfaces to randomize passwords for (find them using 'nvram show | grep "^wl[0-9]\.[0-9]_ssid"' command), separated by space
 CHAR_LIST="ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz123456789" # characters list for generated passwords
 PASSWORD_LENGTH=20 # length of generated passwords
 ROTATE_ON_START=false # should we rotate passwords on script start
@@ -64,7 +64,7 @@ case "$1" in
 
             if [ -n "$SSID" ]; then
                 if [ "$(nvram get "${INTERFACE}_bss_enabled")" = "1" ]; then
-                    logger -s -t "$SCRIPT_NAME" "Rotating password for guest network: $SSID"
+                    logger -s -t "$SCRIPT_NAME" "Rotating password for Guest WiFi: $SSID"
 
                     NEW_PASSWORD="$(get_random_password)"
                     nvram set "${INTERFACE}_wpa_psk"="$NEW_PASSWORD"
