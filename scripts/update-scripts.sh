@@ -63,7 +63,7 @@ case "$1" in
                 download_and_check "$BASE_DOWNLOAD_URL/$BASENAME" "$ENTRY"
 
                 #shellcheck disable=SC2002
-                EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\".*$/\1/p" | grep -v 'readonly')"
+                EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\"\s#.*$/\1/p")"
 
                 if [ -n "$EXTRA_EXTENSIONS" ]; then
                     ENTRY_NAME="$(basename "$ENTRY" .sh)"
