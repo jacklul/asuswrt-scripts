@@ -302,6 +302,7 @@ case "$1" in
     "stop")
         cru d "$SCRIPT_NAME"
 
+        FALLBACK_DNS_SERVER=""
         setup_rules remove
     ;;
     "restart")
