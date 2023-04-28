@@ -5,9 +5,10 @@
 #
 # Implements basic service-event script handler from AsusWRT-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts
+#
 # There is no blocking so there is no guarantee that this script will run before the event happens.
 # You will probably want add extra code if you want to run code after the event happens.
-# Scripts from this repository are already handled by build-in script.
+# Scripts from this repository are already handled by the build-in script.
 #
 
 #shellcheck disable=SC2155
@@ -39,7 +40,7 @@ case "$1" in
         set -e
 
         logger -s -t "$SCRIPT_NAME" "Started service event monitoring..."
-        
+
         if [ -f "$CACHE_FILE" ]; then
             LAST_LINE="$(cat "$CACHE_FILE")"
         else
@@ -54,7 +55,7 @@ case "$1" in
                 LAST_LINE=1
                 continue
             fi
-            
+
             NEW_LINES="$(tail "$SYSLOG_FILE" -n "+$LAST_LINE")"
 
             if [ -n "$NEW_LINES" ]; then
@@ -76,9 +77,9 @@ case "$1" in
                             for EVENT in $EVENTS; do
                                 if [ -n "$EVENT" ]; then
                                     EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
-                                    EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2-)"
+                                    EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2- | cut -d' ' -f1)"
 
-                                    logger -s -t "$SCRIPT_NAME" "Running service event script (args: $EVENT_ACTION $EVENT_TARGET)"
+                                    logger -s -t "$SCRIPT_NAME" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
 
                                     sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
                                     [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &
@@ -107,16 +108,16 @@ case "$1" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 if
                     [ -x "/jffs/scripts/vpn-killswitch.sh" ] ||
-                    [ -x "/jffs/scripts/force-dns.sh" ] ||
                     [ -x "/jffs/scripts/wgs-lanonly.sh" ]
+                    [ -x "/jffs/scripts/force-dns.sh" ] ||
                     [ -x "/jffs/scripts/samba-masquerade.sh" ]
                     [ -x "/jffs/scripts/tailscale.sh" ]
                 then
                     _TIMER=0; while { # wait till our chains disappear
                         iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
+                        iptables -n -L "WGS_LANONLY" >/dev/null 2>&1 ||
                         iptables -n -L "FORCEDNS" -t nat >/dev/null 2>&1 ||
                         iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
-                        iptables -n -L "WGS_LANONLY" >/dev/null 2>&1 ||
                         iptables -n -L "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
                         iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
                     } && [ "$_TIMER" -lt "60" ]; do
@@ -125,8 +126,8 @@ case "$1" in
                     done
 
                     [ -x "/jffs/scripts/vpn-killswitch.sh" ] && /jffs/scripts/vpn-killswitch.sh run &
-                    [ -x "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
                     [ -x "/jffs/scripts/wgs-lanonly.sh" ] && /jffs/scripts/wgs-lanonly.sh run &
+                    [ -x "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
                     [ -x "/jffs/scripts/samba-masquerade.sh" ] && /jffs/scripts/samba-masquerade.sh run &
                     [ -x "/jffs/scripts/tailscale.sh" ] && /jffs/scripts/tailscale.sh firewall &
                 fi
@@ -192,8 +193,13 @@ case "$1" in
         exit
     ;;
     "init-run")
-        #[ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
-        [ -z "$PROCESS_PID" ] && "$SCRIPT_PATH" run &
+        if [ "$2" = "restart" ]; then
+            kill "$PROCESS_PID_LIST"
+            PROCESS_PID=
+            sh "$SCRIPT_PATH" start
+        fi
+
+        [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
     ;;
     "start")
         [ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - this script is redundant!"; exit 1; }
@@ -206,8 +212,7 @@ case "$1" in
         [ -n "$PROCESS_PID" ] && kill "$PROCESS_PID_LIST"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run restart"
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"

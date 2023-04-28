@@ -77,7 +77,7 @@ case "$1" in
         done
 
         [ -n "$CHANGED" ] && nvram commit && service restart_wireless
-        
+
         generate_html_pages
     ;;
     "html")

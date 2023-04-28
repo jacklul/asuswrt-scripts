@@ -25,7 +25,7 @@ CHAIN="VPN_KILLSWITCH"
 FOR_IPTABLES="iptables"
 
 [ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
-    
+
 get_wan_interface() {
     _INTERFACE="$(nvram get wan0_ifname)"
 

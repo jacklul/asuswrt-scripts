@@ -15,8 +15,8 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
-BRIDGE_INTERFACE="br0" # bridge interface to add into
-EXECUTE_COMMAND="" # execute a command each time status changes, will pass arguments action (add or remove) and with interface name
+BRIDGE_INTERFACE="br0" # bridge interface to add into, by default only LAN bridge ("br0") interface
+EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = interface)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090

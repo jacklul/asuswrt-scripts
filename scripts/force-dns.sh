@@ -30,7 +30,7 @@ BRIDGE_INTERFACE="br+" # the bridge interface(s) to set rules for, by default af
 REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in /sys/class/net/, wildcards accepted
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
-EXECUTE_COMMAND="" # execute a command after rules are applied or removed, will pass argument with action (add or remove)
+EXECUTE_COMMAND="" # execute a command after rules are applied or removed (receives arguments: $1 = action)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 
 # This means that this is a Merlin firmware

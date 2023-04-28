@@ -46,7 +46,7 @@ if [ -f "/usr/sbin/helper.sh" ]; then
     [ -n "$CRON_MONTHDAY_" ] && CRON_MONTHDAY=$CRON_MONTHDAY_ || CRON_MONTHDAY="*"
     [ -n "$CRON_MONTH_" ] && CRON_MONTH=$CRON_MONTH_ || CRON_MONTH="*"
     [ -n "$CRON_WEEKDAY_" ] && CRON_WEEKDAY=$CRON_WEEKDAY_ || CRON_WEEKDAY=7
-    
+
     CRON="$CRON_MINUTE $CRON_HOUR $CRON_MONTHDAY $CRON_MONTH $CRON_WEEKDAY"
 fi
 
@@ -58,7 +58,7 @@ fi
 download_rclone() {
     if [ -n "$RCLONE_DOWNLOAD_URL" ]; then
         logger -s -t "$SCRIPT_NAME" "Downloading Rclone binary from '$RCLONE_DOWNLOAD_URL'..."
-        
+
         set -e
         mkdir -p /tmp/download
         cd /tmp/download
@@ -83,7 +83,7 @@ case "$1" in
 
         if [ ! -f "$RCLONE_PATH" ]; then
             download_rclone
-            
+
             [ ! -f "$RCLONE_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
         fi
 

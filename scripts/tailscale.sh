@@ -91,7 +91,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_NAME" "Added firewall rules for interface $INTERFACE"
+    [ "$1" = "add" ] && logger -s -t "$SCRIPT_NAME" "Added firewall rules for Tailscale interface ($INTERFACE)"
 }
 
 #shellcheck disable=SC2009
@@ -104,7 +104,7 @@ case "$1" in
 
         if [ ! -f "$TAILSCALED_PATH" ] || [ ! -f "$TAILSCALE_PATH" ]; then
             download_tailscale
-            
+
             [ ! -f "$TAILSCALED_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
             [ ! -f "$TAILSCALE_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
         fi
@@ -121,7 +121,7 @@ case "$1" in
 
         #shellcheck disable=SC2086
         /tmp/tailscale up $TAILSCALE_ARGUMENTS
-        
+
         sh "$SCRIPT_PATH" firewall
     ;;
     "init-run")

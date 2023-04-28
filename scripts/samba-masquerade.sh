@@ -11,9 +11,9 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
-VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24" # VPN networks to allow access to Samba from, separated by spaces (by default WireGuard and OpenVPN servers have access)
+VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24 10.10.10.0/24" # VPN networks (IPv4) to allow access to Samba from, separated by spaces
 VPN_NETWORKS6="" # VPN networks (IPv6) to allow access to Samba from, separated by spaces
-BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default affects lan bridge ("br0") interface only
+BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default only LAN bridge ("br0") interface
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090

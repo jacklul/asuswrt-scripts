@@ -68,7 +68,7 @@ case "$1" in
                 if [ -n "$EXTRA_EXTENSIONS" ]; then
                     ENTRY_NAME="$(basename "$ENTRY" .sh)"
                     ENTRY_DIR="$(dirname "$ENTRY")"
-                    
+
                     IFS="$(printf '\n\b')"
                     for EXTENSION in $EXTRA_EXTENSIONS; do
                         echo "Processing '$ENTRY_DIR/$ENTRY_NAME.$EXTENSION'..."
@@ -76,7 +76,7 @@ case "$1" in
                     done
                 fi
             done
-            
+
             exit
         fi
     ;;

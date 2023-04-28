@@ -12,7 +12,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
 INTERFACE="wgs1" # WireGuard server interface (find it through 'nvram show | grep wgs' or 'ifconfig' command)
-BRIDGE_INTERFACE="br+" # the bridge interface(s) to limit access to, by default affects all "br" interfaces (which also includes guest network bridge)
+BRIDGE_INTERFACE="br0" # the bridge interface(s) to limit access to, by default only LAN bridge ("br0") interface
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -25,7 +25,7 @@ FOR_IPTABLES="iptables"
 [ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
 firewall_rules() {
-    [ -z "$INTERFACE" ] && { logger -s -t "$INTERFACE" "Target interface is not set"; exit 1; }
+    [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Target interface is not set"; exit 1; }
     [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Bridge interface is not set"; exit 1; }
 
     for _IPTABLES in $FOR_IPTABLES; do
@@ -34,7 +34,7 @@ firewall_rules() {
                 if ! $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
                     _FORWARD_START="$($_IPTABLES -L FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
-                    
+
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -A "$CHAIN" ! -o "$BRIDGE_INTERFACE" -j REJECT
                     $_IPTABLES -A "$CHAIN" -j RETURN
