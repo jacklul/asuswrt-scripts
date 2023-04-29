@@ -16,7 +16,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
 CONFIG_FILE="/jffs/inadyn.conf" # Inadyn configuration file to use
 CACHE_FILE="/tmp/last_wan_ip" # where to cache last public IP
-IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr", can use URL like "https://ipecho.net/plain" here or empty to not check
+IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr" (use "nvram2" for wan1), can use URL like "https://ipecho.net/plain" here or empty to not check
 IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL address
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -46,6 +46,8 @@ case "$1" in
 
         if [ "$IPECHO_URL" = "nvram" ]; then
             WAN_IP="$(nvram get wan0_ipaddr)"
+        elif [ "$IPECHO_URL" = "nvram2" ]; then
+            WAN_IP="$(nvram get wan1_ipaddr)"
         elif [ -n "$IPECHO_URL" ]; then
             WAN_IP="$(curl -fsSL "$IPECHO_URL" -m "$IPECHO_TIMEOUT")"
         else
