@@ -113,17 +113,19 @@ case "$1" in
                     [ -x "/jffs/scripts/samba-masquerade.sh" ]
                     [ -x "/jffs/scripts/tailscale.sh" ]
                 then
-                    _TIMER=0; while { # wait till our chains disappear
-                        iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
-                        iptables -n -L "WGS_LANONLY" >/dev/null 2>&1 ||
-                        iptables -n -L "FORCEDNS" -t nat >/dev/null 2>&1 ||
-                        iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
-                        iptables -n -L "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
-                        iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
-                    } && [ "$_TIMER" -lt "60" ]; do
-                        _TIMER=$((_TIMER+1))
-                        sleep 1
-                    done
+                    if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                        _TIMER=0; while { # wait till our chains disappear
+                            iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
+                            iptables -n -L "WGS_LANONLY" >/dev/null 2>&1 ||
+                            iptables -n -L "FORCEDNS" -t nat >/dev/null 2>&1 ||
+                            iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
+                            iptables -n -L "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
+                            iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
+                        } && [ "$_TIMER" -lt "60" ]; do
+                            _TIMER=$((_TIMER+1))
+                            sleep 1
+                        done
+                    fi
 
                     [ -x "/jffs/scripts/vpn-killswitch.sh" ] && /jffs/scripts/vpn-killswitch.sh run &
                     [ -x "/jffs/scripts/wgs-lanonly.sh" ] && /jffs/scripts/wgs-lanonly.sh run &
@@ -139,21 +141,23 @@ case "$1" in
                     [ -x "/jffs/scripts/usb-network.sh" ] ||
                     [ -x "/jffs/scripts/dynamic-dns.sh" ]
                 then
-                    _TIMER=0; while { # wait until wan goes down
-                        [ "$(nvram get wan0_state_t)" = "2" ] &&
-                        [ "$(nvram get wan1_state_t)" = "2" ];
-                    } && [ "$_TIMER" -lt "15" ]; do
-                        _TIMER=$((_TIMER+1))
-                        sleep 1
-                    done
+                    if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                        _TIMER=0; while { # wait until wan goes down
+                            [ "$(nvram get wan0_state_t)" = "2" ] &&
+                            [ "$(nvram get wan1_state_t)" = "2" ];
+                        } && [ "$_TIMER" -lt "15" ]; do
+                            _TIMER=$((_TIMER+1))
+                            sleep 1
+                        done
 
-                    _TIMER=0; while { # wait until wan goes up
-                        [ "$(nvram get wan0_state_t)" != "2" ] &&
-                        [ "$(nvram get wan1_state_t)" != "2" ];
-                    } && [ "$_TIMER" -lt "60" ]; do
-                        _TIMER=$((_TIMER+1))
-                        sleep 1
-                    done
+                        _TIMER=0; while { # wait until wan goes up
+                            [ "$(nvram get wan0_state_t)" != "2" ] &&
+                            [ "$(nvram get wan1_state_t)" != "2" ];
+                        } && [ "$_TIMER" -lt "60" ]; do
+                            _TIMER=$((_TIMER+1))
+                            sleep 1
+                        done
+                    fi
 
                     [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh run &
                     [ -x "/jffs/scripts/dynamic-dns.sh" ] && /jffs/scripts/dynamic-dns.sh run &
@@ -168,13 +172,15 @@ case "$1" in
                 if
                     [ -x "/jffs/scripts/guest-password.sh" ]
                 then
-                    _TIMER=0; while { # wait until wlan restarts
-                        [ "$(nvram get restart_wifi)" = "1" ] ||
-                        [ "$(nvram get wlready)" = "0" ];
-                    } && [ "$_TIMER" -lt "60" ]; do
-                        _TIMER=$((_TIMER+1))
-                        sleep 1
-                    done
+                    if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                        _TIMER=0; while { # wait until wlan restarts
+                            [ "$(nvram get restart_wifi)" = "1" ] ||
+                            [ "$(nvram get wlready)" = "0" ];
+                        } && [ "$_TIMER" -lt "60" ]; do
+                            _TIMER=$((_TIMER+1))
+                            sleep 1
+                        done
+                    fi
 
                     /jffs/scripts/guest-password.sh html &
                 fi
@@ -202,7 +208,20 @@ case "$1" in
         [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && { logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - this script is redundant!"; exit 1; }
+        if [ -f "/usr/sbin/helper.sh" ]; then # use service-event-end on Merlin firmware
+            if [ -f /jffs/scripts/service-event-end ]; then
+                if ! grep -q "$SCRIPT_DIR/$SCRIPT_NAME.sh" /jffs/scripts/service-event-end; then
+                    echo "$SCRIPT_DIR/$SCRIPT_NAME.sh event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
+                fi
+            else
+                echo "#!/bin/sh" > /jffs/scripts/service-event-end
+                echo "" >> /jffs/scripts/service-event-end
+                echo "$SCRIPT_DIR/$SCRIPT_NAME.sh event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
+                chmod 0755 /jffs/scripts/service-event-end
+            fi
+
+            exit
+        fi
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
     ;;
