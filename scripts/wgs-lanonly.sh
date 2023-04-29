@@ -36,7 +36,7 @@ firewall_rules() {
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
                     $_IPTABLES -N "$CHAIN"
-                    $_IPTABLES -A "$CHAIN" ! -o "$BRIDGE_INTERFACE" -j REJECT
+                    $_IPTABLES -A "$CHAIN" ! -o "$BRIDGE_INTERFACE" -j DROP
                     $_IPTABLES -A "$CHAIN" -j RETURN
 
                     $_IPTABLES -I FORWARD "$_FORWARD_START_PLUS" -i "$INTERFACE" -j "$CHAIN"
