@@ -4,6 +4,7 @@
 # Runs Tailscale service
 #
 # Note that automatic download of Tailscale binaries stores them in /tmp directory - make sure you have enough free RAM!
+# You will want to start this manually first to login.
 #
 
 #shellcheck disable=SC2155

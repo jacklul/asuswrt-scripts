@@ -108,9 +108,9 @@ case "$1" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 if
                     [ -x "/jffs/scripts/vpn-killswitch.sh" ] ||
-                    [ -x "/jffs/scripts/wgs-lanonly.sh" ]
+                    [ -x "/jffs/scripts/wgs-lanonly.sh" ] ||
                     [ -x "/jffs/scripts/force-dns.sh" ] ||
-                    [ -x "/jffs/scripts/samba-masquerade.sh" ]
+                    [ -x "/jffs/scripts/samba-masquerade.sh" ] ||
                     [ -x "/jffs/scripts/tailscale.sh" ]
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
@@ -143,9 +143,9 @@ case "$1" in
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait until wan goes down
-                            [ "$(nvram get wan0_state_t)" = "2" ] &&
-                            [ "$(nvram get wan1_state_t)" = "2" ];
-                        } && [ "$_TIMER" -lt "15" ]; do
+                            { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ]; } &&
+                            { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ]; };
+                        } && [ "$_TIMER" -lt "10" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1
                         done
