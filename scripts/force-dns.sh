@@ -238,26 +238,31 @@ firewall_rules() {
 
     case "$1" in
         "add")
-            iptables_chains remove
-            iptables_chains add
-            iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
+            if ! rules_exist "$DNS_SERVER"; then
+                iptables_chains remove
+                iptables_chains add
+                iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
 
-            _DNS_SERVER="$DNS_SERVER"
-            [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
+                _DNS_SERVER="$DNS_SERVER"
+                [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
 
-            logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}"
+                logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}"
+            fi
         ;;
         "remove")
-            iptables_chains remove
-
             if [ -n "$FALLBACK_DNS_SERVER" ]; then
-                iptables_chains add
-                iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
+                if ! rules_exist "$FALLBACK_DNS_SERVER"; then
+                    iptables_chains remove
+                    iptables_chains add
+                    iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
 
-                _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
-                [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
+                    _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
+                    [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
-                logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                    logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                fi
+            else
+                iptables_chains remove
             fi
         ;;
     esac
@@ -277,14 +282,25 @@ interface_exists() {
     return 1
 }
 
+rules_exist() {
+    _DNS_SERVER="$1"
+
+    if iptables -t nat -n -L "$CHAIN" >/dev/null 2>&1 && iptables -n -L "$CHAIN_DOT" >/dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN" -j DNAT --to-destination "$_DNS_SERVER" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 case "$1" in
     "run")
         [ -z "$DNS_SERVER" ] && exit
-        RULES_EXIST="$({ iptables -t nat -n -L "$CHAIN" >/dev/null 2>&1 && iptables -n -L "$CHAIN_DOT" >/dev/null 2>&1; } && echo 1 || echo 0)"
 
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
-            [ "$RULES_EXIST" = "1" ] && firewall_rules remove
-        elif [ "$RULES_EXIST" = "0" ]; then
+            firewall_rules remove
+        else
             firewall_rules add
         fi
     ;;
