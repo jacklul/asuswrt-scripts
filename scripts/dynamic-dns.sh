@@ -42,7 +42,7 @@ run_ddns_update() {
 
 case "$1" in
     "run")
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
 
         if [ "$IPECHO_URL" = "nvram" ]; then
             WAN_IP="$(nvram get wan0_ipaddr)"
