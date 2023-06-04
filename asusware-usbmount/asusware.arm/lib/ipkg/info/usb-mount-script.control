@@ -1,0 +1,10 @@
+Package: usb-mount-script
+Architecture: arm
+Priority: optional
+Section: libs
+Version: 1.0.0.0
+Depends:
+Suggests:
+Conflicts:
+Enabled: yes
+Installed-Size: 1

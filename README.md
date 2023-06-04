@@ -6,6 +6,8 @@ Obviously this requires some kind of USB storage plugged into the router for thi
 
 Everything here was tested on **RT-AX58U v2** on official **388.2** firmware, there is no gurantee that everything will work on non-AX routers and on lower firmware versions.
 
+**Some routers are no longer executing commands from `script_usbmount` NVRAM variable on USB mount - in that case [look here](/asusware-usbmount) for a workaround.**
+
 ## Installation
 
 Install startup script:
@@ -223,7 +225,7 @@ cur -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scri
 
 This script will prevent your LAN from accessing the internet through the WAN interface.
 
-There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avod this on stock firmware.
+There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avoid this on stock firmware.
 
 Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
 

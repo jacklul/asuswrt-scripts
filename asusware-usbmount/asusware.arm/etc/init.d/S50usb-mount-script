@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case "$1" in
+	"start")
+		logger -t "$(basename "$0")" "Executing command in \"script_usbmount\"..."
+		eval "$(nvram get script_usbmount)"
+	;;
+	"stop")
+		logger -t "$(basename "$0")" "Executing command in \"script_usbumount\"..."
+		eval "$(nvram get script_usbumount)"
+	;;
+esac
