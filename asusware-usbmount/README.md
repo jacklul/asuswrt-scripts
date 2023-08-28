@@ -10,3 +10,9 @@ If your router's architecture is not ARM you will have to replace it with the co
 You will also need to rename **asusware.arm** directory to contain the new architecture suffix.
 
 Known supported architecture values are `arm, mipsbig, mipsel`.
+
+### Sometimes this workaround does not work straight away - in that case do the following:
+- grab another USB stick (or reformat current one)
+- plug it into the router (it has to be the only one plugged in)
+- install Download Master 
+- unplug it and plug back the "workaround" one - everything should be working now
