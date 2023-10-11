@@ -30,6 +30,8 @@ firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
     [ -z "$VPN_NETWORKS" ] && { logger -s -t "Allowed VPN networks are not set"; exit 1; }
 
+    _RULES_ADDED=0
+
     for _IPTABLES in $FOR_IPTABLES; do
         if [ "$_IPTABLES" = "ip6tables" ]; then
             _VPN_NETWORKS="$VPN_NETWORKS6"
@@ -41,34 +43,36 @@ firewall_rules() {
 
         case "$1" in
             "add")
-                if ! $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
-                    $_IPTABLES -N "$CHAIN"
-                    $_IPTABLES -A "$CHAIN" -t nat -p tcp --dport 445 -j MASQUERADE
-                    $_IPTABLES -A "$CHAIN" -t nat -p tcp --dport 139 -j MASQUERADE
-                    $_IPTABLES -A "$CHAIN" -t nat -p udp --dport 138 -j MASQUERADE
-                    $_IPTABLES -A "$CHAIN" -t nat -p udp --dport 137 -j MASQUERADE
-                    $_IPTABLES -A "$CHAIN" -t nat -p icmp --icmp-type 1 -j MASQUERADE
-                    $_IPTABLES -A "$CHAIN" -t nat -j RETURN
+                if ! $_IPTABLES -t nat -n -L "$CHAIN" >/dev/null 2>&1; then
+                    _RULES_ADDED=1
+
+                    $_IPTABLES -t nat  -N "$CHAIN"
+                    $_IPTABLES -t nat -A "$CHAIN" -p tcp --dport 445 -j MASQUERADE
+                    $_IPTABLES -t nat -A "$CHAIN" -p tcp --dport 139 -j MASQUERADE
+                    $_IPTABLES -t nat -A "$CHAIN" -p udp --dport 138 -j MASQUERADE
+                    $_IPTABLES -t nat -A "$CHAIN" -p udp --dport 137 -j MASQUERADE
+                    $_IPTABLES -t nat -A "$CHAIN" -p icmp --icmp-type 1 -j MASQUERADE
+                    $_IPTABLES -t nat -A "$CHAIN" -j RETURN
 
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
-                        $_IPTABLES -A "POSTROUTING -t nat -s $_VPN_NETWORK -o $BRIDGE_INTERFACE -j SAMBA_MASQUERADE"
+                        $_IPTABLES -t nat -A POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
                     done
                 fi
             ;;
             "remove")
-                if $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
+                if $_IPTABLES -t nat -n -L "$CHAIN" >/dev/null 2>&1; then
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
-                        $_IPTABLES -D "POSTROUTING -t nat -s $_VPN_NETWORK -o $BRIDGE_INTERFACE -j SAMBA_MASQUERADE"
+                        $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
                     done
 
-                    $_IPTABLES -F "$CHAIN"
-                    $_IPTABLES -X "$CHAIN"
+                    $_IPTABLES -t nat -F "$CHAIN"
+                    $_IPTABLES -t nat -X "$CHAIN"
                 fi
             ;;
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPNs: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
+    [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
 }
 
 case "$1" in
