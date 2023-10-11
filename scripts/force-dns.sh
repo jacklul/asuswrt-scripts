@@ -27,7 +27,7 @@ DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use route
 PERMIT_MAC="" # space/comma separated allowed MAC addresses to bypass forced DNS
 PERMIT_IP="" # space/comma separated allowed v4 IPs to bypass forced DNS, ranges supported
 PERMIT_IP6="" # space/comma separated allowed v6 IPs to bypass forced DNS, ranges supported
-BRIDGE_INTERFACE="br+" # the bridge interface(s) to set rules for, by default affects all "br" interfaces (which also includes guest network bridge)
+TARGET_INTERFACES="br+" # the target interface(s) to set rules for, separated by spaces
 REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in /sys/class/net/, wildcards accepted
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
@@ -63,6 +63,11 @@ fi
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+# BRIDGE_INTERFACE was renamed to TARGET_INTERFACES, prevent this change from breaking custom configurations
+if [ -n "$BRIDGE_INTERFACE" ]; then
+    TARGET_INTERFACES="$BRIDGE_INTERFACE"
 fi
 
 CHAIN="FORCEDNS"
@@ -104,13 +109,25 @@ iptables_chains() {
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
                     $_IPTABLES -N "$CHAIN_DOT"
-                    $_IPTABLES -I FORWARD "$_FORWARD_START_PLUS" -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+
+                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
+                        $_IPTABLES -I FORWARD "$_FORWARD_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+                        _FORWARD_START_PLUS="$((_FORWARD_START_PLUS+1))"
+                    done
                 fi
 
                 if ! $_IPTABLES -t nat -n -L "$CHAIN" >/dev/null 2>&1; then
+                    #_PREROUTING_START="$($_IPTABLES -t nat -L PREROUTING --line-numbers | grep -E "VPN_FUSION" | tail -1 | awk '{print $1}')"
+                    #_PREROUTING_START_PLUS="$((_PREROUTING_START+1))"
+                    _PREROUTING_START_PLUS=1
+
                     $_IPTABLES -t nat -N "$CHAIN"
-                    $_IPTABLES -t nat -I PREROUTING -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN"
-                    $_IPTABLES -t nat -I PREROUTING -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN"
+                    
+                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
+                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN"
+                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN"
+                        _PREROUTING_START_PLUS="$((_PREROUTING_START_PLUS+2))"
+                    done
                 fi
 
                 if [ "$BLOCK_ROUTER_DNS" = "1" ] && ! $_IPTABLES -n -L "$CHAIN_BLOCK" >/dev/null 2>&1; then
@@ -124,20 +141,30 @@ iptables_chains() {
                     _INPUT_START_PLUS="$((_INPUT_START+1))"
 
                     $_IPTABLES -N "$CHAIN_BLOCK"
-                    $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
-                    $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+
+                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
+                        $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                        $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                        _INPUT_START_PLUS="$((_INPUT_START_PLUS+2))"
+                    done
                 fi
             ;;
             "remove")
                 if $_IPTABLES -n -L "$CHAIN_DOT" >/dev/null 2>&1; then
-                    $_IPTABLES -D FORWARD -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
+                        $_IPTABLES -D FORWARD -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+                    done
+
                     $_IPTABLES -F "$CHAIN_DOT"
                     $_IPTABLES -X "$CHAIN_DOT"
                 fi
 
                 if $_IPTABLES -t nat -n -L "$CHAIN" >/dev/null 2>&1; then
-                    $_IPTABLES -t nat -D PREROUTING -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN"
-                    $_IPTABLES -t nat -D PREROUTING -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN"
+                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
+                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN"
+                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN"
+                    done
+
                     $_IPTABLES -t nat -F "$CHAIN"
                     $_IPTABLES -t nat -X "$CHAIN"
                 fi
@@ -149,8 +176,11 @@ iptables_chains() {
                         _ROUTER_IP="$ROUTER_IP"
                     fi
 
-                    $_IPTABLES -D INPUT -i "$BRIDGE_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
-                    $_IPTABLES -D INPUT -i "$BRIDGE_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
+                        $_IPTABLES -D INPUT -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                        $_IPTABLES -D INPUT -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                    done
+                    
                     $_IPTABLES -F "$CHAIN_BLOCK"
                     $_IPTABLES -X "$CHAIN_BLOCK"
                 fi
@@ -235,7 +265,7 @@ iptables_rules() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logger -s -t "$SCRIPT_TAG" "Target interfaces are not set"; exit 1; }
 
     case "$1" in
         "add")
