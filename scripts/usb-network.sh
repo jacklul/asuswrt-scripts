@@ -14,6 +14,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 BRIDGE_INTERFACE="br0" # bridge interface to add into, by default only LAN bridge ("br0") interface
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = interface)
@@ -64,7 +65,7 @@ hotplug_config() {
 
                         killall hotplug2
 
-                        logger -s -t "$SCRIPT_NAME" "Modified hotplug configuration"
+                        logger -s -t "$SCRIPT_TAG" "Modified hotplug configuration"
 
                         return
                     fi
@@ -80,7 +81,7 @@ hotplug_config() {
 
                 killall hotplug2
 
-                logger -s -t "$SCRIPT_NAME" "Restored original hotplug configuration"
+                logger -s -t "$SCRIPT_TAG" "Restored original hotplug configuration"
             fi
         ;;
     esac
@@ -99,13 +100,13 @@ setup_inteface() {
             is_interface_up "$_INTERFACE" || ifconfig "$_INTERFACE" up
             brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" || brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"
 
-            logger -s -t "$SCRIPT_NAME" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
+            logger -s -t "$SCRIPT_TAG" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
         ;;
         "remove")
             brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" && brctl delif "$BRIDGE_INTERFACE" "$_INTERFACE"
             [ -d "/sys/class/net/$_INTERFACE" ] && is_interface_up "$_INTERFACE" && ifconfig "$_INTERFACE" down
 
-            logger -s -t "$SCRIPT_NAME" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"
+            logger -s -t "$SCRIPT_TAG" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"
         ;;
     esac
 
@@ -134,7 +135,7 @@ case "$1" in
                     setup_inteface remove "$INTERFACE"
                 ;;
                 *)
-                    logger -s -t "$SCRIPT_NAME" "Unknown hotplug action: $ACTION ($INTERFACE)"
+                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($INTERFACE)"
                     exit 1
                 ;;
             esac
@@ -146,7 +147,7 @@ case "$1" in
         brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && cru l | grep "$SCRIPT_NAME" | grep -q "retry_until_success" && cru d "$SCRIPT_NAME"
     ;;
     "start")
-        [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - bridge interface is not set"; exit 1; }
+        [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
@@ -159,7 +160,7 @@ case "$1" in
         if ! brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && ! cru l | grep -q "$SCRIPT_NAME"; then
             cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH retry_until_success"
 
-            logger -s -t "$SCRIPT_NAME" "Could not find any matching interface - will retry using crontab"
+            logger -s -t "$SCRIPT_TAG" "Could not find any matching interface - will retry using crontab"
         fi
     ;;
     "stop")

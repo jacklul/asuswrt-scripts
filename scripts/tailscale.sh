@@ -13,6 +13,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 STATE_FILE="/jffs/tailscaled.state" # where to store state file, preferably persistent between reboots
 INTERFACE="tailscale0" # interface to use, if you change TAILSCALED_ARGUMENTS make sure correct interface is being used
@@ -50,7 +51,7 @@ FOR_IPTABLES="iptables"
 
 download_tailscale() {
     if [ -n "$TAILSCALE_DOWNLOAD_URL" ]; then
-        logger -s -t "$SCRIPT_NAME" "Downloading Tailscale binaries from '$TAILSCALE_DOWNLOAD_URL'..."
+        logger -s -t "$SCRIPT_TAG" "Downloading Tailscale binaries from '$TAILSCALE_DOWNLOAD_URL'..."
 
         set -e
         mkdir -p /tmp/download
@@ -69,7 +70,7 @@ download_tailscale() {
 }
 
 firewall_rules() {
-    [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Tailscale interface is not set"; exit 1; }
+    [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }
 
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
@@ -92,7 +93,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_NAME" "Added firewall rules for Tailscale interface ($INTERFACE)"
+    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Tailscale interface ($INTERFACE)"
 }
 
 #shellcheck disable=SC2009
@@ -106,12 +107,12 @@ case "$1" in
         if [ ! -f "$TAILSCALED_PATH" ] || [ ! -f "$TAILSCALE_PATH" ]; then
             download_tailscale
 
-            [ ! -f "$TAILSCALED_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
-            [ ! -f "$TAILSCALE_PATH" ] && { logger -s -t "$SCRIPT_NAME" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
+            [ ! -f "$TAILSCALED_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
+            [ ! -f "$TAILSCALE_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
         fi
 
         if [ -z "$TAILSCALED_PID" ]; then
-            logger -s -t "$SCRIPT_NAME" "Starting Tailscale daemon..."
+            logger -s -t "$SCRIPT_TAG" "Starting Tailscale daemon..."
 
             ! lsmod | grep -q tun && modprobe tun && sleep 1
 

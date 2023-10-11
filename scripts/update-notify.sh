@@ -10,6 +10,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 BOT_TOKEN="" # Telegram bot token
 CHAT_ID="" # Telegram chat identifier, can also be a group id or channel id/username
@@ -61,7 +62,7 @@ case "$1" in
 
         if [ -n "$NEW_VERSION" ] && [ "$CURRENT_VERSION" != "$NEW_VERSION" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$NEW_VERSION" ]; }; then
             if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
-                logger -s -t "$SCRIPT_NAME" "Sending update notification through Telegram..."
+                logger -s -t "$SCRIPT_TAG" "Sending update notification through Telegram..."
 
                 LINE_BREAK=$(printf '\n\r')
                 ROUTER_IP="$(nvram get lan_ipaddr)"
@@ -75,22 +76,22 @@ case "$1" in
 
                 if ! echo "$RESULT" | grep -q '"ok":true'; then
                     if echo "$RESULT" | grep -q '"ok":'; then
-                        logger -s -t "$SCRIPT_NAME" "Telegram API error: $RESULT"
+                        logger -s -t "$SCRIPT_TAG" "Telegram API error: $RESULT"
                     else
-                        logger -s -t "$SCRIPT_NAME" "Connection to Telegram API failed"
+                        logger -s -t "$SCRIPT_TAG" "Connection to Telegram API failed"
                     fi
                 else
                     NOTIFICATION_SENT=1
                 fi
             else
-                logger -s -t "$SCRIPT_NAME" "Unable to execute - either BOT TOKEN or CHAT ID are not set"
+                logger -s -t "$SCRIPT_TAG" "Unable to execute - either BOT TOKEN or CHAT ID are not set"
             fi
 
             [ "$NOTIFICATION_SENT" = "1" ] && echo "$NEW_VERSION" > "$CACHE_FILE"
         fi
     ;;
     "start")
-        { [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; } && { logger -s -t "$SCRIPT_NAME" "Unable to start - configuration not set"; exit 1; }
+        { [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; } && { logger -s -t "$SCRIPT_TAG" "Unable to start - configuration not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 

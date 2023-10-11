@@ -9,6 +9,8 @@ CHECK_FILE="/tmp/scripts_started"
 readonly SCRIPT_NAME="$(basename "$0" .sh)"
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_CONFIG="$(dirname "$0")/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
@@ -25,10 +27,10 @@ scripts() {
 
             case "$_ACTION" in
                 "start")
-                    logger -s -t "$SCRIPT_NAME" "Starting $ENTRY..."
+                    logger -s -t "$SCRIPT_TAG" "Starting $ENTRY..."
                 ;;
                 "stop")
-                    logger -s -t "$SCRIPT_NAME" "Stopping $ENTRY..."
+                    logger -s -t "$SCRIPT_TAG" "Stopping $ENTRY..."
                 ;;
             esac
 
@@ -40,7 +42,7 @@ scripts() {
 case "$1" in
     "start")
         if [ ! -f "$CHECK_FILE" ]; then
-            logger -s -t "$SCRIPT_NAME" "Starting user scripts..."
+            logger -s -t "$SCRIPT_TAG" "Starting user scripts..."
 
             date > $CHECK_FILE
 
@@ -48,7 +50,7 @@ case "$1" in
         fi
     ;;
     "stop")
-        logger -s -t "$SCRIPT_NAME" "Stopping user scripts..."
+        logger -s -t "$SCRIPT_TAG" "Stopping user scripts..."
 
         scripts stop
 
@@ -56,7 +58,7 @@ case "$1" in
     ;;
     "install")
         if [ -f "/usr/sbin/helper.sh" ]; then
-            logger -s -t "$SCRIPT_NAME" "Merlin firmware not supported, use /jffs/scripts/services-start script instead!"
+            logger -s -t "$SCRIPT_TAG" "Merlin firmware not supported, use /jffs/scripts/services-start script instead!"
         fi
 
         [ ! -d "$SCRIPTS_PATH" ] && mkdir -v "$SCRIPTS_PATH"

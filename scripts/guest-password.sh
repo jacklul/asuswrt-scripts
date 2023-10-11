@@ -15,6 +15,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 HTML_WL="wl0.1 wl0.2 wl0.3 wl1.1 wl1.2 wl1.3 wl2.1 wl2.2 wl2.3 wl3.1 wl3.2 wl3.3" # list of guest network interfaces to generate HTML pages for, separated by space
 ROTATE_WL="wl0.1 wl1.1" # guest network interfaces to randomize passwords for (find them using 'nvram show | grep "^wl[0-9]\.[0-9]_ssid"' command), separated by space
@@ -53,7 +54,7 @@ generate_html_pages() {
         done
         echo "</ul>" >> "$LIST_HTML"
     else
-        logger -s -t "$SCRIPT_NAME" "Not generating HTML pages because '$HTML_FILE' does not exist"
+        logger -s -t "$SCRIPT_TAG" "Not generating HTML pages because '$HTML_FILE' does not exist"
     fi
 }
 
@@ -64,7 +65,7 @@ case "$1" in
 
             if [ -n "$SSID" ]; then
                 if [ "$(nvram get "${INTERFACE}_bss_enabled")" = "1" ]; then
-                    logger -s -t "$SCRIPT_NAME" "Rotating password for Guest WiFi: $SSID"
+                    logger -s -t "$SCRIPT_TAG" "Rotating password for Guest WiFi: $SSID"
 
                     NEW_PASSWORD="$(get_random_password)"
                     nvram set "${INTERFACE}_wpa_psk"="$NEW_PASSWORD"
@@ -72,7 +73,7 @@ case "$1" in
                     CHANGED=1
                 fi
             else
-                logger -s -t "$SCRIPT_NAME" "Invalid guest network interface: $INTERFACE"
+                logger -s -t "$SCRIPT_TAG" "Invalid guest network interface: $INTERFACE"
             fi
         done
 

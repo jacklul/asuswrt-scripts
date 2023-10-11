@@ -13,6 +13,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 CRON_MINUTE=0
 CRON_HOUR=0
@@ -30,7 +31,7 @@ case "$1" in
             nvram set wps_enable_x=0
             nvram commit
 
-            logger -s -t "$SCRIPT_NAME" "WPS has been disabled"
+            logger -s -t "$SCRIPT_TAG" "WPS has been disabled"
             service restart_wireless
         fi
     ;;

@@ -16,6 +16,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 SWAP_FILE="" # swap file path, like "/tmp/mnt/USBDEVICE/swap.img"
 SWAP_SIZE=128000 # swap file size, changing after swap is created requires it to be manually removed, 128000 = 128MB
@@ -38,7 +39,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 manage_swap() {
-    [ -z "$SWAP_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Swap file is not set"; exit 1; }
+    [ -z "$SWAP_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Swap file is not set"; exit 1; }
 
     case "$1" in
         "enable")
@@ -66,9 +67,9 @@ manage_swap() {
         "create")
             set -e
 
-            [ -z "$SWAP_SIZE" ] && { logger -s -t "$SCRIPT_NAME" "Swap size is not set"; exit 1; }
+            [ -z "$SWAP_SIZE" ] && { logger -s -t "$SCRIPT_TAG" "Swap size is not set"; exit 1; }
 
-            logger -s -t "$SCRIPT_NAME" "Creating swap file..."
+            logger -s -t "$SCRIPT_TAG" "Creating swap file..."
 
             touch "$SWAP_FILE"
             dd if=/dev/zero of="$SWAP_FILE" bs=1k count="$SWAP_SIZE"

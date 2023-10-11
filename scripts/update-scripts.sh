@@ -12,6 +12,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 SCRIPTS_PATH="/jffs/scripts" # path to scripts directory
 BASE_DOWNLOAD_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts" # base download url, no ending slash!
@@ -37,7 +38,7 @@ download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
         if curl -fsSL "$1" -o "/tmp/$SCRIPT_NAME-download"; then
             if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
-                [ -x "$SCRIPT_PATH" ] && logger -s -t "$SCRIPT_NAME" "Updating '$2'..." || echo "Updating '$2'..."
+                [ -x "$SCRIPT_PATH" ] && logger -s -t "$SCRIPT_TAG" "Updating '$2'..." || echo "Updating '$2'..."
 
                 cat "/tmp/$SCRIPT_NAME-download" > "$2"
                 [ -x "$SCRIPT_PATH" ] && [ -x "$2" ] && sh "$2" restart

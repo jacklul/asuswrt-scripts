@@ -10,6 +10,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24 10.10.10.0/24" # VPN networks (IPv4) to allow access to Samba from, separated by spaces
 VPN_NETWORKS6="" # VPN networks (IPv6) to allow access to Samba from, separated by spaces
@@ -26,7 +27,7 @@ FOR_IPTABLES="iptables"
 [ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Bridge interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
     [ -z "$VPN_NETWORKS" ] && { logger -s -t "Allowed VPN networks are not set"; exit 1; }
 
     for _IPTABLES in $FOR_IPTABLES; do
@@ -67,7 +68,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_NAME" "Added firewall rules for Samba Masquerade (VPNs: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
+    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPNs: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
 }
 
 case "$1" in

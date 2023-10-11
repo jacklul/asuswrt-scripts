@@ -10,6 +10,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 TEMPERATURE_TARGET="80" # target temperature at which send the warning
 COOLDOWN=300 # how long to wait (seconds) before sending another warning
@@ -68,17 +69,17 @@ case "$1" in
             get_temperatures
 
             if [ "$(printf "%.0f" "$CPU_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
-                logger -s -t "$SCRIPT_NAME" "CPU temperature warning: $CPU_TEMPERATURE C"
+                logger -s -t "$SCRIPT_TAG" "CPU temperature warning: $CPU_TEMPERATURE C"
                 WARNING=1
             fi
 
             if [ -n "$WIFI_24G_TEMPERATURE" ] && [ "$(printf "%.0f\n" "$WIFI_24G_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
-                logger -s -t "$SCRIPT_NAME" "WiFi 2.4G temperature warning: $WIFI_24G_TEMPERATURE C"
+                logger -s -t "$SCRIPT_TAG" "WiFi 2.4G temperature warning: $WIFI_24G_TEMPERATURE C"
                 WARNING=1
             fi
 
             if [ -n "$WIFI_5G_TEMPERATURE" ] && [ "$(printf "%.0f\n" "$WIFI_5G_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
-                logger -s -t "$SCRIPT_NAME" "WiFi 5G temperature warning: $WIFI_5G_TEMPERATURE C"
+                logger -s -t "$SCRIPT_TAG" "WiFi 5G temperature warning: $WIFI_5G_TEMPERATURE C"
                 WARNING=1
             fi
 

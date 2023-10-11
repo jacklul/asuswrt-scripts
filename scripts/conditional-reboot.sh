@@ -10,6 +10,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
 CRON_MINUTE=0
@@ -36,13 +37,13 @@ fi
 
 case "$1" in
     "run")
-        [ -z "$TARGET_UPTIME" ] && { logger -s -t "$SCRIPT_NAME" "Target uptime is not set"; exit 1; }
+        [ -z "$TARGET_UPTIME" ] && { logger -s -t "$SCRIPT_TAG" "Target uptime is not set"; exit 1; }
 
         if [ -n "$TARGET_UPTIME" ] && [ "$TARGET_UPTIME" != "0" ]; then
             CURRENT_UPTIME=$(awk -F '.' '{print $1}' /proc/uptime)
 
             if [ "$CURRENT_UPTIME" -ge "$TARGET_UPTIME" ]; then
-                logger -s -t "$SCRIPT_NAME" "System uptime (${CURRENT_UPTIME}s) is bigger than target (${TARGET_UPTIME}s) - rebooting"
+                logger -s -t "$SCRIPT_TAG" "System uptime (${CURRENT_UPTIME}s) is bigger than target (${TARGET_UPTIME}s) - rebooting"
                 service reboot
             fi
         fi

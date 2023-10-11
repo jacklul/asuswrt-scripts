@@ -17,6 +17,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
@@ -35,11 +36,11 @@ PROCESS_PID_LIST="$(echo "$PROCESS_PID" | tr '\n' ' ' | awk '{$1=$1};1')"
 case "$1" in
     "run")
         [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -ge 2 ] && { echo "Already running!"; exit 1; }
-        [ ! -f "$SYSLOG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+        [ ! -f "$SYSLOG_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
         set -e
 
-        logger -s -t "$SCRIPT_NAME" "Started service event monitoring..."
+        logger -s -t "$SCRIPT_TAG" "Started service event monitoring..."
 
         if [ -f "$CACHE_FILE" ]; then
             LAST_LINE="$(cat "$CACHE_FILE")"
@@ -51,7 +52,7 @@ case "$1" in
         while true; do
             TOTAL_LINES="$(wc -l < "$SYSLOG_FILE")"
             if [ "$TOTAL_LINES" -lt "$((LAST_LINE-1))" ]; then
-                logger -s -t "$SCRIPT_NAME" "Log file has been rotated, resetting line pointer..."
+                logger -s -t "$SCRIPT_TAG" "Log file has been rotated, resetting line pointer..."
                 LAST_LINE=1
                 continue
             fi
@@ -79,7 +80,7 @@ case "$1" in
                                     EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
                                     EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2- | cut -d' ' -f1)"
 
-                                    logger -s -t "$SCRIPT_NAME" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
+                                    logger -s -t "$SCRIPT_TAG" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
 
                                     sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
                                     [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &

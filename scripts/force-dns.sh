@@ -20,6 +20,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 DNS_SERVER="" # when left empty will use DNS server set in DHCP DNS1 (or router's address if that field is empty)
 DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use router's address, set to "block" to block IPv6 DNS traffic
@@ -234,7 +235,7 @@ iptables_rules() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Bridge interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
 
     case "$1" in
         "add")
@@ -246,7 +247,7 @@ firewall_rules() {
                 _DNS_SERVER="$DNS_SERVER"
                 [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
 
-                logger -s -t "$SCRIPT_NAME" "Forcing DNS server(s): ${_DNS_SERVER}"
+                logger -s -t "$SCRIPT_TAG" "Forcing DNS server(s): ${_DNS_SERVER}"
             fi
         ;;
         "remove")
@@ -259,7 +260,7 @@ firewall_rules() {
                     _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
                     [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
-                    logger -s -t "$SCRIPT_NAME" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                    logger -s -t "$SCRIPT_TAG" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
                 fi
             else
                 iptables_chains remove
@@ -306,10 +307,10 @@ case "$1" in
     ;;
     "start")
         if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
-            logger -s -t "$SCRIPT_NAME" "Merlin firmware detected, you should probably use DNS Director instead!"
+            logger -s -t "$SCRIPT_TAG" "Merlin firmware detected, you should probably use DNS Director instead!"
         fi
 
-        [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - target DNS server is not set"; exit 1; }
+        [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 

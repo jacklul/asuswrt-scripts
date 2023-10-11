@@ -13,6 +13,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 CONFIG_FILE="/jffs/inadyn.conf" # Inadyn configuration file to use
 CACHE_FILE="/tmp/last_wan_ip" # where to cache last public IP
@@ -30,11 +31,11 @@ LAST_WAN_IP=""
 
 run_ddns_update() {
     if inadyn -f "$CONFIG_FILE" --once --foreground; then
-        logger -s -t "$SCRIPT_NAME" "Custom Dynamic DNS update successful"
+        logger -s -t "$SCRIPT_TAG" "Custom Dynamic DNS update successful"
 
         [ -n  "$WAN_IP" ] && echo "$WAN_IP" > "$CACHE_FILE"
     else
-        logger -s -t "$SCRIPT_NAME" "Custom Dynamic DNS update failed"
+        logger -s -t "$SCRIPT_TAG" "Custom Dynamic DNS update failed"
 
         rm -f "$CACHE_FILE"
     fi
@@ -62,10 +63,10 @@ case "$1" in
         run_ddns_update
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_NAME" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
+        [ -f "/usr/sbin/helper.sh" ] && logger -s -t "$SCRIPT_TAG" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
 
-        [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_NAME" "Unable to start - Inadyn config file ($CONFIG_FILE) not found"; exit 1; }
-        inadyn -f "$CONFIG_FILE" --check-config >/dev/null || { logger -s -t "$SCRIPT_NAME" "Unable to start - Inadyn config is not valid"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - Inadyn config file ($CONFIG_FILE) not found"; exit 1; }
+        inadyn -f "$CONFIG_FILE" --check-config >/dev/null || { logger -s -t "$SCRIPT_TAG" "Unable to start - Inadyn config is not valid"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
     ;;

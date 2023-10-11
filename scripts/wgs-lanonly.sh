@@ -10,6 +10,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 INTERFACE="wgs1" # WireGuard server interface (find it through 'nvram show | grep wgs' or 'ifconfig' command)
 BRIDGE_INTERFACE="br0" # the bridge interface(s) to limit access to, by default only LAN bridge ("br0") interface
@@ -25,8 +26,8 @@ FOR_IPTABLES="iptables"
 [ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
 firewall_rules() {
-    [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Target interface is not set"; exit 1; }
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_NAME" "Bridge interface is not set"; exit 1; }
+    [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Target interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
 
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
@@ -53,7 +54,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_NAME" "Added firewall rules for WireGuard Server LAN-only mode"
+    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for WireGuard Server LAN-only mode"
 }
 
 case "$1" in

@@ -16,6 +16,7 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 ON_HOUR=6 # hour to turn on the leds
 ON_MINUTE=0 # minute to turn on the leds
@@ -50,7 +51,7 @@ PERSISTENT_STATE="$([ "$PERSISTENT" = "1" ] && echo " (preserved)")"
 
 if [ -n "$PERSISTENT_STATE" ] && [ ! -f "/usr/sbin/helper.sh" ]; then
     PERSISTENT_STATE=""
-    logger -s -t "$SCRIPT_NAME" "Persistent LED state is only supported on Merlin firmware"
+    logger -s -t "$SCRIPT_TAG" "Persistent LED state is only supported on Merlin firmware"
 fi
 
 set_wl_leds() {
@@ -89,7 +90,7 @@ switch_leds() {
                 set_wl_leds on
             fi
 
-            logger -s -t "$SCRIPT_NAME" "LEDs are now ON$PERSISTENT_STATE"
+            logger -s -t "$SCRIPT_TAG" "LEDs are now ON$PERSISTENT_STATE"
         ;;
         "off")
             if [ -f "/usr/sbin/helper.sh" ]; then
@@ -101,7 +102,7 @@ switch_leds() {
                 set_wl_leds off
             fi
 
-            logger -s -t "$SCRIPT_NAME" "LEDs are now OFF$PERSISTENT_STATE"
+            logger -s -t "$SCRIPT_TAG" "LEDs are now OFF$PERSISTENT_STATE"
         ;;
     esac
 }
@@ -147,7 +148,7 @@ case "$1" in
                     fi
                 fi
             else
-                logger -s -t "$SCRIPT_NAME" "NTP not synchronized after 60 seconds, LEDs will switch state with cron"
+                logger -s -t "$SCRIPT_TAG" "NTP not synchronized after 60 seconds, LEDs will switch state with cron"
             fi
         fi
     ;;
@@ -156,11 +157,11 @@ case "$1" in
             cru a "${SCRIPT_NAME}-On" "$ON_MINUTE $ON_HOUR * * * $SCRIPT_PATH on"
             cru a "${SCRIPT_NAME}-Off" "$OFF_MINUTE $OFF_HOUR * * * $SCRIPT_PATH off"
 
-            logger -s -t "$SCRIPT_NAME" "LED control schedule has been enabled"
+            logger -s -t "$SCRIPT_TAG" "LED control schedule has been enabled"
 
             sh "$SCRIPT_PATH" run &
         else
-            logger -s -t "$SCRIPT_NAME" "LED control schedule is not set"
+            logger -s -t "$SCRIPT_TAG" "LED control schedule is not set"
         fi
     ;;
     "stop")
@@ -172,7 +173,7 @@ case "$1" in
             switch_leds on
         fi
 
-        logger -s -t "$SCRIPT_NAME" "LED control schedule has been disabled"
+        logger -s -t "$SCRIPT_TAG" "LED control schedule has been disabled"
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
