@@ -11,6 +11,8 @@ You will also need to rename **asusware.arm** directory to contain the new archi
 
 Known supported architecture values are `arm, mipsbig, mipsel`.
 
+_Looking at the firmware source code it looks like for `mipsel` the directory has to be called "just" **asusware**._
+
 ### Sometimes this workaround does not work straight away - in that case do the following:
 - grab another USB stick (or reformat current one)
 - plug it into the router (it has to be the only one plugged in)
