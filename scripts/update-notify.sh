@@ -72,7 +72,7 @@ case "$1" in
 
                 MESSAGE="<b>New router firmware notification @ $ROUTER_NAME</b>${LINE_BREAK}${LINE_BREAK}New firmware version <b>$NEW_VERSION</b> is now available for your router."
 
-                RESULT=$(curl -fskSL --data chat_id="$CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=${MESSAGE}" "https://api.telegram.org/bot$BOT_TOKEN/sendMessage")
+                RESULT=$(curl -fskSL --data chat_id="$CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=${MESSAGE}" "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage")
 
                 if ! echo "$RESULT" | grep -q '"ok":true'; then
                     if echo "$RESULT" | grep -q '"ok":'; then
