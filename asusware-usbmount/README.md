@@ -18,3 +18,11 @@ _Looking at the firmware source code it looks like for `mipsel` the directory ha
 - plug it into the router (it has to be the only one plugged in)
 - install Download Master 
 - unplug it and plug back the "workaround" one - everything should be working now
+
+### Extra
+
+These can improve initial startup speed:
+```
+nvram set apps_state_autofix=0
+nvram set stop_fsck=1
+```
