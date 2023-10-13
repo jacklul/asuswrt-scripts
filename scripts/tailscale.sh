@@ -117,12 +117,12 @@ case "$1" in
             ! lsmod | grep -q tun && modprobe tun && sleep 1
 
             #shellcheck disable=SC2086
-            /tmp/tailscaled --state="$STATE_FILE" $TAILSCALED_ARGUMENTS >/dev/null 2>&1 &
+            "$TAILSCALED_PATH" --state="$STATE_FILE" $TAILSCALED_ARGUMENTS >/dev/null 2>&1 &
             sleep 5
         fi
 
         #shellcheck disable=SC2086
-        /tmp/tailscale up $TAILSCALE_ARGUMENTS
+        "$TAILSCALE_PATH" up $TAILSCALE_ARGUMENTS
 
         sh "$SCRIPT_PATH" firewall
     ;;
