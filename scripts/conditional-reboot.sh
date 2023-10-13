@@ -16,20 +16,6 @@ TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
 CRON_MINUTE=0
 CRON_HOUR=5
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    TARGET_UPTIME_=$(am_settings_get jl_creboot_target_uptime)
-    CRON_HOUR_=$(am_settings_get jl_creboot_hour)
-    CRON_MINUTE_=$(am_settings_get jl_creboot_minute)
-
-    [ -n "$TARGET_UPTIME_" ] && TARGET_UPTIME=$TARGET_UPTIME_
-    [ -n "$CRON_HOUR_" ] && CRON_HOUR=$CRON_HOUR_
-    [ -n "$CRON_MINUTE_" ] && CRON_MINUTE=$CRON_MINUTE_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

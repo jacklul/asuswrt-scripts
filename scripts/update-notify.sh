@@ -18,18 +18,6 @@ CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
 CRON_MINUTE=0
 CRON_HOUR="*/1"
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    BOT_TOKEN_=$(am_settings_get jl_unotify_bot_token)
-    CHAT_ID_=$(am_settings_get jl_unotify_chat_id)
-
-    [ -n "$BOT_TOKEN_" ] && BOT_TOKEN=$BOT_TOKEN_
-    [ -n "$CHAT_ID_" ] && CHAT_ID=$CHAT_ID_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

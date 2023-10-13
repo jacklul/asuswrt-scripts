@@ -23,22 +23,6 @@ TAILSCALED_PATH="" # path to tailscaled binary, fill TAILSCALE_DOWNLOAD_URL to a
 TAILSCALE_PATH="" # path to tailscale binary, fill TAILSCALE_DOWNLOAD_URL to automatically download
 TAILSCALE_DOWNLOAD_URL="" # Tailscale tgz download URL, "https://pkgs.tailscale.com/stable/tailscale_latest_arm.tgz" should work
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    TAILSCALED_ARGUMENTS_=$(am_settings_get jl_tailscale_td_args)
-    TAILSCALE_ARGUMENTS_=$(am_settings_get jl_tailscale_t_args)
-    TAILSCALED_PATH_=$(am_settings_get jl_tailscale_td_path)
-    TAILSCALE_PATH_=$(am_settings_get jl_tailscale_t_path)
-
-    [ -n "$TAILSCALED_ARGUMENTS_" ] && TAILSCALED_ARGUMENTS=$TAILSCALED_ARGUMENTS_
-    [ -n "$TAILSCALE_ARGUMENTS_" ] && TAILSCALE_ARGUMENTS=$TAILSCALE_ARGUMENTS_
-    [ -n "$TAILSCALED_PATH_" ] && TAILSCALED_PATH=$TAILSCALED_PATH_
-    [ -n "$TAILSCALE_PATH_" ] && TAILSCALE_PATH=$TAILSCALE_PATH_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

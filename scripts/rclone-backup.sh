@@ -25,32 +25,6 @@ LOG_FILE="/tmp/rclone.log" # log file
 NVRAM_FILE="/tmp/nvram.txt" # file to dump NVRAM to
 CRON="0 6 * * 7"
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    PARAMETERS_=$(am_settings_get jl_rbackup_parameters)
-    REMOTE_=$(am_settings_get jl_rbackup_remote)
-    RCLONE_PATH_=$(am_settings_get jl_rbackup_rclone_path)
-    CRON_HOUR_=$(am_settings_get jl_rbackup_hour)
-    CRON_MINUTE_=$(am_settings_get jl_rbackup_minute)
-    CRON_MONTHDAY_=$(am_settings_get jl_rbackup_monthday)
-    CRON_MONTH_=$(am_settings_get jl_rbackup_month)
-    CRON_WEEKDAY_=$(am_settings_get jl_rbackup_weekday)
-
-    [ -n "$PARAMETERS_" ] && PARAMETERS=$PARAMETERS_
-    [ -n "$REMOTE_" ] && REMOTE=$REMOTE_
-    [ -n "$RCLONE_PATH_" ] && RCLONE_PATH=$RCLONE_PATH_
-    [ -n "$CRON_HOUR_" ] && CRON_HOUR=$CRON_HOUR_ || CRON_HOUR=6
-    [ -n "$CRON_MINUTE_" ] && CRON_MINUTE=$CRON_MINUTE_ || CRON_MINUTE_=0
-    [ -n "$CRON_MONTHDAY_" ] && CRON_MONTHDAY=$CRON_MONTHDAY_ || CRON_MONTHDAY="*"
-    [ -n "$CRON_MONTH_" ] && CRON_MONTH=$CRON_MONTH_ || CRON_MONTH="*"
-    [ -n "$CRON_WEEKDAY_" ] && CRON_WEEKDAY=$CRON_WEEKDAY_ || CRON_WEEKDAY=7
-
-    CRON="$CRON_MINUTE $CRON_HOUR $CRON_MONTHDAY $CRON_MONTH $CRON_WEEKDAY"
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

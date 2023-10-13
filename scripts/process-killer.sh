@@ -20,16 +20,6 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    PROCESSES_TO_KILL_=$(am_settings_get jl_pkiller_processes)
-
-    [ -n "$PROCESSES_TO_KILL_" ] && PROCESSES_TO_KILL=$PROCESSES_TO_KILL_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

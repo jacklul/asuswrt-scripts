@@ -24,22 +24,6 @@ OFF_HOUR=0 # hour to turn off the leds
 OFF_MINUTE=0 # minute to turn off the leds
 PERSISTENT=false # should the LED status be persistent between reboots (makes extra writes to the nvram)
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    ON_HOUR_=$(am_settings_get jl_ledcontrol_on_hour)
-    ON_MINUTE_=$(am_settings_get jl_ledcontrol_on_minute)
-    OFF_HOUR_=$(am_settings_get jl_ledcontrol_off_hour)
-    OFF_MINUTE_=$(am_settings_get jl_ledcontrol_off_minute)
-
-    [ -n "$ON_HOUR_" ] && ON_HOUR=$ON_HOUR_
-    [ -n "$ON_MINUTE_" ] && ON_MINUTE=$ON_MINUTE_
-    [ -n "$OFF_HOUR_" ] && OFF_HOUR=$OFF_HOUR_
-    [ -n "$OFF_MINUTE_" ] && OFF_MINUTE=$OFF_MINUTE_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

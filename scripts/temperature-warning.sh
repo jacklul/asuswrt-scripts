@@ -19,18 +19,6 @@ OUTPUT_FILE="/www/user/temperatures.html"
 CRON_MINUTE="*/1"
 CRON_HOUR="*"
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    TEMPERATURE_TARGET_=$(am_settings_get jl_twarning_ttarget)
-    COOLDOWN_=$(am_settings_get jl_twarning_cooldown)
-
-    [ -n "$TEMPERATURE_TARGET_" ] && TEMPERATURE_TARGET=$TEMPERATURE_TARGET_
-    [ -n "$COOLDOWN_" ] && COOLDOWN=$COOLDOWN_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"

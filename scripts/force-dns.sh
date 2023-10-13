@@ -34,40 +34,9 @@ FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined i
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed (receives arguments: $1 = action)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 
-# This means that this is a Merlin firmware
-if [ -f "/usr/sbin/helper.sh" ]; then
-    #shellcheck disable=SC1091
-    . /usr/sbin/helper.sh
-
-    DNS_SERVER_=$(am_settings_get jl_fdns_server)
-    DNS_SERVER6_=$(am_settings_get jl_fdns_server6)
-    PERMIT_MAC_=$(am_settings_get jl_fdns_permit_mac)
-    PERMIT_IP_=$(am_settings_get jl_fdns_permit_ip)
-    PERMIT_IP6_=$(am_settings_get jl_fdns_permit_ip6)
-    REQUIRE_INTERFACE_=$(am_settings_get jl_fdns_require_iface)
-    FALLBACK_DNS_SERVER_=$(am_settings_get jl_fdns_fallback)
-    FALLBACK_DNS_SERVER6_=$(am_settings_get jl_fdns_fallback6)
-    BLOCK_ROUTER_DNS_=$(am_settings_get jl_fdns_block_router_dns)
-
-    [ -n "$DNS_SERVER_" ] && DNS_SERVER=$DNS_SERVER_
-    [ -n "$DNS_SERVER6_" ] && DNS_SERVER6=$DNS_SERVER6_
-    [ -n "$PERMIT_MAC_" ] && PERMIT_MAC=$PERMIT_MAC_
-    [ -n "$PERMIT_IP_" ] && PERMIT_IP=$PERMIT_IP_
-    [ -n "$PERMIT_IP6_" ] && PERMIT_IP6=$PERMIT_IP6_
-    [ -n "$REQUIRE_INTERFACE_" ] && REQUIRE_INTERFACE=$REQUIRE_INTERFACE_
-    [ -n "$FALLBACK_DNS_SERVER_" ] && FALLBACK_DNS_SERVER=$FALLBACK_DNS_SERVER_
-    [ -n "$FALLBACK_DNS_SERVER6_" ] && FALLBACK_DNS_SERVER6=$FALLBACK_DNS_SERVER6_
-    [ -n "$BLOCK_ROUTER_DNS_" ] && BLOCK_ROUTER_DNS=$BLOCK_ROUTER_DNS_
-fi
-
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
-fi
-
-# BRIDGE_INTERFACE was renamed to TARGET_INTERFACES, prevent this change from breaking custom configurations
-if [ -n "$BRIDGE_INTERFACE" ]; then
-    TARGET_INTERFACES="$BRIDGE_INTERFACE"
 fi
 
 CHAIN="FORCEDNS"
