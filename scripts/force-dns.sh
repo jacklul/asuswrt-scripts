@@ -286,9 +286,7 @@ rules_exist() {
     _DNS_SERVER="$1"
 
     if iptables -t nat -n -L "$CHAIN" >/dev/null 2>&1 && iptables -n -L "$CHAIN_DOT" >/dev/null 2>&1; then
-        if iptables -t nat -C "$CHAIN" -j DNAT --to-destination "$_DNS_SERVER" >/dev/null 2>&1; then
-            return 0
-        fi
+        return 0
     fi
 
     return 1
