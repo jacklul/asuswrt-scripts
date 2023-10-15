@@ -24,6 +24,14 @@ CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each iteration
 
+# Chain names definitions, must be changed if they were modified in their scripts
+CHAINS_FORCEDNS="FORCEDNS"
+CHAINS_FORCEDNS_DOT="FORCEDNS_DOT"
+CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
+CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
+CHAINS_WGS_LANONLY="WGS_LANONLY"
+CHAINS_TAILSCALE="TAILSCALE"
+
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
@@ -116,12 +124,12 @@ case "$1" in
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
-                            iptables -nL "VPN_KILLSWITCH" >/dev/null 2>&1 ||
-                            iptables -nL "WGS_LANONLY" >/dev/null 2>&1 ||
-                            iptables -nL "FORCEDNS" -t nat >/dev/null 2>&1 ||
-                            iptables -nL "FORCEDNS_DOT" >/dev/null 2>&1 ||
-                            iptables -nL "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
-                            iptables -nL "TAILSCALE" >/dev/null 2>&1; 
+                            iptables -nL "$CHAINS_VPN_KILLSWITCH" >/dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_WGS_LANONLY" >/dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_FORCEDNS" -t nat >/dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_FORCEDNS_DOT" >/dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_TAILSCALE" >/dev/null 2>&1; 
                         } && [ "$_TIMER" -lt "60" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1
