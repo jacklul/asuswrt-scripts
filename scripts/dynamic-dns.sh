@@ -30,7 +30,7 @@ LAST_WAN_IP=""
 [ -f "$CACHE_FILE" ] && LAST_WAN_IP="$(cat "$CACHE_FILE")"
 
 run_ddns_update() {
-    if inadyn -f "$CONFIG_FILE" --once --foreground; then
+    if inadyn --config="$CONFIG_FILE" --once --foreground; then
         logger -s -t "$SCRIPT_TAG" "Custom Dynamic DNS update successful"
 
         [ -n  "$WAN_IP" ] && echo "$WAN_IP" > "$CACHE_FILE"
