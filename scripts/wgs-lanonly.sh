@@ -45,7 +45,7 @@ firewall_rules() {
             ;;
             "remove")
                 if $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
-                    $_IPTABLES -D FORWARD "$FORWARD_LINE" -i "$INTERFACE" -j "$CHAIN"
+                    $_IPTABLES -D FORWARD -i "$INTERFACE" -j "$CHAIN"
 
                     $_IPTABLES -F "$CHAIN"
                     $_IPTABLES -X "$CHAIN"
