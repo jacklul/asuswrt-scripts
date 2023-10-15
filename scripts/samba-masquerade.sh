@@ -41,6 +41,8 @@ firewall_rules() {
 
         [ -z "$_VPN_NETWORKS" ] && continue
 
+        _DESTINATION_NETWORK="$($_IPTABLES -t nat -nvL POSTROUTING --line-numbers | grep -E "MASQUERADE.*$BRIDGE_INTERFACE" | head -1 | awk '{print $9}')"
+
         case "$1" in
             "add")
                 if ! $_IPTABLES -t nat -nL "$CHAIN" >/dev/null 2>&1; then
@@ -55,14 +57,24 @@ firewall_rules() {
                     $_IPTABLES -t nat -A "$CHAIN" -j RETURN
 
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
-                        $_IPTABLES -t nat -A POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
+                        if [ -n "$_DESTINATION_NETWORK" ]; then
+                            $_IPTABLES -t nat -A POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
+                        else
+                            $_IPTABLES -t nat -A POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
+                        fi
                     done
                 fi
             ;;
             "remove")
                 if $_IPTABLES -t nat -nL "$CHAIN" >/dev/null 2>&1; then
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
-                        $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
+                        if [ -n "$_DESTINATION_NETWORK" ] && $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" >/dev/null 2>&1; then
+                            $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
+                        fi
+
+                        if $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" >/dev/null 2>&1; then
+                            $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
+                        fi
                     done
 
                     $_IPTABLES -t nat -F "$CHAIN"
