@@ -42,7 +42,7 @@ scripts() {
 case "$1" in
     "start")
         if [ ! -f "$CHECK_FILE" ]; then
-            logger -s -t "$SCRIPT_TAG" "Starting user scripts..."
+            logger -s -t "$SCRIPT_TAG" "Starting custom scripts ($SCRIPTS_PATH)..."
 
             date > $CHECK_FILE
 
@@ -50,7 +50,7 @@ case "$1" in
         fi
     ;;
     "stop")
-        logger -s -t "$SCRIPT_TAG" "Stopping user scripts..."
+        logger -s -t "$SCRIPT_TAG" "Stopping custom scripts ($SCRIPTS_PATH)..."
 
         scripts stop
 
