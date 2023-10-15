@@ -32,8 +32,8 @@ firewall_rules() {
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
-                if ! $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
-                    _FORWARD_START="$($_IPTABLES -L FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
+                if ! $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                    _FORWARD_START="$($_IPTABLES -nL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
                     $_IPTABLES -N "$CHAIN"
@@ -44,7 +44,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                if $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
+                if $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
                     $_IPTABLES -D FORWARD "$FORWARD_LINE" -i "$INTERFACE" -j "$CHAIN"
 
                     $_IPTABLES -F "$CHAIN"

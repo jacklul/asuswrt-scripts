@@ -59,8 +59,8 @@ firewall_rules() {
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
-                if ! $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
-                    _INPUT_END="$($_IPTABLES -L INPUT --line-numbers | sed '/^num\|^$\|^Chain/d' | wc -l)"
+                if ! $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                    _INPUT_END="$($_IPTABLES -nL INPUT --line-numbers | sed '/^num\|^$\|^Chain/d' | wc -l)"
 
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I INPUT "$_INPUT_END" -i "$INTERFACE" -j "$CHAIN"
@@ -68,7 +68,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                if $_IPTABLES -n -L "$CHAIN" >/dev/null 2>&1; then
+                if $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
                     $_IPTABLES -D INPUT -i "$INTERFACE" -j "$CHAIN"
                     $_IPTABLES -F "$CHAIN"
                     $_IPTABLES -X "$CHAIN"

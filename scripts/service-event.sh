@@ -116,12 +116,12 @@ case "$1" in
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
-                            iptables -n -L "VPN_KILLSWITCH" >/dev/null 2>&1 ||
-                            iptables -n -L "WGS_LANONLY" >/dev/null 2>&1 ||
-                            iptables -n -L "FORCEDNS" -t nat >/dev/null 2>&1 ||
-                            iptables -n -L "FORCEDNS_DOT" >/dev/null 2>&1 ||
-                            iptables -n -L "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
-                            iptables -n -L "TAILSCALE" >/dev/null 2>&1; 
+                            iptables -nL "VPN_KILLSWITCH" >/dev/null 2>&1 ||
+                            iptables -nL "WGS_LANONLY" >/dev/null 2>&1 ||
+                            iptables -nL "FORCEDNS" -t nat >/dev/null 2>&1 ||
+                            iptables -nL "FORCEDNS_DOT" >/dev/null 2>&1 ||
+                            iptables -nL "SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
+                            iptables -nL "TAILSCALE" >/dev/null 2>&1; 
                         } && [ "$_TIMER" -lt "60" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1
