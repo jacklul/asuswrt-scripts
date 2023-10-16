@@ -48,7 +48,7 @@ firewall_rules() {
                 if ! $_IPTABLES -t nat -nL "$CHAIN" >/dev/null 2>&1; then
                     _RULES_ADDED=1
 
-                    $_IPTABLES -t nat  -N "$CHAIN"
+                    $_IPTABLES -t nat -N "$CHAIN"
                     $_IPTABLES -t nat -A "$CHAIN" -p tcp --dport 445 -j MASQUERADE
                     $_IPTABLES -t nat -A "$CHAIN" -p tcp --dport 139 -j MASQUERADE
                     $_IPTABLES -t nat -A "$CHAIN" -p udp --dport 138 -j MASQUERADE
