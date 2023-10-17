@@ -4,7 +4,7 @@ This uses known `script_usbmount` NVRAM variable to run "startup" script on USB 
 
 Obviously this requires some kind of USB storage plugged into the router for this to work, you don't need it on Asuswrt-Merlin though - just start the scripts from [services-start script](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start).
 
-Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no gurantee that everything will work on non-AX routers and on lower firmware versions.
+Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware versions.
 
 **Some routers are no longer executing commands from `script_usbmount` NVRAM variable on USB mount - in that case [look here](/asusware-usbmount) for a workaround.**
 
@@ -60,26 +60,22 @@ This script implements [custom DDNS feature from Merlin firmware](https://github
 
 Checks every minute for new IP in NVRAM variable `wan0_ipaddr`. You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/dynamic-dns.sh" -o /jffs/scripts/dynamic-dns.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`force-dns.sh`](/scripts/force-dns.sh)
 
 This script will force specified DNS server to be used by LAN and Guest WiFi, can also prevent clients from querying the router's DNS server.
 
-This script can be very useful when running Pi-hole in your LAN, especially paired with [Raspberry Pi Zero connected through USB port](https://github.com/jacklul/asuswrt-usb-raspberry-pi).
+This script can be very useful when running Pi-hole in your LAN.
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/force-dns.sh" -o /jffs/scripts/force-dns.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`guest-password.sh`](/scripts/guest-password.sh)
@@ -90,13 +86,11 @@ HTML pages will be accessible under these URLS:
 - www.asusrouter.com/user/guest-list.html
 - www.asusrouter.com/user/guest-NETWORK.html
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.html" -o /jffs/scripts/guest-password.html
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`led-control.sh`](/scripts/led-control.sh)
@@ -121,7 +115,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`rclone-backup.sh`](/scripts/rclone-backup.sh)
 
-This script can backup all NVRAM variables and selected `/jffs` contents to cloud sergice using [Rclone](https://github.com/rclone/rclone).
+This script can backup all NVRAM variables and selected `/jffs` contents to cloud service using [Rclone](https://github.com/rclone/rclone).
 
 You should probably store the binary on USB drive but the script has also an option to automatically download the binary before running then deleting it afterwards. Make sure your device has enough memory for this though.
 
@@ -136,12 +130,10 @@ Enables masquerade for Samba ports to allow VPN clients to connect to your LAN s
 
 By default, default networks for WireGuard, OpenVPN and IPSec are set.
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/samba-masquerade.sh" -o /jffs/scripts/samba-masquerade.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`service-event.sh`](/scripts/service-event.sh)
@@ -170,12 +162,10 @@ This script installs [Tailscale](https://tailscale.com) service on your router, 
 
 You should probably store the binaries on USB drive but the script has also an option to automatically download the binaries. Make sure your device has enough memory for this though.
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/tailscale.sh" -o /jffs/scripts/tailscale.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`temperature-warning.sh`](/scripts/temperature-warning.sh)
@@ -191,7 +181,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`update-notify.sh`](/scripts/update-notify.sh)
 
 This script will send you a Telegram message when new router firmware is available.
-You need create a Telegram bot for this to work.
+You need to create a Telegram bot for this to work.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
@@ -213,12 +203,10 @@ This script will add any USB networking gadget to LAN bridge interface, making i
 
 This is a great way of running Pi-hole in your network on a [Raspberry Pi Zero connected through USB port](https://github.com/jacklul/asuswrt-usb-raspberry-pi).
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`vpn-killswitch.sh`](/scripts/vpn-killswitch.sh)
@@ -227,22 +215,18 @@ This script will prevent your LAN from accessing the internet through the WAN in
 
 There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avoid this on stock firmware.
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/vpn-killswitch.sh" -o /jffs/scripts/vpn-killswitch.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 ## [`wgs-lanonly.sh`](/scripts/wgs-lanonly.sh)
 
 This script will prevent clients connected to WireGuard server from accessing the internet.
 
-Recommended to use [`service-event.sh`](/scripts/service-event.sh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/wgs-lanonly.sh" -o /jffs/scripts/wgs-lanonly.sh
-
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
