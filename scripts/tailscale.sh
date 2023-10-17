@@ -56,10 +56,14 @@ download_tailscale() {
 firewall_rules() {
     [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }
 
+    _RULES_ADDED=0
+
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
                 if ! $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                    _RULES_ADDED=1
+
                     _INPUT_END="$($_IPTABLES -nL INPUT --line-numbers | sed '/^num\|^$\|^Chain/d' | wc -l)"
 
                     $_IPTABLES -N "$CHAIN"
@@ -77,7 +81,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Tailscale interface ($INTERFACE)"
+    [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Tailscale interface ($INTERFACE)"
 }
 
 #shellcheck disable=SC2009

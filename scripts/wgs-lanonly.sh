@@ -29,10 +29,14 @@ firewall_rules() {
     [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Target interface is not set"; exit 1; }
     [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
 
+    _RULES_ADDED=0
+
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
                 if ! $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                    _RULES_ADDED=1
+
                     _FORWARD_START="$($_IPTABLES -nL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
@@ -54,7 +58,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for WireGuard Server LAN-only mode"
+    [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for WireGuard Server LAN-only mode"
 }
 
 case "$1" in

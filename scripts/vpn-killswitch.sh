@@ -47,10 +47,14 @@ firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
     [ -z "$_WAN_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Couldn't get WAN interface name"; exit 1; }
 
+    _RULES_ADDED=0
+
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
                 if ! $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                    _RULES_ADDED=1
+
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I "$CHAIN" -j REJECT
                     $_IPTABLES -I FORWARD -i "$BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
@@ -66,7 +70,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$1" = "add" ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for VPN Kill-switch"
+    [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for VPN Kill-switch"
 }
 
 case "$1" in
