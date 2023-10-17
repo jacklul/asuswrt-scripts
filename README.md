@@ -105,6 +105,16 @@ By default, LEDs shutdown at 00:00 and turn on at 06:00.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/led-control.sh" -o /jffs/scripts/led-control.sh
 ```
 
+## [`modify-features.sh`](/scripts/modify-features.sh)
+
+This script modifies `rc_support` NVRAM variable to enable/disable some features, this is mainly for hiding Web UI menus and tabs.
+
+A good place to look for potential values are `init.c` and `state.js` files in the firmware sources.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
+```
+
 ## [`process-killer.sh`](/scripts/process-killer.sh)
 
 This script can kill processes by their names, unfortunately on stock most of them will restart, there is an attempt to prevent that in that script but it is not guaranteed to work.
