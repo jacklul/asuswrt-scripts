@@ -53,6 +53,8 @@ generate_html_pages() {
             fi
         done
         echo "</ul>" >> "$LIST_HTML"
+        
+        logger -s -t "$SCRIPT_TAG" "Generated HTML pages"
     else
         logger -s -t "$SCRIPT_TAG" "Not generating HTML pages because '$HTML_FILE' does not exist"
     fi
