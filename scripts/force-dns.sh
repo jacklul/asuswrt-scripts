@@ -39,7 +39,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-CHAIN="FORCEDNS"
+CHAIN_DNAT="FORCEDNS"
 CHAIN_DOT="FORCEDNS_DOT"
 CHAIN_BLOCK="FORCEDNS_BLOCK"
 FOR_IPTABLES="iptables"
@@ -73,7 +73,7 @@ iptables_chains() {
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
-                if ! $_IPTABLES -nvL "$CHAIN_DOT" >/dev/null 2>&1; then
+                if ! $_IPTABLES -nL "$CHAIN_DOT" >/dev/null 2>&1; then
                     _FORWARD_START="$($_IPTABLES -nvL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
 
@@ -85,21 +85,20 @@ iptables_chains() {
                     done
                 fi
 
-                if ! $_IPTABLES -t nat -nvL "$CHAIN" >/dev/null 2>&1; then
-                    #_PREROUTING_START="$($_IPTABLES -t nat -nvL PREROUTING --line-numbers | grep -E "VPN_FUSION" | tail -1 | awk '{print $1}')"
-                    #_PREROUTING_START_PLUS="$((_PREROUTING_START+1))"
-                    _PREROUTING_START_PLUS=1
+                if ! $_IPTABLES -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1; then
+                    _PREROUTING_START="$($_IPTABLES -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER" | tail -1 | awk '{print $1}')"
+                    _PREROUTING_START_PLUS="$((_PREROUTING_START+1))"
 
-                    $_IPTABLES -t nat -N "$CHAIN"
+                    $_IPTABLES -t nat -N "$CHAIN_DNAT"
                     
                     for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN"
-                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN"
+                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
+                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
                         _PREROUTING_START_PLUS="$((_PREROUTING_START_PLUS+2))"
                     done
                 fi
 
-                if [ "$BLOCK_ROUTER_DNS" = "1" ] && ! $_IPTABLES -nvL "$CHAIN_BLOCK" >/dev/null 2>&1; then
+                if [ "$BLOCK_ROUTER_DNS" = "1" ] && ! $_IPTABLES -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
                     if [ "$_IPTABLES" = "ip6tables" ]; then
                         _ROUTER_IP="$ROUTER_IP6"
                     else
@@ -128,14 +127,14 @@ iptables_chains() {
                     $_IPTABLES -X "$CHAIN_DOT"
                 fi
 
-                if $_IPTABLES -t nat -nL "$CHAIN" >/dev/null 2>&1; then
+                if $_IPTABLES -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1; then
                     for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN"
-                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN"
+                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
+                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
                     done
 
-                    $_IPTABLES -t nat -F "$CHAIN"
-                    $_IPTABLES -t nat -X "$CHAIN"
+                    $_IPTABLES -t nat -F "$CHAIN_DNAT"
+                    $_IPTABLES -t nat -X "$CHAIN_DNAT"
                 fi
 
                 if $_IPTABLES -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
@@ -178,7 +177,7 @@ iptables_rules() {
 
         if [ "$_IPTABLES" = "ip6tables" ]; then
             if [ -z "$DNS_SERVER6" ]; then
-                $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j REJECT
+                $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -j REJECT
                 $_IPTABLES "$_ACTION" "$CHAIN_DOT" -j REJECT
                 continue
             fi
@@ -198,7 +197,7 @@ iptables_rules() {
             for MAC in $(echo "$PERMIT_MAC" | tr ',' ' '); do
                 MAC="$(echo "$MAC" | awk '{$1=$1};1')"
 
-                $_IPTABLES -t nat "$_ACTION" "$CHAIN" -m mac --mac-source "$MAC" -j RETURN
+                $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -m mac --mac-source "$MAC" -j RETURN
                 $_IPTABLES "$_ACTION" "$CHAIN_DOT" -m mac --mac-source "$MAC" -j RETURN
                 $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m mac --mac-source "$MAC" -j RETURN
             done
@@ -209,24 +208,24 @@ iptables_rules() {
                 IP="$(echo "$IP" | awk '{$1=$1};1')"
 
                 if [ "${IP#*"-"}" != "$IP" ]; then # IP range entry
-                    $_IPTABLES -t nat "$_ACTION" "$CHAIN" -m iprange --src-range "$IP" -j RETURN
+                    $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -m iprange --src-range "$IP" -j RETURN
                     $_IPTABLES "$_ACTION" "$CHAIN_DOT" -m iprange --src-range "$IP" -j RETURN
                     $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m iprange --src-range "$IP" -j RETURN
                 else # single IP entry
-                    $_IPTABLES -t nat "$_ACTION" "$CHAIN" -s "$IP" -j RETURN
+                    $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -s "$IP" -j RETURN
                     $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$IP" -j RETURN
                     $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$IP" -j RETURN
                 fi
             done
         else # no IP ranges found, conveniently iptables accept IPs separated by commas
-            $_IPTABLES -t nat "$_ACTION" "$CHAIN" -s "$_PERMIT_IP" -j RETURN
+            $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -s "$_PERMIT_IP" -j RETURN
             $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$_PERMIT_IP" -j RETURN
             $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$_PERMIT_IP" -j RETURN
         fi
 
-        [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN" -d "$_ROUTER_IP" -j RETURN
+        [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -d "$_ROUTER_IP" -j RETURN
 
-        $_IPTABLES -t nat "$_ACTION" "$CHAIN" -j DNAT --to-destination "$_SET_DNS_SERVER"
+        $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -j DNAT --to-destination "$_SET_DNS_SERVER"
         $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_SET_DNS_SERVER" -j REJECT
 
         [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -j REJECT
@@ -285,8 +284,10 @@ interface_exists() {
 rules_exist() {
     _DNS_SERVER="$1"
 
-    if iptables -t nat -nL "$CHAIN" >/dev/null 2>&1 && iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
-        return 0
+    if iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1 && iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN_DNAT" -j DNAT --to-destination "$_DNS_SERVER" >/dev/null 2>&1; then
+            return 0
+        fi
     fi
 
     return 1
@@ -300,6 +301,13 @@ case "$1" in
             firewall_rules remove
         else
             firewall_rules add
+        fi
+    ;;
+    "fallback")
+        if [ -n "$FALLBACK_DNS_SERVER" ]; then
+            firewall_rules remove
+        else
+            logger -s -t "$SCRIPT_TAG" "Fallback DNS server(s) not set!"
         fi
     ;;
     "start")
@@ -324,7 +332,7 @@ case "$1" in
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart|fallback"
         exit 1
     ;;
 esac
