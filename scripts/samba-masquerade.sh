@@ -41,7 +41,7 @@ firewall_rules() {
 
         [ -z "$_VPN_NETWORKS" ] && continue
 
-        _DESTINATION_NETWORK="$($_IPTABLES -t nat -nvL POSTROUTING --line-numbers | grep -E "MASQUERADE.*$BRIDGE_INTERFACE" | head -1 | awk '{print $9}')"
+        _DESTINATION_NETWORK="$($_IPTABLES -t nat -nvL POSTROUTING --line-numbers | grep -E " MASQUERADE .*$BRIDGE_INTERFACE" | head -1 | awk '{print $9}')"
 
         case "$1" in
             "add")
