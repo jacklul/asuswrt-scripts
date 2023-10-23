@@ -28,7 +28,7 @@ FOR_IPTABLES="iptables"
 
 firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
-    [ -z "$VPN_NETWORKS" ] && { logger -s -t "Allowed VPN networks are not set"; exit 1; }
+    [ -z "$VPN_NETWORKS" ] && { logger -s -t "$SCRIPT_TAG" "Allowed VPN networks are not set"; exit 1; }
 
     _RULES_ADDED=0
 

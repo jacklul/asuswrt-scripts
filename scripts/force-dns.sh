@@ -161,7 +161,7 @@ iptables_rules() {
     _DNS_SERVER="$2"
     _DNS_SERVER6="$3"
 
-    [ -z "$DNS_SERVER" ] && { logger -s -t "Target DNS server is not set"; exit 1; }
+    [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_TAG" "Target DNS server is not set"; exit 1; }
 
     case "$1" in
         "add")
