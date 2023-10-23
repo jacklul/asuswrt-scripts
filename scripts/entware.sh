@@ -150,11 +150,6 @@ case "$1" in
 
         echo 'Installation complete!'
     ;;
-    "hotplug")
-        if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
-            sh "$SCRIPT_PATH" run
-        fi
-    ;;
     "run")
         if [ -d "$TARGET_PATH/entware" ]; then
             if ! mount | grep -q "on /opt "; then
@@ -169,6 +164,11 @@ case "$1" in
             umount /opt && cru d "$SCRIPT_NAME-unmount"
         else
             cru d "$SCRIPT_NAME-unmount"
+        fi
+    ;;
+    "hotplug")
+        if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
+            sh "$SCRIPT_PATH" run
         fi
     ;;
     "start")
