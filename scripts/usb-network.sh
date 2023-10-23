@@ -42,51 +42,6 @@ is_interface_up() {
     return 1
 }
 
-hotplug_config() {
-    case "$1" in
-        "modify")
-            if [ -f "/etc/hotplug2.rules" ]; then
-                grep -q "$SCRIPT_PATH" /etc/hotplug2.rules && return # already modified
-
-                LINE="$(grep -Fn "SUBSYSTEM == net, ACTION is set" /etc/hotplug2.rules)"
-
-                if [ -n "$LINE" ]; then
-                    cp "$(readlink -f /etc/hotplug2.rules)" /etc/hotplug2.rules.new
-
-                    LINE="$(echo "$LINE" | cut -d":" -f1)"
-                    LINE=$((LINE+2))
-                    MD5="$(md5sum "/etc/hotplug2.rules.new")"
-
-                    sed -i "$LINE i exec $SCRIPT_PATH hotplug ; " /etc/hotplug2.rules.new
-
-                    if [ "$MD5" != "$(md5sum "/etc/hotplug2.rules.new")" ]; then
-                        [ ! -f "/etc/hotplug2.rules.bak" ] && mv /etc/hotplug2.rules /etc/hotplug2.rules.bak
-                        mv /etc/hotplug2.rules.new /etc/hotplug2.rules
-
-                        killall hotplug2
-
-                        logger -s -t "$SCRIPT_TAG" "Modified hotplug configuration"
-
-                        return
-                    fi
-                fi
-            fi
-        ;;
-        "restore")
-            if [ -f "/etc/hotplug2.rules" ] && [ -f "/etc/hotplug2.rules.bak" ]; then
-                cru d "$SCRIPT_NAME"
-
-                rm /etc/hotplug2.rules
-                mv /etc/hotplug2.rules.bak /etc/hotplug2.rules
-
-                killall hotplug2
-
-                logger -s -t "$SCRIPT_TAG" "Restored original hotplug configuration"
-            fi
-        ;;
-    esac
-}
-
 setup_inteface() {
     _INTERFACE="$2"
 
@@ -147,32 +102,17 @@ case "$1" in
             esac
         fi
     ;;
-    "retry_until_success")
-        sh "$SCRIPT_PATH" run
-
-        brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && cru l | grep "$SCRIPT_NAME" | grep -q "retry_until_success" && cru d "$SCRIPT_NAME"
-    ;;
     "start")
         [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
-        hotplug_config modify
-
         for INTERFACE in /sys/class/net/usb*; do
             setup_inteface add "$(basename "$INTERFACE")"
         done
-
-        if ! brctl show "$BRIDGE_INTERFACE" | grep -q "usb" && ! cru l | grep -q "$SCRIPT_NAME"; then
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH retry_until_success"
-
-            logger -s -t "$SCRIPT_TAG" "Could not find any matching interface - will retry using crontab"
-        fi
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
-
-        hotplug_config restore
 
         for INTERFACE in /sys/class/net/usb*; do
             setup_inteface remove "$(basename "$INTERFACE")"
