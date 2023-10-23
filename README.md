@@ -93,6 +93,16 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.html" -o /jffs/scripts/guest-password.html
 ```
 
+## [`hotplug-event.sh`](/scripts/hotplug-event.sh)
+
+This script handles hotplug events.
+
+By default, integrates with all scripts present in this repository.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/hotplug-event.sh" -o /jffs/scripts/hotplug-event.sh
+```
+
 ## [`led-control.sh`](/scripts/led-control.sh)
 
 **Warning: this script is not complete and will probably not work on stock firmware (should work on Merlin), see note in the script.**
@@ -207,13 +217,23 @@ This is on-demand script that must be ran manually.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
 ```
 
+## [`usb-mount.sh`](/scripts/usb-mount.sh)
+
+This script will mount any USB storage device in `/tmp/mnt` directory.
+
+Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-mount.sh" -o /jffs/scripts/usb-mount.sh
+```
+
 ## [`usb-network.sh`](/scripts/usb-network.sh)
 
 This script will add any USB networking gadget to LAN bridge interface, making it member of your LAN network.
 
 This is a great way of running Pi-hole in your network on a [Raspberry Pi Zero connected through USB port](https://github.com/jacklul/asuswrt-usb-raspberry-pi).
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) and [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
