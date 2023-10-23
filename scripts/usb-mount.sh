@@ -37,22 +37,26 @@ setup_mount() {
         "add")
             [ ! -b "$_DEVICE" ] && return
 
-            mkdir -p "$_MOUNTPOINT"
-            
-            #shellcheck disable=SC2086
-            if mount "$_DEVICE" "$_MOUNTPOINT"; then
-                logger -s -t "$SCRIPT_TAG" "Mounted $_DEVICE on $_MOUNTPOINT"
-            else
-                rmdir "$_MOUNTPOINT"
-                logger -s -t "$SCRIPT_TAG" "Failed to mount $_DEVICE on $_MOUNTPOINT"
+            if ! mount | grep -q "$_MOUNTPOINT"; then
+                mkdir -p "$_MOUNTPOINT"
+                
+                #shellcheck disable=SC2086
+                if mount "$_DEVICE" "$_MOUNTPOINT"; then
+                    logger -s -t "$SCRIPT_TAG" "Mounted $_DEVICE on $_MOUNTPOINT"
+                else
+                    rmdir "$_MOUNTPOINT"
+                    logger -s -t "$SCRIPT_TAG" "Failed to mount $_DEVICE on $_MOUNTPOINT"
+                fi
             fi
         ;;
         "remove")
-            if umount "$_MOUNTPOINT"; then
-                rmdir "$_MOUNTPOINT"
-                logger -s -t "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
-            else
-                logger -s -t "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
+            if mount | grep -q "$_MOUNTPOINT"; then
+                if umount "$_MOUNTPOINT"; then
+                    rmdir "$_MOUNTPOINT"
+                    logger -s -t "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
+                else
+                    logger -s -t "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
+                fi
             fi
         ;;
     esac
