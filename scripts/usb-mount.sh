@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Automatically mounts and USB storage
+# Automatically mounts any USB storage
 #
 
 #shellcheck disable=SC2155
