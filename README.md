@@ -66,6 +66,16 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/dynamic-dns.sh" -o /jffs/scripts/dynamic-dns.sh
 ```
 
+## [`entware.sh`](/scripts/entware.sh)
+
+This script installs and enables Entware.
+
+Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) and [`usb-mount.sh`](#user-content-usb-mountsh) as well.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/entware.sh" -o /jffs/scripts/entware.sh
+```
+
 ## [`force-dns.sh`](/scripts/force-dns.sh)
 
 This script will force specified DNS server to be used by LAN and Guest WiFi, can also prevent clients from querying the router's DNS server.

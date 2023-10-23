@@ -66,6 +66,7 @@ case "$1" in
         case "$2" in
             "block")
                 [ -x "/jffs/scripts/usb-mount.sh" ] && /jffs/scripts/usb-mount.sh hotplug &
+                [ -x "/jffs/scripts/entware.sh" ] && { sleep 5 && /jffs/scripts/entware.sh hotplug; } &
             ;;
             "net")
                 [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh hotplug &
