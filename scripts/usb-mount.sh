@@ -91,7 +91,7 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
         for DEVICENAME in /dev/sd*; do
             setup_mount add "$(basename "$DEVICENAME")"
