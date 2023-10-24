@@ -21,17 +21,18 @@ fi
 
 if [ -z "$MOUNT_DEVICE" ]; then
     for DEVICE in /dev/sd*; do
-        MOUNT_DEVICE=$DEVICE
-        break
+        if [ -b "$DEVICE" ]; then
+            MOUNT_DEVICE=$DEVICE
+            break
+        fi
     done
 fi
 
 setup_mount() {
-    _DEVICENAME="$2"
-    _DEVICE="/dev/$_DEVICENAME"
-    _MOUNTPOINT="/tmp/mnt/$_DEVICENAME"
+    [ -z "$2" ] && { echo "You must specify a device"; exit 1; }
 
-    [ -z "$_DEVICENAME" ] && { echo "You must specify a device"; exit 1; }
+    _DEVICE="/dev/$2"
+    _MOUNTPOINT="/tmp/mnt/$2"
 
     case "$1" in
         "add")
@@ -66,8 +67,10 @@ setup_mount() {
 
 case "$1" in
     "run")
-        for DEVICENAME in /dev/sd*; do
-            DEVICENAME="$(basename "$DEVICENAME")"
+        for DEVICE in /dev/sd*; do
+            [ ! -b "$DEVICE" ] && continue
+
+            DEVICENAME="$(basename "$DEVICE")"
 
             if [ ! -d "/tmp/mnt/$DEVICENAME" ]; then
                 setup_mount add "$DEVICENAME"
@@ -93,15 +96,15 @@ case "$1" in
     "start")
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
-        for DEVICENAME in /dev/sd*; do
-            setup_mount add "$(basename "$DEVICENAME")"
+        for DEVICE in /dev/sd*; do
+            [ -b "$DEVICE" ] && setup_mount add "$(basename "$DEVICENAME")"
         done
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
 
-        for DEVICENAME in /dev/sd*; do
-            setup_mount remove "$(basename "$DEVICENAME")"
+        for DEVICE in /dev/sd*; do
+            [ -b "$DEVICE" ] && setup_mount remove "$(basename "$DEVICENAME")"
         done
     ;;
     "restart")

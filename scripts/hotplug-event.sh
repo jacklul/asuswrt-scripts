@@ -27,7 +27,20 @@ hotplug_config() {
 
                 [ ! -f "/etc/hotplug2.rules.bak" ] && mv /etc/hotplug2.rules /etc/hotplug2.rules.bak
                 
-                sed "s#;#;\n\exec $SCRIPT_PATH run %SUBSYSTEM% %ACTION% ;#g" /etc/hotplug2.rules.bak > /etc/hotplug2.rules
+                cat /etc/hotplug2.rules.bak > /etc/hotplug2.rules
+
+                cat <<EOT >> /etc/hotplug2.rules
+SUBSYSTEM == block, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
+    exec /jffs/scripts/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+}
+SUBSYSTEM == net, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
+    exec /jffs/scripts/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+}
+SUBSYSTEM == misc, DEVICENAME ~~ ^(tun|tap)$, ACTION ~~ ^(add|remove)$ {
+    exec /jffs/scripts/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+}
+EOT
+
                 killall hotplug2
 
                 logger -s -t "$SCRIPT_TAG" "Modified hotplug configuration"
@@ -47,36 +60,47 @@ hotplug_config() {
 
 case "$1" in
     "run")
-        if [ -n "$2" ] && [ -n "$3" ]; then
-            SUBSYSTEM="$2"
-            ACTION="$3"
+        if [ -n "$2" ] && [ -n "$3" ]; then # handles calls from hotplug
+            ARG_SUBSYSTEM="$2"
+            ARG_ACTION="$3"
 
             case "$2" in
-                "block"|"net"|"misc"|"tty"|"bluetooth"|"")
-                    logger -s -t "$SCRIPT_TAG" "Running script (args: \"${SUBSYSTEM}\" \"${ACTION}\")"
+                "block"|"net"|"misc")
+                    logger -s -t "$SCRIPT_TAG" "Running script (args: \"${ARG_SUBSYSTEM}\" \"${ARG_ACTION}\")"
                 ;;
             esac
             
-            sh "$SCRIPT_PATH" event "$SUBSYSTEM" "$ACTION" &
-            [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$SUBSYSTEM" "$ACTION"
+            sh "$SCRIPT_PATH" event "$ARG_SUBSYSTEM" "$ARG_ACTION" &
+            [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$ARG_SUBSYSTEM" "$ARG_ACTION"
+        else # handles cron
+            if ! grep -q "$SCRIPT_PATH" /etc/hotplug2.rules; then
+                hotplug_config modify
+            fi
         fi
     ;;
     "event")
         # $2 = subsystem, $3 = action
         case "$2" in
             "block")
-                [ -x "/jffs/scripts/usb-mount.sh" ] && /jffs/scripts/usb-mount.sh hotplug &
-                [ -x "/jffs/scripts/entware.sh" ] && { sleep 5 && /jffs/scripts/entware.sh hotplug; } &
+                [ -x "/jffs/scripts/usb-mount.sh" ] && /jffs/scripts/usb-mount.sh hotplug
+                [ -x "/jffs/scripts/entware.sh" ] && /jffs/scripts/entware.sh hotplug
             ;;
             "net")
-                [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh hotplug &
+                [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh hotplug
+            ;;
+            "misc")
+                # empty for now
             ;;
         esac
     ;;
     "start")
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+
         hotplug_config modify
     ;;
     "stop")
+        cru d "$SCRIPT_NAME"
+
         hotplug_config restore
     ;;
     "restart")

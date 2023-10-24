@@ -21,9 +21,8 @@ _Looking at the firmware source code it looks like for `mipsel` the directory ha
 
 ### Extra
 
-Setting these can reduce scripts startup delay:
+This can reduce scripts startup delay:
 ```
-nvram set apps_state_autofix=0
 nvram set stop_fsck=1
 nvram commit
 ```

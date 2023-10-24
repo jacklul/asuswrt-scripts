@@ -195,6 +195,19 @@ case "$1" in
 
                 exit
             ;;
+            "usb_idle")
+                if
+                    [ -x "/jffs/scripts/usb-mount.sh" ] ||
+                    [ -x "/jffs/scripts/swap.sh" ] ||
+                    [ -x "/jffs/scripts/entware.sh" ]
+                then
+                    [ -x "/jffs/scripts/usb-mount.sh" ] && /jffs/scripts/usb-mount.sh run &
+                    [ -x "/jffs/scripts/swap.sh" ] && /jffs/scripts/swap.sh run &
+                    [ -x "/jffs/scripts/entware.sh" ] && /jffs/scripts/entware.sh run &
+                fi
+
+                exit
+            ;;
         esac
 
         # these do not follow the naming scheme ("ACTION_SERVICE")

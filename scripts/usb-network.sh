@@ -79,6 +79,8 @@ case "$1" in
         BRIDGE_MEMBERS="$(brctl show "$BRIDGE_INTERFACE")"
 
         for INTERFACE in /sys/class/net/usb*; do
+            [ ! -d "$INTERFACE" ] && continue
+
             INTERFACE="$(basename "$INTERFACE")"
 
             if ! echo "$BRIDGE_MEMBERS" | grep -q "$INTERFACE"; then
@@ -87,16 +89,16 @@ case "$1" in
         done
     ;;
     "hotplug")
-        if [ "$(echo "$INTERFACE" | cut -c 1-3)" = "usb" ]; then
+        if [ "$(echo "$DEVICENAME" | cut -c 1-3)" = "usb" ]; then
             case "$ACTION" in
                 "add")
-                    setup_inteface add "$INTERFACE"
+                    setup_inteface add "$DEVICENAME"
                 ;;
                 "remove")
-                    setup_inteface remove "$INTERFACE"
+                    setup_inteface remove "$DEVICENAME"
                 ;;
                 *)
-                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($INTERFACE)"
+                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac
@@ -108,14 +110,14 @@ case "$1" in
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
         for INTERFACE in /sys/class/net/usb*; do
-            setup_inteface add "$(basename "$INTERFACE")"
+            [ -d "$INTERFACE" ] && setup_inteface add "$(basename "$INTERFACE")"
         done
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
 
         for INTERFACE in /sys/class/net/usb*; do
-            setup_inteface remove "$(basename "$INTERFACE")"
+            [ -d "$INTERFACE" ] && setup_inteface remove "$(basename "$INTERFACE")"
         done
     ;;
     "restart")

@@ -3,6 +3,10 @@
 #
 # Install and enable Entware
 #
+# Based on:
+#  https://bin.entware.net/armv7sf-k3.2/installer/generic.sh
+#  https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/a46283c8cbf2cdd62d8bda231c7a79f5a2d3b889/release/src/router/others/entware-setup.sh
+#
 
 #shellcheck disable=SC2155
 
@@ -12,162 +16,127 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-TARGET_PATH="" # target mount path (/tmp/mnt/XXX), when left empty will search for mount that has "entware" directory
-ARCHITECTURE="armv7sf-k3.2" # must be set to matching architecture of your router (uname -a), must be one of supported ones on https://bin.entware.net
+CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
 fi
 
-if [ -z "$TARGET_PATH" ]; then
-    for DIR in /tmp/mnt/*; do
-        if [ -d "$DIR/entware" ]; then
-            TARGET_PATH="$DIR"
-            break
-        fi
-    done
-fi
+LAST_ENTWARE_DEVICE=""
+[ -f "$CACHE_FILE" ] && LAST_ENTWARE_DEVICE="$(cat "$CACHE_FILE")"
 
-log_or_echo() {
-    TEXT="$1"
-
-    if [ -n "$INSTALL" ]; then
-        echo "$TEXT"
+is_entware_mounted() {
+    if mount | grep -q "on /opt "; then
+        return 0
     else
-        logger -s -t "$SCRIPT_TAG" "$TEXT"
+        return 1
     fi
 }
 
 init_opt() {
-    if [ -d "$TARGET_PATH/entware" ]; then
-        if mount | grep -q "on /opt " && ! umount /opt; then
-            log_or_echo "Failed to unmount /opt"
+    _TARGET_PATH="$1"
+
+    [ -z "$_TARGET_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Target path is not set"; exit 1; }
+
+    [ -d "$_TARGET_PATH/entware" ] && TARGET_PATH="$_TARGET_PATH/entware"
+
+    if [ -f "$_TARGET_PATH/etc/init.d/rc.unslung" ]; then
+        if is_entware_mounted && ! umount /opt; then
+            logger -s -t "$SCRIPT_TAG" "Failed to unmount /opt"
             exit 1
         fi
 
-        mount --bind "$TARGET_PATH/entware" /opt && log_or_echo "Mounted $TARGET_PATH/entware on /opt"
+        if mount --bind "$_TARGET_PATH" /opt; then
+            MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
+            [ -n "$MOUNT_DEVICE" ] && echo "$MOUNT_DEVICE" > "$CACHE_FILE"
+
+            logger -s -t "$SCRIPT_TAG" "Mounted $_TARGET_PATH on /opt"
+        else
+            logger -s -t "$SCRIPT_TAG" "Failed to mount $_TARGET_PATH on /opt"
+            exit 1
+        fi
     else
-        log_or_echo "Entware directory $TARGET_PATH/entware does not exist"
-        exit 22
+        logger -s -t "$SCRIPT_TAG" "Entware not found in $_TARGET_PATH"
+        exit 1
     fi
 }
 
 entware() {
     case "$1" in
         "start")
-            if ! mount | grep -q "on /opt "; then
-                init_opt
-
+            if is_entware_mounted; then
                 if [ -f "/opt/etc/init.d/rc.unslung" ]; then
-                    logger -s -t "$SCRIPT_TAG" "Starting Entware..."
+                    logger -s -t "$SCRIPT_TAG" "Starting Entware services..."
                     /opt/etc/init.d/rc.unslung start
                 else
                     logger -s -t "$SCRIPT_TAG" "Entware is not installed"
                 fi
             else
-                logger -s -t "$SCRIPT_TAG" "Entware is already started"
+                logger -s -t "$SCRIPT_TAG" "Entware is not mounted"
             fi
         ;;
         "stop")
             if [ -f "/opt/etc/init.d/rc.unslung" ]; then
-                logger -s -t "$SCRIPT_TAG" "Stopping Entware..."
+                logger -s -t "$SCRIPT_TAG" "Stopping Entware services..."
                 /opt/etc/init.d/rc.unslung stop
             fi
 
-            if  mount | grep -q "on /opt "; then
-                umount /opt || cru a "$SCRIPT_NAME-unmount" "*/1 * * * * $SCRIPT_PATH unmount"
+            if is_entware_mounted && ! umount /opt; then
+                logger -s -t "$SCRIPT_TAG" "Failed to unmount /opt"
             fi
+
+            echo "" > "$CACHE_FILE"
+            LAST_ENTWARE_DEVICE=""
         ;;
     esac
 }
 
 case "$1" in
-    "install")
-        [ -z "$TARGET_PATH" ] && { echo "Target path is not set"; exit 22; }
-        [ ! -d "$TARGET_PATH" ] && { echo "Target path does not exist"; exit 22; }
-        
-        set -e
-        INSTALL=true
-
-        echo 'Checking and creating required directories...'
-
-        if [ -d "$TARGET_PATH/entware" ]; then
-            if [ -f "/opt/etc/localtime" ]; then
-                echo "Entware seems to be already installed in $TARGET_PATH/entware"
-                exit 1
-            fi
-        else
-            mkdir "$TARGET_PATH/entware"
-        fi
-
-        init_opt
-
-        for DIR in bin etc lib/opkg tmp var/lock; do
-            if [ ! -d "/opt/$DIR" ]; then
-                echo "Creating /opt/$DIR..."
-                mkdir -p /opt/$DIR
-            fi
-        done
-
-        chmod 777 /opt/tmp
-
-        case "$ARCHITECTURE" in
-            "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
-                INSTALL_URL="https://bin.entware.net/$ARCHITECTURE/installer"
-            ;;
-            *)
-                echo "Unsupported architecture: $ARCHITECTURE";
-                exit 1;
-            ;;
-        esac
-
-        if [ ! -f "/opt/bin/opkg" ]; then
-            wget "$INSTALL_URL/opkg" -O /opt/bin/opkg
-            chmod 755 /opt/bin/opkg
-        fi
-
-        if [ ! -f "/opt/etc/opkg.conf" ]; then
-            wget "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
-        fi
-
-        echo 'Basic packages installation...'
-
-        /opt/bin/opkg update
-        /opt/bin/opkg install entware-opt
-
-        echo 'Checking and copying required files...'
-
-        for FILE in passwd group shells shadow gshadow; do
-            if [ -f "/etc/$FILE" ]; then
-                ln -sf "/etc/$FILE" "/opt/etc/$FILE"
-            else
-                [ -f "/opt/etc/$FILE.1" ] && cp "/opt/etc/$FILE.1" "/opt/etc/$FILE"
-            fi
-        done
-
-        [ -f "/etc/localtime" ] && ln -sf "/etc/localtime" "/opt/etc/localtime"
-
-        echo 'Installation complete!'
-    ;;
     "run")
-        if [ -d "$TARGET_PATH/entware" ]; then
-            if ! mount | grep -q "on /opt "; then
-                entware start
+        if ! is_entware_mounted; then
+            for DIR in /tmp/mnt/*; do
+                if [ -d "$DIR/entware" ]; then
+                    init_opt "$DIR/entware"
+                    entware start
+
+                    break
+                fi
+            done
+        else
+            [ -z "$LAST_ENTWARE_DEVICE" ] && exit
+
+            TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
+
+            if [ -z "$TARGET_PATH" ]; then
+                entware stop
             fi
-        else
-            entware stop
-        fi
-    ;;
-    "unmount")
-        if mount | grep -q "on /opt "; then
-            umount /opt && cru d "$SCRIPT_NAME-unmount"
-        else
-            cru d "$SCRIPT_NAME-unmount"
         fi
     ;;
     "hotplug")
         if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
+            case "$ACTION" in
+                "add")
+                    is_entware_mounted && exit
+
+                    TARGET_PATH="$(mount | grep "$DEVICENAME" | head -n 1 | awk '{print $3}')"
+
+                    if [ -d "$TARGET_PATH/entware" ]; then
+                        init_opt "$TARGET_PATH/entware"
+                        entware start
+                    fi
+                ;;
+                "remove")
+                    if [ "$LAST_ENTWARE_DEVICE" = "/dev/$DEVICENAME" ]; then
+                        entware stop
+                    fi
+                ;;
+                *)
+                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    exit 1
+                ;;
+            esac
+
             sh "$SCRIPT_PATH" run
         fi
     ;;
@@ -185,8 +154,122 @@ case "$1" in
         sh "$SCRIPT_PATH" stop
         sh "$SCRIPT_PATH" start
     ;;
+    "install")
+        is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing"; exit 1; }
+
+        echo
+
+        TARGET_PATH="$2"
+        ARCHITECTURE="$3"
+        
+        if [ -z "$TARGET_PATH" ]; then
+            for DIR in /tmp/mnt/*; do
+                if [ -d "$DIR" ] && mount | grep "/dev" | grep -q "$DIR"; then
+                    TARGET_PATH="$DIR"
+                    break
+                fi
+            done
+
+            [ -z "$TARGET_PATH" ] && { echo "Target path not provided"; exit 1; }
+
+            echo "Detected mounted storage: $TARGET_PATH"
+            echo "You can override it by providing it as the second argument."
+            echo
+        fi
+
+        [ ! -d "$TARGET_PATH" ] && { echo "Target path does not exist: $TARGET_PATH"; exit 1; }
+        [ -f "$TARGET_PATH/entware/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $TARGET_PATH/entware"; exit; }
+
+        if [ -z "$ARCHITECTURE" ]; then
+            PLATFORM=$(uname -m)
+            KERNEL=$(uname -r)
+
+            case $PLATFORM in
+                "armv7l")
+                    ARCHITECTURE="armv7sf-k2.6"
+                    
+                    if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt 2 ]; then
+                        ARCHITECTURE="armv7sf-k3.2"
+                    fi
+                ;;
+                "aarch64")
+                    ARCHITECTURE="aarch64-k3.10"
+                ;;
+                *)
+                    echo "Unsupported platform or failed to detect - provide supported architecture as the third argument."
+                    echo "Check https://bin.entware.net or http://pkg.entware.net/binaries/ for supported ones."
+                    exit 1
+                ;;
+            esac
+
+            echo "Detected architecture: $ARCHITECTURE"
+            echo "You can override it by providing it as the third argument."
+            echo
+        fi
+
+        case "$ARCHITECTURE" in
+            "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
+                INSTALL_URL="https://bin.entware.net/$ARCHITECTURE/installer"
+            ;;
+            "mips"|"mipsel"|"armv5"|"armv7"|"x86-32"|"x86-64")
+                INSTALL_URL="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
+            ;;
+            *)
+                echo "Unsupported architecture: $ARCHITECTURE";
+                exit 1;
+            ;;
+        esac
+
+        echo "Will install Entware from: $INSTALL_URL"
+        
+        #shellcheck disable=SC3045,SC2162
+        read -p "Press any key to continue or CTRL-C to cancel... "
+
+        set -e
+
+        echo "Checking and creating required directories..."
+
+        [ ! -d "$TARGET_PATH/entware" ] && mkdir -v "$TARGET_PATH/entware"
+        mount --bind "$TARGET_PATH/entware" /opt && echo "Mounted $TARGET_PATH/entware on /opt"
+
+        for DIR in bin etc lib/opkg tmp var/lock; do
+            if [ ! -d "/opt/$DIR" ]; then
+                mkdir -pv /opt/$DIR
+            fi
+        done
+
+        chmod 777 /opt/tmp
+
+        if [ ! -f "/opt/bin/opkg" ]; then
+            wget -nv "$INSTALL_URL/opkg" -O /opt/bin/opkg
+            chmod 755 /opt/bin/opkg
+        fi
+
+        if [ ! -f "/opt/etc/opkg.conf" ]; then
+            wget -nv "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
+        fi
+
+        echo "Basic packages installation..."
+
+        /opt/bin/opkg update
+        /opt/bin/opkg install entware-opt
+
+        echo "Checking and copying required files..."
+
+        for FILE in passwd group shells shadow gshadow; do
+            if [ -f "/etc/$FILE" ]; then
+                ln -sfv "/etc/$FILE" "/opt/etc/$FILE"
+            else
+                [ -f "/opt/etc/$FILE.1" ] && cp -v "/opt/etc/$FILE.1" "/opt/etc/$FILE"
+            fi
+        done
+
+        [ -f "/etc/localtime" ] && ln -sfv "/etc/localtime" "/opt/etc/localtime"
+
+        echo "Installation complete!"
+    ;;
     *)
-        echo "Usage: $0 run|start|stop|restart|install|unmount"
+        echo "Usage: $0 run|start|stop|restart|install"
         exit 1
     ;;
 esac

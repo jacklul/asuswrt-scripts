@@ -70,7 +70,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script installs and enables Entware.
 
-Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) and [`usb-mount.sh`](#user-content-usb-mountsh) as well.
+Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/entware.sh" -o /jffs/scripts/entware.sh
@@ -178,8 +178,6 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`swap.sh`](/scripts/swap.sh)
 
-**Warning: this script will probably not work on stock firmware (should work on Merlin), see note in the script.**
-
 This script enables swap file on start, with configurable size and location.
 
 ```sh
@@ -229,7 +227,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`usb-mount.sh`](/scripts/usb-mount.sh)
 
-This script will mount any USB storage device in `/tmp/mnt` directory.
+This script will mount any USB storage device in `/tmp/mnt` directory if for some reason the official firmware does not automount it for you.
 
 Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 
