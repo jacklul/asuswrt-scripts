@@ -26,7 +26,6 @@ SLEEP=1 # how to long to wait between each iteration
 
 # Chain names definitions, must be changed if they were modified in their scripts
 CHAINS_FORCEDNS="FORCEDNS"
-CHAINS_FORCEDNS_DOT="FORCEDNS_DOT"
 CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
 CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
 CHAINS_WGS_LANONLY="WGS_LANONLY"
@@ -43,6 +42,7 @@ PROCESS_PID_LIST="$(echo "$PROCESS_PID" | tr '\n' ' ' | awk '{$1=$1};1')"
 
 case "$1" in
     "run")
+        [ -f "/usr/sbin/helper.sh" ] && exit
         [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -ge 2 ] && { echo "Already running!"; exit 1; }
         [ ! -f "$SYSLOG_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
@@ -126,7 +126,6 @@ case "$1" in
                             iptables -nL "$CHAINS_VPN_KILLSWITCH" >/dev/null 2>&1 ||
                             iptables -nL "$CHAINS_WGS_LANONLY" >/dev/null 2>&1 ||
                             iptables -nL "$CHAINS_FORCEDNS" -t nat >/dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_FORCEDNS_DOT" >/dev/null 2>&1 ||
                             iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
                             iptables -nL "$CHAINS_TAILSCALE" >/dev/null 2>&1; 
                         } && [ "$_TIMER" -lt "60" ]; do
@@ -196,15 +195,8 @@ case "$1" in
                 exit
             ;;
             "usb_idle")
-                if
-                    [ -x "/jffs/scripts/usb-mount.sh" ] ||
-                    [ -x "/jffs/scripts/swap.sh" ] ||
-                    [ -x "/jffs/scripts/entware.sh" ]
-                then
-                    [ -x "/jffs/scripts/usb-mount.sh" ] && /jffs/scripts/usb-mount.sh run &
-                    [ -x "/jffs/scripts/swap.sh" ] && /jffs/scripts/swap.sh run &
-                    [ -x "/jffs/scripts/entware.sh" ] && /jffs/scripts/entware.sh run &
-                fi
+                # re-run in case script exited due to USB idle being set and now it has been disabled
+                [ -x "/jffs/scripts/swap.sh" ] && /jffs/scripts/swap.sh run &
 
                 exit
             ;;
@@ -220,6 +212,8 @@ case "$1" in
         exit
     ;;
     "init-run")
+        [ -f "/usr/sbin/helper.sh" ] && exit
+
         if [ "$2" = "restart" ]; then
             kill "$PROCESS_PID_LIST"
             PROCESS_PID=
@@ -230,21 +224,20 @@ case "$1" in
     ;;
     "start")
         if [ -f "/usr/sbin/helper.sh" ]; then # use service-event-end on Merlin firmware
-            if [ -f /jffs/scripts/service-event-end ]; then
-                if ! grep -q "$SCRIPT_DIR/$SCRIPT_NAME.sh" /jffs/scripts/service-event-end; then
-                    echo "$SCRIPT_DIR/$SCRIPT_NAME.sh event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
-                fi
-            else
-                echo "#!/bin/sh" > /jffs/scripts/service-event-end
-                echo "" >> /jffs/scripts/service-event-end
-                echo "$SCRIPT_DIR/$SCRIPT_NAME.sh event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
+            if [ ! -f /jffs/scripts/service-event-end ]; then
+                cat <<EOT > /jffs/scripts/service-event-end
+#!/bin/sh
+
+EOT
                 chmod 0755 /jffs/scripts/service-event-end
             fi
-
-            exit
+            
+            if ! grep -q "$SCRIPT_PATH" /jffs/scripts/service-event-end; then
+                echo "$SCRIPT_PATH event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
+            fi
+        else
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
         fi
-
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
@@ -252,7 +245,12 @@ case "$1" in
         [ -n "$PROCESS_PID" ] && kill "$PROCESS_PID_LIST"
     ;;
     "restart")
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run restart"
+        if [ -f "/usr/sbin/helper.sh" ]; then # use service-event-end on Merlin firmware
+            sh "$SCRIPT_PATH" stop
+            sh "$SCRIPT_PATH" start
+        else
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run restart"
+        fi
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"

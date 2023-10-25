@@ -4,9 +4,9 @@ This uses known `script_usbmount` NVRAM variable to run "startup" script on USB 
 
 Obviously this requires some kind of USB storage plugged into the router for this to work, you don't need it on Asuswrt-Merlin though - just start the scripts from [services-start script](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start).
 
-Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware versions.
+Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware versions. Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
 
-**Some routers are no longer executing commands from `script_usbmount` NVRAM variable on USB mount - in that case [look here](/asusware-usbmount) for a workaround.**
+**If your router is not executing commands from `script_usbmount` NVRAM variable on USB mount - [look here](/asusware-usbmount) for a workaround.**
 
 ## Installation
 
@@ -147,7 +147,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script can backup all NVRAM variables and selected `/jffs` contents to cloud service using [Rclone](https://github.com/rclone/rclone).
 
-You should probably store the binary on USB drive but the script has also an option to automatically download the binary before running then deleting it afterwards. Make sure your device has enough memory for this though.
+You should probably store the binary on USB drive but the script has also an option to automatically download the binary - make sure your device has enough memory for this though. If you installed Rclone through Entware it will be detected and used.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
@@ -186,9 +186,11 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`tailscale.sh`](/scripts/tailscale.sh)
 
+**Use Entware package instead of this script when possible!**
+
 This script installs [Tailscale](https://tailscale.com) service on your router, allowing it to be used as an exit node.
 
-You should probably store the binaries on USB drive but the script has also an option to automatically download the binaries. Make sure your device has enough memory for this though.
+You should probably store the binaries on USB drive but the script has also an option to automatically download the binaries - make sure your device has enough memory for this though.
 
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 

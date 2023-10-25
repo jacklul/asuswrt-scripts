@@ -37,9 +37,7 @@ is_entware_mounted() {
 init_opt() {
     _TARGET_PATH="$1"
 
-    [ -z "$_TARGET_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Target path is not set"; exit 1; }
-
-    [ -d "$_TARGET_PATH/entware" ] && TARGET_PATH="$_TARGET_PATH/entware"
+    [ -z "$_TARGET_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Target path not provided"; exit 1; }
 
     if [ -f "$_TARGET_PATH/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted && ! umount /opt; then
@@ -62,13 +60,27 @@ init_opt() {
     fi
 }
 
-entware() {
+backup_initd_scripts() {
+    [ -d "/tmp/$SCRIPT_NAME/init.d" ] && rm -rf "/tmp/$SCRIPT_NAME/init.d"
+    mkdir -p "/tmp/$SCRIPT_NAME/init.d"
+
+    for FILE in /opt/etc/init.d/*; do
+        [ ! -x "$FILE" ] && continue
+        [ "$(basename "$FILE")" = "rc.unslung" ] && continue
+        cp -f "$FILE" "/tmp/$SCRIPT_NAME/init.d/$FILE"
+    done
+}
+
+services() {
     case "$1" in
         "start")
             if is_entware_mounted; then
                 if [ -f "/opt/etc/init.d/rc.unslung" ]; then
-                    logger -s -t "$SCRIPT_TAG" "Starting Entware services..."
+                    logger -s -t "$SCRIPT_TAG" "Starting services..."
+
                     /opt/etc/init.d/rc.unslung start
+
+                    backup_initd_scripts
                 else
                     logger -s -t "$SCRIPT_TAG" "Entware is not installed"
                 fi
@@ -78,9 +90,36 @@ entware() {
         ;;
         "stop")
             if [ -f "/opt/etc/init.d/rc.unslung" ]; then
-                logger -s -t "$SCRIPT_TAG" "Stopping Entware services..."
+                logger -s -t "$SCRIPT_TAG" "Stopping services..."
+
                 /opt/etc/init.d/rc.unslung stop
+            elif [ -d "/tmp/$SCRIPT_NAME/init.d" ]; then
+                logger -s -t "$SCRIPT_TAG" "Killing services..."
+
+                for FILE in "/tmp/$SCRIPT_NAME/init.d/"*; do
+                    [ ! -x "$FILE" ] && continue
+                    eval "$FILE kill"
+                done
+
+                rm -rf "/tmp/$SCRIPT_NAME/init.d"
             fi
+        ;;
+    esac
+}
+
+entware() {
+    case "$1" in
+        "start")
+            _ENTWARE_PATH="$2"
+            [ -z "$_ENTWARE_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
+
+            [ -d "$_ENTWARE_PATH/entware" ] && TARGET_PATH="$_ENTWARE_PATH/entware"
+
+            init_opt "$_ENTWARE_PATH"
+            services start
+        ;;
+        "stop")
+            services stop
 
             if is_entware_mounted && ! umount /opt; then
                 logger -s -t "$SCRIPT_TAG" "Failed to unmount /opt"
@@ -97,8 +136,7 @@ case "$1" in
         if ! is_entware_mounted; then
             for DIR in /tmp/mnt/*; do
                 if [ -d "$DIR/entware" ]; then
-                    init_opt "$DIR/entware"
-                    entware start
+                    entware start "$DIR/entware"
 
                     break
                 fi
@@ -122,8 +160,7 @@ case "$1" in
                     TARGET_PATH="$(mount | grep "$DEVICENAME" | head -n 1 | awk '{print $3}')"
 
                     if [ -d "$TARGET_PATH/entware" ]; then
-                        init_opt "$TARGET_PATH/entware"
-                        entware start
+                        entware start "$TARGET_PATH/entware"
                     fi
                 ;;
                 "remove")

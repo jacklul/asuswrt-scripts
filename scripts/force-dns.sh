@@ -28,10 +28,10 @@ PERMIT_MAC="" # space/comma separated allowed MAC addresses to bypass forced DNS
 PERMIT_IP="" # space/comma separated allowed v4 IPs to bypass forced DNS, ranges supported
 PERMIT_IP6="" # space/comma separated allowed v6 IPs to bypass forced DNS, ranges supported
 TARGET_INTERFACES="br+" # the target interface(s) to set rules for, separated by spaces
-REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in /sys/class/net/, wildcards accepted
+REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in /sys/class/net/, wildcards accepted, set this to "usb*" when using usb-network script
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
-EXECUTE_COMMAND="" # execute a command after rules are applied or removed (receives arguments: $1 = action)
+EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -158,10 +158,10 @@ iptables_chains() {
 }
 
 iptables_rules() {
+    [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_TAG" "Target DNS server is not set"; exit 1; }
+
     _DNS_SERVER="$2"
     _DNS_SERVER6="$3"
-
-    [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_TAG" "Target DNS server is not set"; exit 1; }
 
     case "$1" in
         "add")

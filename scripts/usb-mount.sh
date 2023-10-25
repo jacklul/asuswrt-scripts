@@ -28,8 +28,33 @@ if [ -z "$MOUNT_DEVICE" ]; then
     done
 fi
 
+is_asusware_mounting() {
+    _APPS_AUTORUN="$(nvram get apps_state_autorun)"
+
+    if [ "$_APPS_AUTORUN" != "" ] && [ "$_APPS_AUTORUN" != "4" ]; then
+        _VARS_TO_CHECK="apps_state_install apps_state_remove apps_state_switch apps_state_stop apps_state_enable apps_state_update apps_state_upgrade apps_state_cancel apps_state_error"
+
+        for _VAR in $_VARS_TO_CHECK; do
+            _VALUE="$(nvram get "$_VAR")"
+
+            if [ "$_VALUE" != "" ] && [ "$_VALUE" != "0" ]; then
+                return 1
+            fi
+        done
+
+        return 0
+    fi
+
+    return 1
+}
+
 setup_mount() {
     [ -z "$2" ] && { echo "You must specify a device"; exit 1; }
+
+    if is_asusware_mounting; then
+        logger -s -t "$SCRIPT_TAG" "Ignoring call because Asusware is mounting (args: \"$1\" \"$2\")"
+        exit
+    fi
 
     _DEVICE="/dev/$2"
     _MOUNTPOINT="/tmp/mnt/$2"
@@ -97,14 +122,14 @@ case "$1" in
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
         for DEVICE in /dev/sd*; do
-            [ -b "$DEVICE" ] && setup_mount add "$(basename "$DEVICENAME")"
+            [ -b "$DEVICE" ] && setup_mount add "$(basename "$DEVICE")"
         done
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
 
         for DEVICE in /dev/sd*; do
-            [ -b "$DEVICE" ] && setup_mount remove "$(basename "$DEVICENAME")"
+            [ -b "$DEVICE" ] && setup_mount remove "$(basename "$DEVICE")"
         done
     ;;
     "restart")

@@ -15,6 +15,7 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24 10.10.10.0/24" # VPN networks (IPv4) to allow access to Samba from, separated by spaces
 VPN_NETWORKS6="" # VPN networks (IPv6) to allow access to Samba from, separated by spaces
 BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default only LAN bridge ("br0") interface
+EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -85,6 +86,8 @@ firewall_rules() {
     done
 
     [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
+
+    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 }
 
 case "$1" in

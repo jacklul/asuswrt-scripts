@@ -16,6 +16,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge)
+EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -42,9 +43,9 @@ get_wan_interface() {
 }
 
 firewall_rules() {
-    _WAN_INTERFACE="$(get_wan_interface)"
-
     [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
+
+    _WAN_INTERFACE="$(get_wan_interface)"
     [ -z "$_WAN_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Couldn't get WAN interface name"; exit 1; }
 
     _RULES_ADDED=0
@@ -71,6 +72,8 @@ firewall_rules() {
     done
 
     [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for VPN Kill-switch"
+
+    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 }
 
 case "$1" in

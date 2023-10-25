@@ -4,6 +4,7 @@
 # Backup important stuff using Rclone
 #
 # Note that automatic download of Rclone binary stores it in /tmp directory - make sure you have enough free RAM!
+# This script will detect if Rclone was installed through Entware and set RCLONE_PATH automatically when left empty
 #
 
 #shellcheck disable=SC2155
@@ -28,6 +29,11 @@ CRON="0 6 * * 7"
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+# Detect when installed through Entware
+if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
+    RCLONE_PATH="/opt/bin/rclone"
 fi
 
 download_rclone() {

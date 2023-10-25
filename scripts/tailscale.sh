@@ -6,6 +6,8 @@
 # Note that automatic download of Tailscale binaries stores them in /tmp directory - make sure you have enough free RAM!
 # You will want to start this manually first to login.
 #
+# Use Entware package instead of this script when possible!
+#
 
 #shellcheck disable=SC2155
 
@@ -97,6 +99,12 @@ case "$1" in
 
             [ ! -f "$TAILSCALED_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
             [ ! -f "$TAILSCALE_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
+        fi
+
+        if [ -f "/opt/bin/tailscaled" ]; then
+            logger -s -t "$SCRIPT_TAG" "Tailscale was installed through Entware - do not use this script in this case"
+            cru d "$SCRIPT_NAME"
+            exit 1
         fi
 
         if [ -z "$TAILSCALED_PID" ]; then

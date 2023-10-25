@@ -16,7 +16,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-BRIDGE_INTERFACE="br0" # bridge interface to add into, by default only LAN bridge ("br0") interface
+BRIDGE_INTERFACE="br0" # bridge interface to add into, by default LAN bridge ("br0") interface
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = interface)
 
 if [ -f "$SCRIPT_CONFIG" ]; then

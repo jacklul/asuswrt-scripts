@@ -70,7 +70,7 @@ case "$1" in
                 ;;
             esac
             
-            sh "$SCRIPT_PATH" event "$ARG_SUBSYSTEM" "$ARG_ACTION" &
+            sh "$SCRIPT_PATH" event "$ARG_SUBSYSTEM" "$ARG_ACTION"
             [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$ARG_SUBSYSTEM" "$ARG_ACTION"
         else # handles cron
             if ! grep -q "$SCRIPT_PATH" /etc/hotplug2.rules; then
@@ -92,6 +92,8 @@ case "$1" in
                 # empty for now
             ;;
         esac
+
+        exit
     ;;
     "start")
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"

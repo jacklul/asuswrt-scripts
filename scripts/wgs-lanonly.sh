@@ -14,6 +14,7 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 INTERFACE="wgs1" # WireGuard server interface (find it through 'nvram show | grep wgs' or 'ifconfig' command)
 BRIDGE_INTERFACE="br0" # the bridge interface(s) to limit access to, by default only LAN bridge ("br0") interface
+EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -59,6 +60,8 @@ firewall_rules() {
     done
 
     [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for WireGuard Server LAN-only mode"
+
+    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 }
 
 case "$1" in
