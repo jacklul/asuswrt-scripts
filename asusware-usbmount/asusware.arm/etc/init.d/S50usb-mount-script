@@ -2,12 +2,17 @@
 
 case "$1" in
 	"start")
-		nvram set apps_state_autorun=4
-		logger -t "$(basename "$0")" "Executing command in \"script_usbmount\"..."
-		eval "$(nvram get script_usbmount)"
+        SCRIPT="$(nvram get script_usbmount)"
+        if [ -n "$SCRIPT" ]; then
+            logger -t "$(basename "$0")" "Executing command in \"script_usbmount\"..."
+            eval "$SCRIPT"
+        fi
 	;;
 	"stop")
-		logger -t "$(basename "$0")" "Executing command in \"script_usbumount\"..."
-		eval "$(nvram get script_usbumount)"
+        SCRIPT="$(nvram get script_usbumount)"
+        if [ -n "$SCRIPT" ]; then
+            logger -t "$(basename "$0")" "Executing command in \"script_usbumount\"..."
+            eval "$SCRIPT"
+        fi
 	;;
 esac

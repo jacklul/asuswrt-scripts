@@ -21,8 +21,9 @@ _Looking at the firmware source code it looks like for `mipsel` the directory ha
 
 ### Extra
 
-This can reduce scripts startup delay:
+This can reduce scripts startup delay and improve reliability:
 ```
 nvram set stop_fsck=1
 nvram commit
 ```
+_This prevents the firmware from checking device containing `asusware` directory for filesystem errors._
