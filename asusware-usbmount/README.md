@@ -11,19 +11,22 @@ You will also need to rename **asusware.arm** directory to contain the new archi
 
 Known supported architecture values are `arm, mipsbig, mipsel`.
 
-_Looking at the firmware source code it looks like for `mipsel` the directory has to be called "just" **asusware**._
+_Looking at the firmware source code it looks like for `mipsel` the directory has to be called just **asusware**._
 
 ### Sometimes this workaround does not work straight away - in that case do the following:
+
 - grab another USB stick (or reformat current one)
 - plug it into the router (it has to be the only one plugged in)
 - install Download Master 
 - unplug it and plug back the "workaround" one - everything should be working now
 
-### Extra
+I'm yet to discover how to avoid this, perhaps it has something to do with `apps_` variables.
 
-This can reduce scripts startup delay and improve reliability:
+### This can reduce scripts startup delay:
+
 ```
 nvram set stop_fsck=1
 nvram commit
 ```
+
 _This prevents the firmware from checking device containing `asusware` directory for filesystem errors._
