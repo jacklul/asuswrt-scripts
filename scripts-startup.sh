@@ -59,6 +59,7 @@ case "$1" in
     "install")
         if [ -f "/usr/sbin/helper.sh" ]; then
             logger -s -t "$SCRIPT_TAG" "Merlin firmware not supported, use /jffs/scripts/services-start script instead!"
+            exit 1
         fi
 
         [ ! -d "$SCRIPTS_PATH" ] && mkdir -v "$SCRIPTS_PATH"
