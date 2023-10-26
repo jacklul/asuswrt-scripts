@@ -35,6 +35,51 @@ FOR_IPTABLES="iptables"
 
 [ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
+lockfile() { #LOCKFUNC_START#
+    _LOCKFILE="/tmp/$SCRIPT_NAME.lock"
+
+    case "$1" in
+        "lock")
+            if [ -f "$_LOCKFILE" ]; then
+                _LOCKWAITLIMIT=60
+                _LOCKWAITTIMER=0
+                while [ "$_LOCKWAITTIMER" -lt "$_LOCKWAITLIMIT" ]; do
+                    [ ! -f "$_LOCKFILE" ] && break
+
+                    _LOCKPID="$(sed -n '1p' "$_LOCKFILE")"
+                    _LOCKCMD="$(sed -n '2p' "$_LOCKFILE")"
+
+                    [ ! -d "/proc/$_LOCKPID" ] && break;
+                    [ "$_LOCKPID" = "$$" ] && break;
+
+                    _LOCKWAITTIMER=$((_LOCKWAITTIMER+1))
+                    sleep 1
+                done
+
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+            fi
+
+            echo "$$" > "$_LOCKFILE"
+            echo "$@" >> "$_LOCKFILE"
+            trap 'rm -f "$_LOCKFILE"; exit $?' EXIT
+        ;;
+        "unlock")
+            if [ -f "$_LOCKFILE" ]; then
+                _LOCKPID="$(sed -n '1p' "$_LOCKFILE")"
+
+                if [ -d "/proc/$_LOCKPID" ] && [ "$_LOCKPID" != "$$" ]; then
+                    echo "Attempted to remove not own lock"
+                    exit 1
+                fi
+
+                rm -f "$_LOCKFILE"
+            fi
+            
+            trap - EXIT
+        ;;
+    esac
+} #LOCKFUNC_END#
+
 download_tailscale() {
     if [ -n "$TAILSCALE_DOWNLOAD_URL" ]; then
         logger -s -t "$SCRIPT_TAG" "Downloading Tailscale binaries from '$TAILSCALE_DOWNLOAD_URL'..."
@@ -57,6 +102,8 @@ download_tailscale() {
 
 firewall_rules() {
     [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }
+
+    lockfile lock
 
     _RULES_ADDED=0
 
@@ -84,6 +131,8 @@ firewall_rules() {
     done
 
     [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Tailscale interface ($INTERFACE)"
+
+    lockfile unlock
 }
 
 #shellcheck disable=SC2009

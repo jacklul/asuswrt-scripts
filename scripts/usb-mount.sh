@@ -28,6 +28,51 @@ if [ -z "$MOUNT_DEVICE" ]; then
     done
 fi
 
+lockfile() { #LOCKFUNC_START#
+    _LOCKFILE="/tmp/$SCRIPT_NAME.lock"
+
+    case "$1" in
+        "lock")
+            if [ -f "$_LOCKFILE" ]; then
+                _LOCKWAITLIMIT=60
+                _LOCKWAITTIMER=0
+                while [ "$_LOCKWAITTIMER" -lt "$_LOCKWAITLIMIT" ]; do
+                    [ ! -f "$_LOCKFILE" ] && break
+
+                    _LOCKPID="$(sed -n '1p' "$_LOCKFILE")"
+                    _LOCKCMD="$(sed -n '2p' "$_LOCKFILE")"
+
+                    [ ! -d "/proc/$_LOCKPID" ] && break;
+                    [ "$_LOCKPID" = "$$" ] && break;
+
+                    _LOCKWAITTIMER=$((_LOCKWAITTIMER+1))
+                    sleep 1
+                done
+
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+            fi
+
+            echo "$$" > "$_LOCKFILE"
+            echo "$@" >> "$_LOCKFILE"
+            trap 'rm -f "$_LOCKFILE"; exit $?' EXIT
+        ;;
+        "unlock")
+            if [ -f "$_LOCKFILE" ]; then
+                _LOCKPID="$(sed -n '1p' "$_LOCKFILE")"
+
+                if [ -d "/proc/$_LOCKPID" ] && [ "$_LOCKPID" != "$$" ]; then
+                    echo "Attempted to remove not own lock"
+                    exit 1
+                fi
+
+                rm -f "$_LOCKFILE"
+            fi
+            
+            trap - EXIT
+        ;;
+    esac
+} #LOCKFUNC_END#
+
 is_asusware_mounting() {
     _APPS_AUTORUN="$(nvram get apps_state_autorun)"
 
@@ -55,6 +100,8 @@ setup_mount() {
         logger -s -t "$SCRIPT_TAG" "Ignoring call because Asusware is mounting (args: \"$1\" \"$2\")"
         exit
     fi
+
+    lockfile lock
 
     _DEVICE="/dev/$2"
     _MOUNTPOINT="/tmp/mnt/$2"
@@ -88,6 +135,8 @@ setup_mount() {
     esac
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$_DEVICE"
+    
+    lockfile unlock
 }
 
 case "$1" in
