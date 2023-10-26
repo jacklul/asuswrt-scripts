@@ -139,9 +139,8 @@ case "$1" in
                     [ -x "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
                     [ -x "/jffs/scripts/samba-masquerade.sh" ] && /jffs/scripts/samba-masquerade.sh run &
                     [ -x "/jffs/scripts/tailscale.sh" ] && /jffs/scripts/tailscale.sh firewall &
-                fi
 
-                exit
+                fi
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if
@@ -172,8 +171,6 @@ case "$1" in
 
                 # most of these also restart firewall so execute that too just in case
                 sh "$SCRIPT_PATH" event restart firewall
-
-                exit
             ;;
             "wireless")
                 if
@@ -191,14 +188,10 @@ case "$1" in
 
                     /jffs/scripts/guest-password.sh html &
                 fi
-
-                exit
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
                 [ -x "/jffs/scripts/swap.sh" ] && /jffs/scripts/swap.sh run &
-
-                exit
             ;;
         esac
 

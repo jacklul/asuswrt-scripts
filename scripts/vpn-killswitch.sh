@@ -31,7 +31,7 @@ FOR_IPTABLES="iptables"
 get_wan_interface() {
     _INTERFACE="$(nvram get wan0_ifname)"
 
-    if [ "$(nvram get wan0_gw_ifname)" != "$_INTERFACE" ];then
+    if [ "$(nvram get wan0_gw_ifname)" != "$_INTERFACE" ]; then
         _INTERFACE=$(nvram get wan0_gw_ifname)
     fi
 

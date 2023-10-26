@@ -15,12 +15,16 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 SCRIPTS_PATH="/jffs/scripts" # path to scripts directory
-BASE_DOWNLOAD_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts" # base download url, no ending slash!
+BRANCH="master" # which git branch to use
+BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base download url, no ending slash!
+BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
 fi
+
+DOWNLOAD_URL="$BASE_URL/$BRANCH/$BASE_PATH"
 
 md5_compare() {
     { [ ! -f "$1" ] || [ ! -f "$2" ]; } && return 1
@@ -51,55 +55,34 @@ download_and_check() {
     fi
 }
 
-[ -z "$1" ] && { sh "$SCRIPT_PATH" run; exit; }
-
 case "$1" in
     "run")
-        if echo "$SCRIPT_PATH" | grep -q "/tmp/"; then
-            for ENTRY in "$SCRIPTS_PATH"/*.sh; do
-                ENTRY="$(readlink -f "$ENTRY")"
-                BASENAME="$(basename "$ENTRY")"
+        for ENTRY in "$SCRIPTS_PATH"/*.sh; do
+            ENTRY="$(readlink -f "$ENTRY")"
+            BASENAME="$(basename "$ENTRY")"
 
-                echo "Processing '$ENTRY'..."
-                download_and_check "$BASE_DOWNLOAD_URL/$BASENAME" "$ENTRY"
+            grep -q "SCRIPT_ARCHIVED=true" "$ENTRY" && continue
 
-                #shellcheck disable=SC2002
-                EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\"\s#.*$/\1/p")"
+            echo "Processing '$ENTRY'..."
+            download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"
 
-                if [ -n "$EXTRA_EXTENSIONS" ]; then
-                    ENTRY_NAME="$(basename "$ENTRY" .sh)"
-                    ENTRY_DIR="$(dirname "$ENTRY")"
+            #shellcheck disable=SC2002
+            EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\"\s#.*$/\1/p")"
 
-                    IFS="$(printf '\n\b')"
-                    for EXTENSION in $EXTRA_EXTENSIONS; do
-                        echo "Processing '$ENTRY_DIR/$ENTRY_NAME.$EXTENSION'..."
-                        download_and_check "$BASE_DOWNLOAD_URL/$ENTRY_NAME.$EXTENSION" "$ENTRY_DIR/$ENTRY_NAME.$EXTENSION"
-                    done
-                fi
-            done
+            if [ -n "$EXTRA_EXTENSIONS" ]; then
+                ENTRY_NAME="$(basename "$ENTRY" .sh)"
+                ENTRY_DIR="$(dirname "$ENTRY")"
 
-            exit
-        fi
+                IFS="$(printf '\n\b')"
+                for EXTENSION in $EXTRA_EXTENSIONS; do
+                    echo "Processing '$ENTRY_DIR/$ENTRY_NAME.$EXTENSION'..."
+                    download_and_check "$DOWNLOAD_URL/$ENTRY_NAME.$EXTENSION" "$ENTRY_DIR/$ENTRY_NAME.$EXTENSION"
+                done
+            fi
+        done
     ;;
     *)
-        exit
+        echo "Usage: $0 run"
+        exit 1
     ;;
 esac
-
-
-
-
-
-
-
-
-cp "$0" "/tmp/$SCRIPT_NAME.sh"
-sh "/tmp/$SCRIPT_NAME.sh" run
-rm -f "/tmp/$SCRIPT_NAME.sh"
-
-
-
-
-
-
-
