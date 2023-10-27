@@ -17,6 +17,9 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
+#shellcheck disable=SC2034
+readonly SCRIPT_ARCHIVED=true
+
 STATE_FILE="/jffs/tailscaled.state" # where to store state file, preferably persistent between reboots
 INTERFACE="tailscale0" # interface to use, if you change TAILSCALED_ARGUMENTS make sure correct interface is being used
 TAILSCALED_ARGUMENTS="-no-logs-no-support -tun $INTERFACE" # 'tailscaled' arguments

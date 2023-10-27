@@ -198,20 +198,6 @@ This script enables swap file on start, with configurable size and location.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/swap.sh" -o /jffs/scripts/swap.sh
 ```
 
-## [`tailscale.sh`](/scripts/tailscale.sh)
-
-**Use Entware package instead of this script when possible!**
-
-This script installs [Tailscale](https://tailscale.com) service on your router, allowing it to be used as an exit node.
-
-You should probably store the binaries on USB drive but the script has also an option to automatically download the binaries - make sure your device has enough memory for this though.
-
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
-
-```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/tailscale.sh" -o /jffs/scripts/tailscale.sh
-```
-
 ## [`temperature-warning.sh`](/scripts/temperature-warning.sh)
 
 This script will send log message when CPU or WLAN chip temperatures reach specified threshold.
