@@ -12,7 +12,6 @@ readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 SCRIPTS_PATH="/jffs/scripts" # path to scripts directory
 BRANCH="master" # which git branch to use
@@ -42,10 +41,9 @@ download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
         if curl -fsSL "$1" -o "/tmp/$SCRIPT_NAME-download"; then
             if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
-                [ -x "$SCRIPT_PATH" ] && logger -st "$SCRIPT_TAG" "Updating '$2'..." || echo "Updating '$2'..."
+                echo "Updating '$2'..."
 
                 cat "/tmp/$SCRIPT_NAME-download" > "$2"
-                [ -x "$SCRIPT_PATH" ] && [ -x "$2" ] && sh "$2" restart
             fi
         else
             echo "Failed to download from url '$1'"
@@ -61,7 +59,7 @@ case "$1" in
             ENTRY="$(readlink -f "$ENTRY")"
             BASENAME="$(basename "$ENTRY")"
 
-            grep -q "SCRIPT_ARCHIVED=true" "$ENTRY" && continue
+            grep -q "SCRIPT[_]ARCHIVED=true" "$ENTRY" && continue
 
             echo "Processing '$ENTRY'..."
             download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"
