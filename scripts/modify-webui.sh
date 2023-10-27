@@ -12,6 +12,8 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
+TWEAKS="cpu_temperature_on_status guest_wifi_qr_code" # list of tweaks to apply
+
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
@@ -106,8 +108,9 @@ www_override() {
         "set")
             mkdir -p "$TMP_WWW_PATH"
 
-            cpu_temperature_on_status set
-            guest_wifi_qr_code set
+            for TWEAK in $TWEAKS; do
+                $TWEAK set
+            done
         ;;
         "unset")
             cpu_temperature_on_status unset
