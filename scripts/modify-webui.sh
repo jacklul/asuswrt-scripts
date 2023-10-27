@@ -36,8 +36,8 @@ cpu_temperature_on_status() {
 
                 sed -i 's@render_CPU(cpuInfo);@render_CPU(cpuInfo, cpuTemp);@g' "$TMP_WWW_PATH/device-map/router_status.asp"
                 sed -i 's@function(cpu_info_new)@function(cpu_info_new, cpu_temp_new)@g' "$TMP_WWW_PATH/device-map/router_status.asp"
-                sed -i "s@Object.keys(cpu_info_new).length;@Object.keys(cpu_info_new).length;\$(\"#cpu_temp\").html(cpu_temp_new);@g" "$TMP_WWW_PATH/device-map/router_status.asp"
-                sed -i "s@\$('#cpu_field').html(code);@code += '<div class=\"info-block\">Temperature: <span id=\"cpu_temp\"></span>°C</div>';\$('#cpu_field').html(code);@g" "$TMP_WWW_PATH/device-map/router_status.asp"
+                sed -i "s@Object.keys(cpu_info_new).length;@Object.keys(cpu_info_new).length;\$(\"#cpu_temp\").html(parseFloat(cpu_temp_new).toFixed(1));@g" "$TMP_WWW_PATH/device-map/router_status.asp"
+                sed -i "s@\$('#cpu_field').html(code);@code += '<div class=\"info-block\">Temperature: <span id=\"cpu_temp\"></span> °C</div>';\$('#cpu_field').html(code);@g" "$TMP_WWW_PATH/device-map/router_status.asp"
 
                 mount --bind "$TMP_WWW_PATH/device-map/router_status.asp" /www/device-map/router_status.asp
             fi
