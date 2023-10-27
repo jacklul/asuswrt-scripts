@@ -64,19 +64,19 @@ case "$1" in
             echo "Processing '$ENTRY'..."
             download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"
 
-            #shellcheck disable=SC2002
-            EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\"\s#.*$/\1/p")"
-
-            if [ -n "$EXTRA_EXTENSIONS" ]; then
-                ENTRY_NAME="$(basename "$ENTRY" .sh)"
-                ENTRY_DIR="$(dirname "$ENTRY")"
-
-                IFS="$(printf '\n\b')"
-                for EXTENSION in $EXTRA_EXTENSIONS; do
-                    echo "Processing '$ENTRY_DIR/$ENTRY_NAME.$EXTENSION'..."
-                    download_and_check "$DOWNLOAD_URL/$ENTRY_NAME.$EXTENSION" "$ENTRY_DIR/$ENTRY_NAME.$EXTENSION"
-                done
-            fi
+#            #shellcheck disable=SC2002
+#            EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\"\s#.*$/\1/p")"
+#
+#            if [ -n "$EXTRA_EXTENSIONS" ]; then
+#                ENTRY_NAME="$(basename "$ENTRY" .sh)"
+#                ENTRY_DIR="$(dirname "$ENTRY")"
+#
+#                IFS="$(printf '\n\b')"
+#                for EXTENSION in $EXTRA_EXTENSIONS; do
+#                    echo "Processing '$ENTRY_DIR/$ENTRY_NAME.$EXTENSION'..."
+#                    download_and_check "$DOWNLOAD_URL/$ENTRY_NAME.$EXTENSION" "$ENTRY_DIR/$ENTRY_NAME.$EXTENSION"
+#                done
+#            fi
         done
     ;;
     *)
