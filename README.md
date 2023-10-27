@@ -140,7 +140,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 This script modifies some web UI elements.
 
 Currently applied modifications:
-- display CPU temperature on the system status screen
+- display CPU temperature on the system status screen (with realtime updates)
+- show connect QR code on Guest network edit screen and hide the passwords on the main screen
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
