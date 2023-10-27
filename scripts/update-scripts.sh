@@ -42,7 +42,7 @@ download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
         if curl -fsSL "$1" -o "/tmp/$SCRIPT_NAME-download"; then
             if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
-                [ -x "$SCRIPT_PATH" ] && logger -s -t "$SCRIPT_TAG" "Updating '$2'..." || echo "Updating '$2'..."
+                [ -x "$SCRIPT_PATH" ] && logger -st "$SCRIPT_TAG" "Updating '$2'..." || echo "Updating '$2'..."
 
                 cat "/tmp/$SCRIPT_NAME-download" > "$2"
                 [ -x "$SCRIPT_PATH" ] && [ -x "$2" ] && sh "$2" restart

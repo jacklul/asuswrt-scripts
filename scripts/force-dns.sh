@@ -89,7 +89,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -203,7 +203,7 @@ iptables_chains() {
 }
 
 iptables_rules() {
-    [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_TAG" "Target DNS server is not set"; exit 1; }
+    [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Target DNS server is not set"; exit 1; }
 
     _DNS_SERVER="$2"
     _DNS_SERVER6="$3"
@@ -278,7 +278,7 @@ iptables_rules() {
 }
 
 firewall_rules() {
-    [ -z "$TARGET_INTERFACES" ] && { logger -s -t "$SCRIPT_TAG" "Target interfaces are not set"; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Target interfaces are not set"; exit 1; }
 
     lockfile lock
 
@@ -292,7 +292,7 @@ firewall_rules() {
                 _DNS_SERVER="$DNS_SERVER"
                 [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
 
-                logger -s -t "$SCRIPT_TAG" "Forcing DNS server(s): ${_DNS_SERVER}"
+                logger -st "$SCRIPT_TAG" "Forcing DNS server(s): ${_DNS_SERVER}"
             fi
         ;;
         "remove")
@@ -305,7 +305,7 @@ firewall_rules() {
                     _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
                     [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
-                    logger -s -t "$SCRIPT_TAG" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                    logger -st "$SCRIPT_TAG" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
                 fi
             else
                 iptables_chains remove
@@ -356,15 +356,15 @@ case "$1" in
         if [ -n "$FALLBACK_DNS_SERVER" ]; then
             firewall_rules remove
         else
-            logger -s -t "$SCRIPT_TAG" "Fallback DNS server(s) not set!"
+            logger -st "$SCRIPT_TAG" "Fallback DNS server(s) not set!"
         fi
     ;;
     "start")
         if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
-            logger -s -t "$SCRIPT_TAG" "Merlin firmware detected, you should probably use DNS Director instead!"
+            logger -st "$SCRIPT_TAG" "Merlin firmware detected, you should probably use DNS Director instead!"
         fi
 
-        [ -z "$DNS_SERVER" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
+        [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 

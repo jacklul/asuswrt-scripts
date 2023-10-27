@@ -49,7 +49,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -97,7 +97,7 @@ setup_mount() {
     [ -z "$2" ] && { echo "You must specify a device"; exit 1; }
 
     if is_asusware_mounting; then
-        logger -s -t "$SCRIPT_TAG" "Ignoring call because Asusware is mounting (args: \"$1\" \"$2\")"
+        logger -st "$SCRIPT_TAG" "Ignoring call because Asusware is mounting (args: \"$1\" \"$2\")"
         exit
     fi
 
@@ -115,10 +115,10 @@ setup_mount() {
                 
                 #shellcheck disable=SC2086
                 if mount "$_DEVICE" "$_MOUNTPOINT"; then
-                    logger -s -t "$SCRIPT_TAG" "Mounted $_DEVICE on $_MOUNTPOINT"
+                    logger -st "$SCRIPT_TAG" "Mounted $_DEVICE on $_MOUNTPOINT"
                 else
                     rmdir "$_MOUNTPOINT"
-                    logger -s -t "$SCRIPT_TAG" "Failed to mount $_DEVICE on $_MOUNTPOINT"
+                    logger -st "$SCRIPT_TAG" "Failed to mount $_DEVICE on $_MOUNTPOINT"
                 fi
             fi
         ;;
@@ -126,9 +126,9 @@ setup_mount() {
             if mount | grep -q "$_MOUNTPOINT"; then
                 if umount "$_MOUNTPOINT"; then
                     rmdir "$_MOUNTPOINT"
-                    logger -s -t "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
+                    logger -st "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
                 else
-                    logger -s -t "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
+                    logger -st "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
                 fi
             fi
         ;;
@@ -161,7 +161,7 @@ case "$1" in
                     setup_mount remove "$DEVICENAME"
                 ;;
                 *)
-                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac

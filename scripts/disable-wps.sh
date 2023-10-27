@@ -31,7 +31,7 @@ case "$1" in
             nvram set wps_enable_x=0
             nvram commit
 
-            logger -s -t "$SCRIPT_TAG" "WPS has been disabled"
+            logger -st "$SCRIPT_TAG" "WPS has been disabled"
             service restart_wireless
         fi
     ;;

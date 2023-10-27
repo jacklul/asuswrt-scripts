@@ -48,7 +48,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -73,8 +73,8 @@ lockfile() { #LOCKFUNC_START#
 } #LOCKFUNC_END#
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
-    [ -z "$VPN_NETWORKS" ] && { logger -s -t "$SCRIPT_TAG" "Allowed VPN networks are not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
+    [ -z "$VPN_NETWORKS" ] && { logger -st "$SCRIPT_TAG" "Allowed VPN networks are not set"; exit 1; }
 
     lockfile lock
 
@@ -132,7 +132,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
+    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 

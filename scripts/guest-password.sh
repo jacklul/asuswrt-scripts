@@ -54,9 +54,9 @@ generate_html_pages() {
         done
         echo "</ul>" >> "$LIST_HTML"
         
-        logger -s -t "$SCRIPT_TAG" "Generated HTML pages"
+        logger -st "$SCRIPT_TAG" "Generated HTML pages"
     else
-        logger -s -t "$SCRIPT_TAG" "Not generating HTML pages because '$HTML_FILE' does not exist"
+        logger -st "$SCRIPT_TAG" "Not generating HTML pages because '$HTML_FILE' does not exist"
     fi
 }
 
@@ -67,7 +67,7 @@ case "$1" in
 
             if [ -n "$SSID" ]; then
                 if [ "$(nvram get "${INTERFACE}_bss_enabled")" = "1" ]; then
-                    logger -s -t "$SCRIPT_TAG" "Rotating password for Guest WiFi: $SSID"
+                    logger -st "$SCRIPT_TAG" "Rotating password for Guest WiFi: $SSID"
 
                     NEW_PASSWORD="$(get_random_password)"
                     nvram set "${INTERFACE}_wpa_psk"="$NEW_PASSWORD"
@@ -75,7 +75,7 @@ case "$1" in
                     CHANGED=1
                 fi
             else
-                logger -s -t "$SCRIPT_TAG" "Invalid guest network interface: $INTERFACE"
+                logger -st "$SCRIPT_TAG" "Invalid guest network interface: $INTERFACE"
             fi
         done
 

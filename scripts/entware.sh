@@ -47,7 +47,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -82,11 +82,11 @@ is_entware_mounted() {
 init_opt() {
     _TARGET_PATH="$1"
 
-    [ -z "$_TARGET_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Target path not provided"; exit 1; }
+    [ -z "$_TARGET_PATH" ] && { logger -st "$SCRIPT_TAG" "Target path not provided"; exit 1; }
 
     if [ -f "$_TARGET_PATH/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted && ! umount /opt; then
-            logger -s -t "$SCRIPT_TAG" "Failed to unmount /opt"
+            logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
             exit 1
         fi
 
@@ -94,13 +94,13 @@ init_opt() {
             MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
             [ -n "$MOUNT_DEVICE" ] && echo "$MOUNT_DEVICE" > "$CACHE_FILE"
 
-            logger -s -t "$SCRIPT_TAG" "Mounted $_TARGET_PATH on /opt"
+            logger -st "$SCRIPT_TAG" "Mounted $_TARGET_PATH on /opt"
         else
-            logger -s -t "$SCRIPT_TAG" "Failed to mount $_TARGET_PATH on /opt"
+            logger -st "$SCRIPT_TAG" "Failed to mount $_TARGET_PATH on /opt"
             exit 1
         fi
     else
-        logger -s -t "$SCRIPT_TAG" "Entware not found in $_TARGET_PATH"
+        logger -st "$SCRIPT_TAG" "Entware not found in $_TARGET_PATH"
         exit 1
     fi
 }
@@ -121,25 +121,25 @@ services() {
         "start")
             if is_entware_mounted; then
                 if [ -f "/opt/etc/init.d/rc.unslung" ]; then
-                    logger -s -t "$SCRIPT_TAG" "Starting services..."
+                    logger -st "$SCRIPT_TAG" "Starting services..."
 
                     /opt/etc/init.d/rc.unslung start
 
                     backup_initd_scripts
                 else
-                    logger -s -t "$SCRIPT_TAG" "Entware is not installed"
+                    logger -st "$SCRIPT_TAG" "Entware is not installed"
                 fi
             else
-                logger -s -t "$SCRIPT_TAG" "Entware is not mounted"
+                logger -st "$SCRIPT_TAG" "Entware is not mounted"
             fi
         ;;
         "stop")
             if [ -f "/opt/etc/init.d/rc.unslung" ]; then
-                logger -s -t "$SCRIPT_TAG" "Stopping services..."
+                logger -st "$SCRIPT_TAG" "Stopping services..."
 
                 /opt/etc/init.d/rc.unslung stop
             elif [ -d "/tmp/$SCRIPT_NAME/init.d" ]; then
-                logger -s -t "$SCRIPT_TAG" "Killing services..."
+                logger -st "$SCRIPT_TAG" "Killing services..."
 
                 for FILE in "/tmp/$SCRIPT_NAME/init.d/"*; do
                     [ ! -x "$FILE" ] && continue
@@ -158,7 +158,7 @@ entware() {
     case "$1" in
         "start")
             _ENTWARE_PATH="$2"
-            [ -z "$_ENTWARE_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
+            [ -z "$_ENTWARE_PATH" ] && { logger -st "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
 
             [ -d "$_ENTWARE_PATH/entware" ] && TARGET_PATH="$_ENTWARE_PATH/entware"
 
@@ -169,7 +169,7 @@ entware() {
             services stop
 
             if is_entware_mounted && ! umount /opt; then
-                logger -s -t "$SCRIPT_TAG" "Failed to unmount /opt"
+                logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
             fi
 
             echo "" > "$CACHE_FILE"
@@ -218,7 +218,7 @@ case "$1" in
                     fi
                 ;;
                 *)
-                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac

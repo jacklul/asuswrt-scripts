@@ -44,11 +44,11 @@ case "$1" in
     "run")
         [ -f "/usr/sbin/helper.sh" ] && exit
         [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -ge 2 ] && { echo "Already running!"; exit 1; }
-        [ ! -f "$SYSLOG_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+        [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
         set -e
 
-        logger -s -t "$SCRIPT_TAG" "Started service event monitoring..."
+        logger -st "$SCRIPT_TAG" "Started service event monitoring..."
 
         if [ -f "$CACHE_FILE" ]; then
             LAST_LINE="$(cat "$CACHE_FILE")"
@@ -60,7 +60,7 @@ case "$1" in
         while true; do
             TOTAL_LINES="$(wc -l < "$SYSLOG_FILE")"
             if [ "$TOTAL_LINES" -lt "$((LAST_LINE-1))" ]; then
-                logger -s -t "$SCRIPT_TAG" "Log file has been rotated, resetting line pointer..."
+                logger -st "$SCRIPT_TAG" "Log file has been rotated, resetting line pointer..."
                 LAST_LINE=1
                 continue
             fi
@@ -88,7 +88,7 @@ case "$1" in
                                     EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
                                     EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2- | cut -d' ' -f1)"
 
-                                    logger -s -t "$SCRIPT_TAG" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
+                                    logger -st "$SCRIPT_TAG" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
 
                                     sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
                                     [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &

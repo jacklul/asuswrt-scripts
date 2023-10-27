@@ -47,7 +47,7 @@ case "$1" in
 
         nvram set rc_support="$RC_SUPPORT"
 
-        logger -s -t "$SCRIPT_TAG" "Modified rc_support"
+        logger -st "$SCRIPT_TAG" "Modified rc_support"
     ;;
     "stop")
         if [ -f "/tmp/rc_support.bak" ]; then
@@ -55,9 +55,9 @@ case "$1" in
 
             nvram set rc_support="$RC_SUPPORT"
 
-            logger -s -t "$SCRIPT_TAG" "Restored original rc_support"
+            logger -st "$SCRIPT_TAG" "Restored original rc_support"
         else
-            logger -s -t "$SCRIPT_TAG" "Could not find /tmp/rc_support.bak - cannot restore original rc_support!"
+            logger -st "$SCRIPT_TAG" "Could not find /tmp/rc_support.bak - cannot restore original rc_support!"
         fi
     ;;
     "restart")

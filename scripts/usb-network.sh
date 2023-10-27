@@ -45,7 +45,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -104,7 +104,7 @@ setup_inteface() {
             if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE"; then
                 brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"
 
-                logger -s -t "$SCRIPT_TAG" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
+                logger -st "$SCRIPT_TAG" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
             fi
         ;;
         "remove")
@@ -113,7 +113,7 @@ setup_inteface() {
                 
                 [ -d "/sys/class/net/$_INTERFACE" ] && is_interface_up "$_INTERFACE" && ifconfig "$_INTERFACE" down
 
-                logger -s -t "$SCRIPT_TAG" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"
+                logger -st "$SCRIPT_TAG" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"
             fi
         ;;
     esac
@@ -147,14 +147,14 @@ case "$1" in
                     setup_inteface remove "$DEVICENAME"
                 ;;
                 *)
-                    logger -s -t "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac
         fi
     ;;
     "start")
-        [ -z "$BRIDGE_INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
+        [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 

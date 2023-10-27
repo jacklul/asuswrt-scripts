@@ -47,11 +47,11 @@ case "$1" in
                     FILEPATH="/lib/modules/$(uname -r)/$(modprobe -l "$MODULENAME")"
 
                     if [ -f "$FILEPATH" ] && [ ! -h "$FILEPATH" ]; then
-                        lsmod | grep -qF "$MODULENAME" && modprobe -r "$MODULENAME" && logger -s -t "$SCRIPT_TAG" "Blocked kernel module: $PROCESS" && usleep 250000
+                        lsmod | grep -qF "$MODULENAME" && modprobe -r "$MODULENAME" && logger -st "$SCRIPT_TAG" "Blocked kernel module: $PROCESS" && usleep 250000
                         mount -o bind /dev/null "$FILEPATH"
                     fi
                 else
-                    [ -n "$(pidof "$FILENAME")" ] && killall "$FILENAME" && logger -s -t "$SCRIPT_TAG" "Killed process: $PROCESS"
+                    [ -n "$(pidof "$FILENAME")" ] && killall "$FILENAME" && logger -st "$SCRIPT_TAG" "Killed process: $PROCESS"
 
                     if [ -f "$FILEPATH" ] && [ ! -h "$FILEPATH" ]; then
                         usleep 250000
@@ -69,7 +69,7 @@ case "$1" in
         fi
     ;;
     "stop")
-        logger -s -t "$SCRIPT_TAG" "Operations made by this script cannot be reverted - disable it then reboot the router!"
+        logger -st "$SCRIPT_TAG" "Operations made by this script cannot be reverted - disable it then reboot the router!"
     ;;
     "restart")
         sh "$SCRIPT_PATH" start

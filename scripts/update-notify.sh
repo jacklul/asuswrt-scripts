@@ -50,7 +50,7 @@ case "$1" in
 
         if [ -n "$NEW_VERSION" ] && [ "$CURRENT_VERSION" != "$NEW_VERSION" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$NEW_VERSION" ]; }; then
             if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
-                logger -s -t "$SCRIPT_TAG" "Sending update notification through Telegram..."
+                logger -st "$SCRIPT_TAG" "Sending update notification through Telegram..."
 
                 LINE_BREAK=$(printf '\n\r')
                 ROUTER_IP="$(nvram get lan_ipaddr)"
@@ -64,22 +64,22 @@ case "$1" in
 
                 if ! echo "$RESULT" | grep -q '"ok":true'; then
                     if echo "$RESULT" | grep -q '"ok":'; then
-                        logger -s -t "$SCRIPT_TAG" "Telegram API error: $RESULT"
+                        logger -st "$SCRIPT_TAG" "Telegram API error: $RESULT"
                     else
-                        logger -s -t "$SCRIPT_TAG" "Connection to Telegram API failed"
+                        logger -st "$SCRIPT_TAG" "Connection to Telegram API failed"
                     fi
                 else
                     NOTIFICATION_SENT=1
                 fi
             else
-                logger -s -t "$SCRIPT_TAG" "Unable to execute - either BOT TOKEN or CHAT ID are not set"
+                logger -st "$SCRIPT_TAG" "Unable to execute - either BOT TOKEN or CHAT ID are not set"
             fi
 
             [ "$NOTIFICATION_SENT" = "1" ] && echo "$NEW_VERSION" > "$CACHE_FILE"
         fi
     ;;
     "start")
-        { [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; } && { logger -s -t "$SCRIPT_TAG" "Unable to start - configuration not set"; exit 1; }
+        { [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; } && { logger -st "$SCRIPT_TAG" "Unable to start - configuration not set"; exit 1; }
 
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 

@@ -38,7 +38,7 @@ fi
 
 download_rclone() {
     if [ -n "$RCLONE_DOWNLOAD_URL" ]; then
-        logger -s -t "$SCRIPT_TAG" "Downloading Rclone binary from '$RCLONE_DOWNLOAD_URL'..."
+        logger -st "$SCRIPT_TAG" "Downloading Rclone binary from '$RCLONE_DOWNLOAD_URL'..."
 
         set -e
         mkdir -p /tmp/download
@@ -59,13 +59,13 @@ download_rclone() {
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
-        [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
-        [ ! -f "$FILTER_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Could not find filter file: $FILTER_FILE"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
+        [ ! -f "$FILTER_FILE" ] && { logger -st "$SCRIPT_TAG" "Could not find filter file: $FILTER_FILE"; exit 1; }
 
         if [ ! -f "$RCLONE_PATH" ]; then
             download_rclone
 
-            [ ! -f "$RCLONE_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
+            [ ! -f "$RCLONE_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
         fi
 
         echo "" > "$LOG_FILE"
@@ -79,15 +79,15 @@ case "$1" in
         rm -f "$NVRAM_FILE"
 
         if [ "$STATUS" = "0" ]; then
-            logger -s -t "$SCRIPT_TAG" "Backup completed successfully"
+            logger -st "$SCRIPT_TAG" "Backup completed successfully"
             rm -f "$LOG_FILE"
         else
-            logger -s -t "$SCRIPT_TAG" "There was an error while running backup, check $LOG_FILE for details"
+            logger -st "$SCRIPT_TAG" "There was an error while running backup, check $LOG_FILE for details"
             exit 1
         fi
     ;;
     "start")
-        [ ! -f "$CONFIG_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
 
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
     ;;

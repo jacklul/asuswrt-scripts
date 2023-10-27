@@ -40,7 +40,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -88,7 +88,7 @@ EOT
 
                 killall hotplug2
 
-                logger -s -t "$SCRIPT_TAG" "Modified hotplug configuration"
+                logger -st "$SCRIPT_TAG" "Modified hotplug configuration"
             fi
         ;;
         "restore")
@@ -97,7 +97,7 @@ EOT
                 cp /etc/hotplug2.rules.bak /etc/hotplug2.rules
                 killall hotplug2
 
-                logger -s -t "$SCRIPT_TAG" "Restored original hotplug configuration"
+                logger -st "$SCRIPT_TAG" "Restored original hotplug configuration"
             fi
         ;;
     esac
@@ -113,7 +113,7 @@ case "$1" in
 
             case "$2" in
                 "block"|"net"|"misc")
-                    logger -s -t "$SCRIPT_TAG" "Running script (args: \"${ARG_SUBSYSTEM}\" \"${ARG_ACTION}\")"
+                    logger -st "$SCRIPT_TAG" "Running script (args: \"${ARG_SUBSYSTEM}\" \"${ARG_ACTION}\")"
                 ;;
             esac
             

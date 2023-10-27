@@ -53,7 +53,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -82,7 +82,7 @@ case "$1" in
         lockfile lock
 
         if [ "$(nvram get usb_idle_enable)" != "0" ]; then
-            logger -s -t "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
+            logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
             
             cru d "$SCRIPT_NAME"
         else
@@ -94,9 +94,9 @@ case "$1" in
                 if [ -f "$SWAP_FILE" ]; then
                     if swapon "$SWAP_FILE" ; then
                         #shellcheck disable=SC2012
-                        logger -s -t "$SCRIPT_TAG" "Enabled swap on $SWAP_FILE ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
+                        logger -st "$SCRIPT_TAG" "Enabled swap on $SWAP_FILE ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
                     else
-                        logger -s -t "$SCRIPT_TAG" "Failed to enable swap on $SWAP_FILE"
+                        logger -st "$SCRIPT_TAG" "Failed to enable swap on $SWAP_FILE"
                     fi
                 fi
             fi
@@ -108,8 +108,8 @@ case "$1" in
         [ -n "$2" ] && SWAP_FILE="$2"
         [ -n "$3" ] && SWAP_SIZE="$3"
         
-        [ -z "$SWAP_FILE" ] && { logger -s -t "$SCRIPT_TAG" "Swap file is not set"; exit 1; }
-        [ -z "$SWAP_SIZE" ] && { logger -s -t "$SCRIPT_TAG" "Swap size is not set"; exit 1; }
+        [ -z "$SWAP_FILE" ] && { logger -st "$SCRIPT_TAG" "Swap file is not set"; exit 1; }
+        [ -z "$SWAP_SIZE" ] && { logger -st "$SCRIPT_TAG" "Swap size is not set"; exit 1; }
 
         set -e
 
@@ -133,9 +133,9 @@ case "$1" in
             echo 3 > /proc/sys/vm/drop_caches
 
             if swapoff "$SWAP_FILE" ; then
-                logger -s -t "$SCRIPT_TAG" "Disabled swap on $SWAP_FILE"
+                logger -st "$SCRIPT_TAG" "Disabled swap on $SWAP_FILE"
             else
-                logger -s -t "$SCRIPT_TAG" "Failed to disable swap on $SWAP_FILE"
+                logger -st "$SCRIPT_TAG" "Failed to disable swap on $SWAP_FILE"
             fi
         fi
     ;;

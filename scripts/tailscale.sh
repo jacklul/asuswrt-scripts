@@ -56,7 +56,7 @@ lockfile() { #LOCKFUNC_START#
                     sleep 1
                 done
 
-                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -s -t "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
+                [ "$_LOCKWAITTIMER" -ge "$_LOCKWAITLIMIT" ] && { logger -st "$SCRIPT_TAG" "Unable to obtain lock after $_LOCKWAITLIMIT seconds, held by $_LOCKPID ($_LOCKCMD)"; exit 1; }
             fi
 
             echo "$$" > "$_LOCKFILE"
@@ -82,7 +82,7 @@ lockfile() { #LOCKFUNC_START#
 
 download_tailscale() {
     if [ -n "$TAILSCALE_DOWNLOAD_URL" ]; then
-        logger -s -t "$SCRIPT_TAG" "Downloading Tailscale binaries from '$TAILSCALE_DOWNLOAD_URL'..."
+        logger -st "$SCRIPT_TAG" "Downloading Tailscale binaries from '$TAILSCALE_DOWNLOAD_URL'..."
 
         set -e
         mkdir -p /tmp/download
@@ -101,7 +101,7 @@ download_tailscale() {
 }
 
 firewall_rules() {
-    [ -z "$INTERFACE" ] && { logger -s -t "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }
+    [ -z "$INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }
 
     lockfile lock
 
@@ -130,7 +130,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_RULES_ADDED" = 1 ] && logger -s -t "$SCRIPT_TAG" "Added firewall rules for Tailscale interface ($INTERFACE)"
+    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Added firewall rules for Tailscale interface ($INTERFACE)"
 
     lockfile unlock
 }
@@ -146,18 +146,18 @@ case "$1" in
         if [ ! -f "$TAILSCALED_PATH" ] || [ ! -f "$TAILSCALE_PATH" ]; then
             download_tailscale
 
-            [ ! -f "$TAILSCALED_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
-            [ ! -f "$TAILSCALE_PATH" ] && { logger -s -t "$SCRIPT_TAG" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
+            [ ! -f "$TAILSCALED_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
+            [ ! -f "$TAILSCALE_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
         fi
 
         if [ -f "/opt/bin/tailscaled" ]; then
-            logger -s -t "$SCRIPT_TAG" "Tailscale was installed through Entware - do not use this script in this case"
+            logger -st "$SCRIPT_TAG" "Tailscale was installed through Entware - do not use this script in this case"
             cru d "$SCRIPT_NAME"
             exit 1
         fi
 
         if [ -z "$TAILSCALED_PID" ]; then
-            logger -s -t "$SCRIPT_TAG" "Starting Tailscale daemon..."
+            logger -st "$SCRIPT_TAG" "Starting Tailscale daemon..."
 
             ! lsmod | grep -q tun && modprobe tun && sleep 1
 
