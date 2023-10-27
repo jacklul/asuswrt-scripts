@@ -135,6 +135,17 @@ A good place to look for potential values are `init.c` and `state.js` files in t
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
 ```
 
+## [`modify-webui.sh`](/scripts/modify-webui.sh)
+
+This script modifies some web UI elements.
+
+Currently applied modifications:
+- display CPU temperature on the system status screen
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
+```
+
 ## [`process-killer.sh`](/scripts/process-killer.sh)
 
 This script can kill processes by their names, unfortunately on stock most of them will restart, there is an attempt to prevent that in that script but it is not guaranteed to work.
