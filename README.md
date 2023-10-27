@@ -131,6 +131,8 @@ This script modifies `rc_support` NVRAM variable to enable/disable some features
 
 A good place to look for potential values are `init.c` and `state.js` files in the firmware sources.
 
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
 ```

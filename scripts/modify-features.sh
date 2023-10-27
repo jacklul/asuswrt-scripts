@@ -20,52 +20,84 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-case "$1" in
-    "start")
-        [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] && exit
-
-        if [ ! -f "/tmp/rc_support.bak" ]; then
-            RC_SUPPORT="$(nvram get rc_support)"
-            echo "$RC_SUPPORT" > "/tmp/rc_support.bak"
-        else
-            RC_SUPPORT="$(cat /tmp/rc_support.bak)"
-        fi
-
-        for FEATURE_TO_REMOVE in $FEATURES_REMOVE; do
-            if echo "$RC_SUPPORT" | grep -q "$FEATURE_TO_REMOVE"; then
-                RC_SUPPORT="$(echo "$RC_SUPPORT" | sed "s/$FEATURE_TO_REMOVE//g")"
+rc_support() {
+    case "$1" in
+        "modify")
+            if [ ! -f "/tmp/rc_support.bak" ]; then
+                RC_SUPPORT="$(nvram get rc_support)"
+                echo "$RC_SUPPORT" > "/tmp/rc_support.bak"
+            else
+                RC_SUPPORT="$(cat /tmp/rc_support.bak)"
             fi
-        done
-        
-        for FEATURE_TO_ADD in $FEATURES_ADD; do
-            if ! echo "$RC_SUPPORT" | grep -q "$FEATURE_TO_ADD"; then
-                RC_SUPPORT="$RC_SUPPORT $FEATURE_TO_ADD"
+
+            if [ -f "/tmp/rc_support.last" ]; then
+                RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
             fi
-        done
 
-        RC_SUPPORT="$(echo "$RC_SUPPORT" | tr -s ' ')"
+            [ "$(nvram get rc_support)" = "$RC_SUPPORT_LAST" ] && exit
 
-        nvram set rc_support="$RC_SUPPORT"
+            for FEATURE_TO_REMOVE in $FEATURES_REMOVE; do
+                if echo "$RC_SUPPORT" | grep -q "$FEATURE_TO_REMOVE"; then
+                    RC_SUPPORT="$(echo "$RC_SUPPORT" | sed "s/$FEATURE_TO_REMOVE//g")"
+                fi
+            done
 
-        logger -st "$SCRIPT_TAG" "Modified rc_support"
-    ;;
-    "stop")
-        if [ -f "/tmp/rc_support.bak" ]; then
-            RC_SUPPORT="$(cat /tmp/rc_support.bak)"
+            for FEATURE_TO_ADD in $FEATURES_ADD; do
+                if ! echo "$RC_SUPPORT" | grep -q "$FEATURE_TO_ADD"; then
+                    RC_SUPPORT="$RC_SUPPORT $FEATURE_TO_ADD"
+                fi
+            done
+
+            RC_SUPPORT="$(echo "$RC_SUPPORT" | tr -s ' ')"
+
+            echo "$RC_SUPPORT" > /tmp/rc_support.last
 
             nvram set rc_support="$RC_SUPPORT"
 
-            logger -st "$SCRIPT_TAG" "Restored original rc_support"
-        else
-            logger -st "$SCRIPT_TAG" "Could not find /tmp/rc_support.bak - cannot restore original rc_support!"
+            logger -st "$SCRIPT_TAG" "Modified rc_support"
+        ;;
+        "restore")
+            rm -f /tmp/rc_support.last
+
+            if [ -f "/tmp/rc_support.bak" ]; then
+                RC_SUPPORT="$(cat /tmp/rc_support.bak)"
+
+                nvram set rc_support="$RC_SUPPORT"
+
+                logger -st "$SCRIPT_TAG" "Restored original rc_support"
+            else
+                logger -st "$SCRIPT_TAG" "Could not find /tmp/rc_support.bak - cannot restore original rc_support!"
+            fi
+        ;;
+    esac
+}
+
+case "$1" in
+    "run")
+        [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] && exit
+
+        rc_support modify
+    ;;
+    "start")
+        if [ -z "$FEATURES_REMOVE" ] || [ -z "$FEATURES_ADD" ]; then
+            logger -st "$SCRIPT_TAG" "Configuration is not set"
         fi
+
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+
+        rc_support modify
+    ;;
+    "stop")
+        cru d "$SCRIPT_NAME"
+
+        rc_support restore
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart"
         exit 1
     ;;
 esac

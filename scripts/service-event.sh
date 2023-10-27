@@ -173,21 +173,8 @@ case "$1" in
                 sh "$SCRIPT_PATH" event restart firewall
             ;;
             "wireless")
-                if
-                    [ -x "/jffs/scripts/guest-password.sh" ]
-                then
-                    if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
-                        _TIMER=0; while { # wait until wlan restarts
-                            [ "$(nvram get restart_wifi)" = "1" ] ||
-                            [ "$(nvram get wlready)" = "0" ];
-                        } && [ "$_TIMER" -lt "60" ]; do
-                            _TIMER=$((_TIMER+1))
-                            sleep 1
-                        done
-                    fi
-
-                    /jffs/scripts/guest-password.sh html &
-                fi
+                # this service event recreates rc_features so we have to re-run this script
+                [ -x "/jffs/scripts/modify-features.sh" ] && /jffs/scripts/modify-features.sh run &
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
