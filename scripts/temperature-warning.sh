@@ -15,9 +15,6 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 TEMPERATURE_TARGET="80" # target temperature at which send the warning
 COOLDOWN=300 # how long to wait (seconds) before sending another warning
 CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
-OUTPUT_FILE="/www/user/temperatures.html"
-CRON_MINUTE="*/1"
-CRON_HOUR="*"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -73,8 +70,6 @@ case "$1" in
 
             [ -n "$WARNING" ] && echo "$UPTIME" > "$CACHE_FILE"
         fi
-
-        [ -n "$OUTPUT_FILE" ] && echo "<meta http-equiv=\"refresh\" content=\"10\"><pre>$(sh "$SCRIPT_PATH" check)</pre>" > "$OUTPUT_FILE" &
     ;;
     "check")
         get_temperatures
@@ -84,7 +79,7 @@ case "$1" in
         [ -n "$WIFI_5G_TEMPERATURE" ] && echo "WiFi 5G temperature: $WIFI_5G_TEMPERATURE C ($ETH_5G)"
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
