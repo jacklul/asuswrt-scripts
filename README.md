@@ -90,13 +90,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`guest-password.sh`](/scripts/guest-password.sh)
 
-This script rotates Guest WiFi passwords for specified guest networks and/or generates HTML pages with QR code to let your guests connect easily. ([HTML page screenshot](/.assets/guest-password.png))
-
-HTML pages will be accessible under these URLS:
-- www.asusrouter.com/user/guest-list.html
-- www.asusrouter.com/user/guest-NETWORK.html
-
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+This script rotates Guest WiFi passwords for specified guest networks.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
