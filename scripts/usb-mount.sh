@@ -67,7 +67,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -112,7 +112,7 @@ setup_mount() {
 
             if ! mount | grep -q "$_MOUNTPOINT"; then
                 mkdir -p "$_MOUNTPOINT"
-                
+
                 #shellcheck disable=SC2086
                 if mount "$_DEVICE" "$_MOUNTPOINT"; then
                     logger -st "$SCRIPT_TAG" "Mounted $_DEVICE on $_MOUNTPOINT"
@@ -135,7 +135,7 @@ setup_mount() {
     esac
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$_DEVICE"
-    
+
     lockfile unlock
 }
 

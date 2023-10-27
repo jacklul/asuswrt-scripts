@@ -63,7 +63,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -100,7 +100,7 @@ setup_inteface() {
             [ ! -d "/sys/class/net/$_INTERFACE" ] && return
 
             is_interface_up "$_INTERFACE" || ifconfig "$_INTERFACE" up
-            
+
             if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE"; then
                 brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"
 
@@ -110,7 +110,7 @@ setup_inteface() {
         "remove")
             if brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE"; then
                 brctl delif "$BRIDGE_INTERFACE" "$_INTERFACE"
-                
+
                 [ -d "/sys/class/net/$_INTERFACE" ] && is_interface_up "$_INTERFACE" && ifconfig "$_INTERFACE" down
 
                 logger -st "$SCRIPT_TAG" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"

@@ -36,7 +36,7 @@ replace_and_check() {
     fi
 
     logger -st "$SCRIPT_TAG" "There was a problem running modification on file $_FILE: $_SED"
-    
+
     return 1
 }
 

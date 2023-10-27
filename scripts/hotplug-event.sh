@@ -58,7 +58,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -71,7 +71,7 @@ hotplug_config() {
                 grep -q "$SCRIPT_PATH" /etc/hotplug2.rules && return # already modified
 
                 [ ! -f "/etc/hotplug2.rules.bak" ] && mv /etc/hotplug2.rules /etc/hotplug2.rules.bak
-                
+
                 cat /etc/hotplug2.rules.bak > /etc/hotplug2.rules
 
                 cat <<EOT >> /etc/hotplug2.rules
@@ -116,7 +116,7 @@ case "$1" in
                     logger -st "$SCRIPT_TAG" "Running script (args: \"${ARG_SUBSYSTEM}\" \"${ARG_ACTION}\")"
                 ;;
             esac
-            
+
             sh "$SCRIPT_PATH" event "$ARG_SUBSYSTEM" "$ARG_ACTION"
             [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$ARG_SUBSYSTEM" "$ARG_ACTION"
 

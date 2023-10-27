@@ -66,7 +66,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac

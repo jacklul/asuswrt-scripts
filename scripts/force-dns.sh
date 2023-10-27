@@ -107,7 +107,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -135,7 +135,7 @@ iptables_chains() {
                     _PREROUTING_START_PLUS="$((_PREROUTING_START+1))"
 
                     $_IPTABLES -t nat -N "$CHAIN_DNAT"
-                    
+
                     for _TARGET_INTERFACE in $TARGET_INTERFACES; do
                         $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
                         $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
@@ -193,7 +193,7 @@ iptables_chains() {
                         $_IPTABLES -D INPUT -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
                         $_IPTABLES -D INPUT -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
                     done
-                    
+
                     $_IPTABLES -F "$CHAIN_BLOCK"
                     $_IPTABLES -X "$CHAIN_BLOCK"
                 fi

@@ -211,7 +211,7 @@ case "$1" in
 EOT
                 chmod 0755 /jffs/scripts/service-event-end
             fi
-            
+
             if ! grep -q "$SCRIPT_PATH" /jffs/scripts/service-event-end; then
                 echo "$SCRIPT_PATH event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
             fi

@@ -65,7 +65,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -247,7 +247,7 @@ case "$1" in
 
         TARGET_PATH="$2"
         ARCHITECTURE="$3"
-        
+
         if [ -z "$TARGET_PATH" ]; then
             for DIR in /tmp/mnt/*; do
                 if [ -d "$DIR" ] && mount | grep "/dev" | grep -q "$DIR"; then
@@ -273,7 +273,7 @@ case "$1" in
             case $PLATFORM in
                 "armv7l")
                     ARCHITECTURE="armv7sf-k2.6"
-                    
+
                     if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt 2 ]; then
                         ARCHITECTURE="armv7sf-k3.2"
                     fi
@@ -307,7 +307,7 @@ case "$1" in
         esac
 
         echo "Will install Entware from: $INSTALL_URL"
-        
+
         #shellcheck disable=SC3045,SC2162
         read -p "Press any key to continue or CTRL-C to cancel... "
 

@@ -65,7 +65,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -109,7 +109,7 @@ firewall_rules() {
     [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Added firewall rules for WireGuard Server LAN-only mode"
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
-    
+
     lockfile unlock
 }
 

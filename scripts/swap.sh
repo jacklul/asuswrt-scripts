@@ -71,7 +71,7 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
@@ -83,7 +83,7 @@ case "$1" in
 
         if [ "$(nvram get usb_idle_enable)" != "0" ]; then
             logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
-            
+
             cru d "$SCRIPT_NAME"
         else
             if ! grep -q "file" /proc/swaps; then
@@ -107,7 +107,7 @@ case "$1" in
     "create")
         [ -n "$2" ] && SWAP_FILE="$2"
         [ -n "$3" ] && SWAP_SIZE="$3"
-        
+
         [ -z "$SWAP_FILE" ] && { logger -st "$SCRIPT_TAG" "Swap file is not set"; exit 1; }
         [ -z "$SWAP_SIZE" ] && { logger -st "$SCRIPT_TAG" "Swap size is not set"; exit 1; }
 
