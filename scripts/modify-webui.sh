@@ -78,8 +78,6 @@ cpu_temperature_on_status() {
 guest_wifi_qr_code() {
     case "$1" in
         "set")
-            mkdir -p "$TMP_WWW_PATH"
-
             if ! mount | grep -q "/www/Guest_network.asp"; then
                 cp -f /www/Guest_network.asp "$TMP_WWW_PATH/Guest_network.asp"
 
