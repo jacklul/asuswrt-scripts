@@ -94,7 +94,6 @@ This script rotates Guest WiFi passwords for specified guest networks.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.html" -o /jffs/scripts/guest-password.html
 ```
 
 ## [`hotplug-event.sh`](/scripts/hotplug-event.sh)
