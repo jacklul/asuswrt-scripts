@@ -157,9 +157,10 @@ This script can backup all NVRAM variables and selected `/jffs` contents to clou
 
 You should probably store the binary on USB drive but the script has also an option to automatically download the binary - make sure your device has enough memory for this though. If you installed Rclone through Entware it will be detected and used.
 
+[Example backup list](/examples/rclone-backup.list) that can be used with this script.
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.list" -o /jffs/scripts/rclone-backup.list
 ```
 
 ## [`samba-masquerade.sh`](/scripts/samba-masquerade.sh)
@@ -176,7 +177,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
-This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event. [Example custom script](/examples/service-script.sh) that can be used with this.
+This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event. [Example custom script](/examples/service-script.sh) that can be used with this script.
 
 By default, integrates with all scripts present in this repository.
 
