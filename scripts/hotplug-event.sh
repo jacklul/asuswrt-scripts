@@ -76,13 +76,13 @@ hotplug_config() {
 
                 cat <<EOT >> /etc/hotplug2.rules
 SUBSYSTEM == block, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
-    exec /jffs/scripts/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+    exec $SCRIPT_DIR/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
 }
 SUBSYSTEM == net, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
-    exec /jffs/scripts/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+    exec $SCRIPT_DIR/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
 }
 SUBSYSTEM == misc, DEVICENAME ~~ ^(tun|tap)$, ACTION ~~ ^(add|remove)$ {
-    exec /jffs/scripts/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+    exec $SCRIPT_DIR/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
 }
 EOT
 
@@ -131,11 +131,11 @@ case "$1" in
         # $2 = subsystem, $3 = action
         case "$2" in
             "block")
-                [ -x "/jffs/scripts/usb-mount.sh" ] && /jffs/scripts/usb-mount.sh hotplug
-                [ -x "/jffs/scripts/entware.sh" ] && /jffs/scripts/entware.sh hotplug
+                [ -x "$SCRIPT_DIR/usb-mount.sh" ] && $SCRIPT_DIR/usb-mount.sh hotplug
+                [ -x "$SCRIPT_DIR/entware.sh" ] && $SCRIPT_DIR/entware.sh hotplug
             ;;
             "net")
-                [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh hotplug
+                [ -x "$SCRIPT_DIR/usb-network.sh" ] && $SCRIPT_DIR/usb-network.sh hotplug
             ;;
             "misc")
                 # empty for now

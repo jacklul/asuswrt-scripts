@@ -115,11 +115,11 @@ case "$1" in
         case "$3" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 if
-                    [ -x "/jffs/scripts/vpn-killswitch.sh" ] ||
-                    [ -x "/jffs/scripts/wgs-lanonly.sh" ] ||
-                    [ -x "/jffs/scripts/force-dns.sh" ] ||
-                    [ -x "/jffs/scripts/samba-masquerade.sh" ] ||
-                    [ -x "/jffs/scripts/tailscale.sh" ]
+                    [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] ||
+                    [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] ||
+                    [ -x "$SCRIPT_DIR/force-dns.sh" ] ||
+                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] ||
+                    [ -x "$SCRIPT_DIR/tailscale.sh" ]
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
@@ -134,18 +134,18 @@ case "$1" in
                         done
                     fi
 
-                    [ -x "/jffs/scripts/vpn-killswitch.sh" ] && /jffs/scripts/vpn-killswitch.sh run &
-                    [ -x "/jffs/scripts/wgs-lanonly.sh" ] && /jffs/scripts/wgs-lanonly.sh run &
-                    [ -x "/jffs/scripts/force-dns.sh" ] && /jffs/scripts/force-dns.sh run &
-                    [ -x "/jffs/scripts/samba-masquerade.sh" ] && /jffs/scripts/samba-masquerade.sh run &
-                    [ -x "/jffs/scripts/tailscale.sh" ] && /jffs/scripts/tailscale.sh firewall &
+                    [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] && $SCRIPT_DIR/vpn-killswitch.sh run &
+                    [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && $SCRIPT_DIR/wgs-lanonly.sh run &
+                    [ -x "$SCRIPT_DIR/force-dns.sh" ] && $SCRIPT_DIR/force-dns.sh run &
+                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && $SCRIPT_DIR/samba-masquerade.sh run &
+                    [ -x "$SCRIPT_DIR/tailscale.sh" ] && $SCRIPT_DIR/tailscale.sh firewall &
 
                 fi
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if
-                    [ -x "/jffs/scripts/usb-network.sh" ] ||
-                    [ -x "/jffs/scripts/dynamic-dns.sh" ]
+                    [ -x "$SCRIPT_DIR/usb-network.sh" ] ||
+                    [ -x "$SCRIPT_DIR/dynamic-dns.sh" ]
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait until wan goes down
@@ -165,8 +165,8 @@ case "$1" in
                         done
                     fi
 
-                    [ -x "/jffs/scripts/usb-network.sh" ] && /jffs/scripts/usb-network.sh run &
-                    [ -x "/jffs/scripts/dynamic-dns.sh" ] && /jffs/scripts/dynamic-dns.sh run &
+                    [ -x "$SCRIPT_DIR/usb-network.sh" ] && $SCRIPT_DIR/usb-network.sh run &
+                    [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && $SCRIPT_DIR/dynamic-dns.sh run &
                 fi
 
                 # most of these also restart firewall so execute that too just in case
@@ -174,11 +174,11 @@ case "$1" in
             ;;
             "wireless")
                 # this service event recreates rc_features so we have to re-run this script
-                [ -x "/jffs/scripts/modify-features.sh" ] && /jffs/scripts/modify-features.sh run &
+                [ -x "$SCRIPT_DIR/modify-features.sh" ] && $SCRIPT_DIR/modify-features.sh run &
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
-                [ -x "/jffs/scripts/swap.sh" ] && /jffs/scripts/swap.sh run &
+                [ -x "$SCRIPT_DIR/swap.sh" ] && $SCRIPT_DIR/swap.sh run &
             ;;
         esac
 
