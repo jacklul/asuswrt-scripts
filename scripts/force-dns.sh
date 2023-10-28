@@ -28,7 +28,7 @@ PERMIT_MAC="" # space/comma separated allowed MAC addresses to bypass forced DNS
 PERMIT_IP="" # space/comma separated allowed v4 IPs to bypass forced DNS, ranges supported
 PERMIT_IP6="" # space/comma separated allowed v6 IPs to bypass forced DNS, ranges supported
 TARGET_INTERFACES="br+" # the target interface(s) to set rules for, separated by spaces
-REQUIRE_INTERFACE="" # rules will be removed if this interface does not exist in /sys/class/net/, wildcards accepted, set this to "usb*" when using usb-network script
+REQUIRE_INTERFACE="" # rules will be removed if this interface is not up, wildcards accepted, set this to "usb*" when using usb-network script
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)

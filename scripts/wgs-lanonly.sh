@@ -106,7 +106,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Added firewall rules for WireGuard Server LAN-only mode"
+    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Restricting WireGuard server to only allow LAN access"
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 

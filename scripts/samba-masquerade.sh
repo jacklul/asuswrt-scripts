@@ -132,7 +132,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Added firewall rules for Samba Masquerade (VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1'))"
+    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Masquerading Samba connections from networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')"
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 
