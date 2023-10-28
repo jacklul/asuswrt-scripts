@@ -13,7 +13,6 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
-SCRIPTS_PATH="/jffs/scripts" # path to scripts directory
 BRANCH="master" # which git branch to use
 BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base download url, no ending slash!
 BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
@@ -55,28 +54,15 @@ download_and_check() {
 
 case "$1" in
     "run")
-        for ENTRY in "$SCRIPTS_PATH"/*.sh; do
+        for ENTRY in "$SCRIPT_DIR"/*.sh; do
             ENTRY="$(readlink -f "$ENTRY")"
             BASENAME="$(basename "$ENTRY")"
 
+            ! grep -q "\$SCRIPT_DIR/\$SCRIPT_NAME" "$ENTRY" && continue
             grep -q "SCRIPT[_]ARCHIVED=true" "$ENTRY" && continue
 
             echo "Processing '$ENTRY'..."
             download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"
-
-#            #shellcheck disable=SC2002
-#            EXTRA_EXTENSIONS="$(cat "$ENTRY" | sed -n "s/^.*_FILE=.*\$SCRIPT_DIR\/\$SCRIPT_NAME\.\(.*\)\"\s#.*$/\1/p")"
-#
-#            if [ -n "$EXTRA_EXTENSIONS" ]; then
-#                ENTRY_NAME="$(basename "$ENTRY" .sh)"
-#                ENTRY_DIR="$(dirname "$ENTRY")"
-#
-#                IFS="$(printf '\n\b')"
-#                for EXTENSION in $EXTRA_EXTENSIONS; do
-#                    echo "Processing '$ENTRY_DIR/$ENTRY_NAME.$EXTENSION'..."
-#                    download_and_check "$DOWNLOAD_URL/$ENTRY_NAME.$EXTENSION" "$ENTRY_DIR/$ENTRY_NAME.$EXTENSION"
-#                done
-#            fi
         done
     ;;
     *)
