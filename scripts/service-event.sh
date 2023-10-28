@@ -175,6 +175,7 @@ case "$1" in
             "wireless")
                 # this service event recreates rc_features so we have to re-run this script
                 [ -x "$SCRIPT_DIR/modify-features.sh" ] && "$SCRIPT_DIR/modify-features.sh" run &
+                [ -x "$SCRIPT_DIR/disable-wps.sh" ] && "$SCRIPT_DIR/disable-wps.sh" run &
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled

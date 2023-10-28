@@ -48,7 +48,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script does exactly what you would expect - makes sure WPS stays disabled.
 
-By default, runs check at boot and at 00:00.
+By default, runs check at boot and at 00:00, when `service-event.sh` is used also runs every time wireless is restarted.
+
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-wps.sh" -o /jffs/scripts/disable-wps.sh
