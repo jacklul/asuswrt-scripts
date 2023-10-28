@@ -320,10 +320,12 @@ firewall_rules() {
 
 interface_exists() {
     if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
-        for _INTERFACE in /sys/class/net/usb*; do
-            [ -d "$_INTERFACE" ] && return 0
-        done
-    elif [ -d "/sys/class/net/$1" ]; then
+        _INTERFACE_GLOB="$(printf "%s" "$1" | head -c -1)"
+
+        if ip link show | grep ": $1" | grep -q "mtu"; then
+            return 0
+        fi
+    elif ip link show | grep " $1:" | grep -q "mtu"; then
         return 0
     fi
 
