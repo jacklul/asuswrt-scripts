@@ -99,21 +99,23 @@ setup_inteface() {
         "add")
             [ ! -d "/sys/class/net/$_INTERFACE" ] && return
 
-            is_interface_up "$_INTERFACE" || ifconfig "$_INTERFACE" up
+            if ! is_interface_up "$_INTERFACE"; then
+                logger -st "$SCRIPT_TAG" "Bringing interface $_INTERFACE up..."
+                ifconfig "$_INTERFACE" up
+            fi
 
-            if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE"; then
-                brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"
-
+            if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" && brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"; then
                 logger -st "$SCRIPT_TAG" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
             fi
         ;;
         "remove")
-            if brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE"; then
-                brctl delif "$BRIDGE_INTERFACE" "$_INTERFACE"
-
-                [ -d "/sys/class/net/$_INTERFACE" ] && is_interface_up "$_INTERFACE" && ifconfig "$_INTERFACE" down
-
+            if brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" && brctl delif "$BRIDGE_INTERFACE" "$_INTERFACE"; then
                 logger -st "$SCRIPT_TAG" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"
+            fi
+
+            if [ -d "/sys/class/net/$_INTERFACE" ] && is_interface_up "$_INTERFACE"; then
+                logger -st "$SCRIPT_TAG" "Taking interface $_INTERFACE down..."
+                ifconfig "$_INTERFACE" down
             fi
         ;;
     esac
