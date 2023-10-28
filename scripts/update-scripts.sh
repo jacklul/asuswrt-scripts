@@ -28,7 +28,7 @@ md5_compare() {
     { [ ! -f "$1" ] || [ ! -f "$2" ]; } && return 1
 
     if [ -n "$1" ] && [ -n "$2" ]; then
-        if [ "$(md5sum "$1" | awk '{print $1}')" = "$(md5sum "$2" | awk '{print $1}')" ]; then
+        if [ "$(md5sum "$1" 2> /dev/null | awk '{print $1}')" = "$(md5sum "$2" 2> /dev/null | awk '{print $1}')" ]; then
             return 0
         fi
     fi
@@ -40,29 +40,40 @@ download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
         if curl -fsSL "$1" -o "/tmp/$SCRIPT_NAME-download"; then
             if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
-                echo "Updating '$2'..."
-
-                cat "/tmp/$SCRIPT_NAME-download" > "$2"
+                return 0
             fi
         else
             echo "Failed to download from url '$1'"
         fi
-
-        rm -f "/tmp/$SCRIPT_NAME-download"
     fi
+
+    return 1
 }
 
 case "$1" in
     "run")
+        if download_and_check "$DOWNLOAD_URL/$(basename "$SCRIPT_PATH")" "$SCRIPT_PATH"; then
+            { sleep 1 && mv -f "/tmp/$SCRIPT_NAME-download" "$SCRIPT_PATH"; } &
+            echo "Script updated, please re-run the command"
+            exit
+        fi
+
+        trap 'rm -f "/tmp/$SCRIPT_NAME-download"; exit $?' EXIT
+
         for ENTRY in "$SCRIPT_DIR"/*.sh; do
             ENTRY="$(readlink -f "$ENTRY")"
             BASENAME="$(basename "$ENTRY")"
+
+            [ "$ENTRY" = "$SCRIPT_PATH" ] && continue
 
             ! grep -q "\$SCRIPT_DIR/\$SCRIPT_NAME" "$ENTRY" && continue
             grep -q "SCRIPT[_]ARCHIVED=true" "$ENTRY" && continue
 
             echo "Processing '$ENTRY'..."
-            download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"
+            if download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"; then
+                echo "Updating '$2'..."
+                mv -f "/tmp/$SCRIPT_NAME-download" "$ENTRY"
+            fi
         done
     ;;
     *)
