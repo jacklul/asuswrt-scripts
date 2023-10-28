@@ -57,9 +57,9 @@ case "$1" in
     "stop")
         logger -s -t "$SCRIPT_TAG" "Stopping custom scripts ($SCRIPTS_DIR)..."
 
-        scripts stop
-
         rm -f "$CHECK_FILE"
+
+        scripts stop
     ;;
     "install")
         if [ -f "/usr/sbin/helper.sh" ]; then
