@@ -55,7 +55,9 @@ case "$1" in
         [ -n "$CHANGED" ] && nvram commit && service restart_wireless
     ;;
     "start")
-        [ -n "$ROTATE_WL" ] && cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
+        [ -z "$ROTATE_WL" ] && { logger -st "$SCRIPT_TAG" "Unable to start - no guest networks to rotate password for are set"; exit 1; }
+
+        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
         if [ "$ROTATE_ON_START" = "1" ]; then
             if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
