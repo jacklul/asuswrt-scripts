@@ -38,7 +38,7 @@ md5_compare() {
 
 download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
-        if curl -fsSL "$1" -o "/tmp/$SCRIPT_NAME-download"; then
+        if curl -fsSL "$1?$(date +%s)" -o "/tmp/$SCRIPT_NAME-download"; then
             if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
                 return 0
             fi
@@ -50,34 +50,28 @@ download_and_check() {
     return 1
 }
 
-case "$1" in
-    "run")
-        if download_and_check "$DOWNLOAD_URL/$(basename "$SCRIPT_PATH")" "$SCRIPT_PATH"; then
-            { sleep 1 && mv -f "/tmp/$SCRIPT_NAME-download" "$SCRIPT_PATH"; } &
-            echo "Script updated, please re-run the command"
-            exit
+if [ -z "$1" ] || [ "$1" = "run" ]; then
+    if download_and_check "$DOWNLOAD_URL/$(basename "$SCRIPT_PATH")" "$SCRIPT_PATH"; then
+        { sleep 1 && cat "/tmp/$SCRIPT_NAME-download" > "$SCRIPT_PATH"; } &
+        echo "Script has been updated, please re-run!"
+        exit
+    fi
+
+    trap 'rm -f "/tmp/$SCRIPT_NAME-download"; exit $?' EXIT
+
+    for ENTRY in "$SCRIPT_DIR"/*.sh; do
+        ENTRY="$(readlink -f "$ENTRY")"
+        BASENAME="$(basename "$ENTRY")"
+
+        [ "$ENTRY" = "$SCRIPT_PATH" ] && continue
+        ! grep -q "\$SCRIPT_DIR/\$SCRIPT_NAME" "$ENTRY" && continue
+        grep -q "SCRIPT[_]ARCHIVED=true" "$ENTRY" && continue
+
+        echo "Processing '$ENTRY'..."
+
+        if download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"; then
+            echo "Updating '$ENTRY'..."
+            cat "/tmp/$SCRIPT_NAME-download" > "$ENTRY"
         fi
-
-        trap 'rm -f "/tmp/$SCRIPT_NAME-download"; exit $?' EXIT
-
-        for ENTRY in "$SCRIPT_DIR"/*.sh; do
-            ENTRY="$(readlink -f "$ENTRY")"
-            BASENAME="$(basename "$ENTRY")"
-
-            [ "$ENTRY" = "$SCRIPT_PATH" ] && continue
-
-            ! grep -q "\$SCRIPT_DIR/\$SCRIPT_NAME" "$ENTRY" && continue
-            grep -q "SCRIPT[_]ARCHIVED=true" "$ENTRY" && continue
-
-            echo "Processing '$ENTRY'..."
-            if download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"; then
-                echo "Updating '$2'..."
-                mv -f "/tmp/$SCRIPT_NAME-download" "$ENTRY"
-            fi
-        done
-    ;;
-    *)
-        echo "Usage: $0 run"
-        exit 1
-    ;;
-esac
+    done
+fi
