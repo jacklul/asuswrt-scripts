@@ -170,12 +170,31 @@ case "$1" in
                 fi
 
                 # most of these also restart firewall so execute that too just in case
-                sh "$SCRIPT_PATH" event restart firewall
+                sh "$SCRIPT_PATH" event restart firewall &
+                # some of these also restart wireless so execute that too just in case
+                sh "$SCRIPT_PATH" event restart wireless &
             ;;
             "wireless")
-                # this service event recreates rc_features so we have to re-run this script
-                [ -x "$SCRIPT_DIR/modify-features.sh" ] && "$SCRIPT_DIR/modify-features.sh" run &
+                # probably a good idea to run this just in case
                 [ -x "$SCRIPT_DIR/disable-wps.sh" ] && "$SCRIPT_DIR/disable-wps.sh" run &
+
+                # this service event recreates rc_support so we have to re-run this script
+                if [ -x "$SCRIPT_DIR/modify-features.sh" ]; then
+                    if [ -f "/tmp/rc_support.last" ]; then
+                        RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
+
+                        if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                            _TIMER=0; while { # wait till rc_support is modified
+                                [ "$(nvram get rc_support)" = "$RC_SUPPORT_LAST" ]
+                            } && [ "$_TIMER" -lt "60" ]; do
+                                _TIMER=$((_TIMER+1))
+                                sleep 1
+                            done
+                        fi
+                    fi
+
+                    "$SCRIPT_DIR/modify-features.sh" run &
+                fi
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
