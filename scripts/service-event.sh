@@ -134,11 +134,11 @@ case "$1" in
                         done
                     fi
 
-                    [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] && $SCRIPT_DIR/vpn-killswitch.sh run &
-                    [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && $SCRIPT_DIR/wgs-lanonly.sh run &
-                    [ -x "$SCRIPT_DIR/force-dns.sh" ] && $SCRIPT_DIR/force-dns.sh run &
-                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && $SCRIPT_DIR/samba-masquerade.sh run &
-                    [ -x "$SCRIPT_DIR/tailscale.sh" ] && $SCRIPT_DIR/tailscale.sh firewall &
+                    [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] && "$SCRIPT_DIR/vpn-killswitch.sh" run &
+                    [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && "$SCRIPT_DIR/wgs-lanonly.sh" run &
+                    [ -x "$SCRIPT_DIR/force-dns.sh" ] && "$SCRIPT_DIR/force-dns.sh" run &
+                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && "$SCRIPT_DIR/samba-masquerade.sh" run &
+                    [ -x "$SCRIPT_DIR/tailscale.sh" ] && "$SCRIPT_DIR/tailscale.sh" firewall &
 
                 fi
             ;;
@@ -165,8 +165,8 @@ case "$1" in
                         done
                     fi
 
-                    [ -x "$SCRIPT_DIR/usb-network.sh" ] && $SCRIPT_DIR/usb-network.sh run &
-                    [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && $SCRIPT_DIR/dynamic-dns.sh run &
+                    [ -x "$SCRIPT_DIR/usb-network.sh" ] && "$SCRIPT_DIR/usb-network.sh" run &
+                    [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && "$SCRIPT_DIR/dynamic-dns.sh" run &
                 fi
 
                 # most of these also restart firewall so execute that too just in case
@@ -174,11 +174,11 @@ case "$1" in
             ;;
             "wireless")
                 # this service event recreates rc_features so we have to re-run this script
-                [ -x "$SCRIPT_DIR/modify-features.sh" ] && $SCRIPT_DIR/modify-features.sh run &
+                [ -x "$SCRIPT_DIR/modify-features.sh" ] && "$SCRIPT_DIR/modify-features.sh" run &
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
-                [ -x "$SCRIPT_DIR/swap.sh" ] && $SCRIPT_DIR/swap.sh run &
+                [ -x "$SCRIPT_DIR/swap.sh" ] && "$SCRIPT_DIR/swap.sh" run &
             ;;
         esac
 

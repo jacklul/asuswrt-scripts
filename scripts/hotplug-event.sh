@@ -131,11 +131,11 @@ case "$1" in
         # $2 = subsystem, $3 = action
         case "$2" in
             "block")
-                [ -x "$SCRIPT_DIR/usb-mount.sh" ] && $SCRIPT_DIR/usb-mount.sh hotplug
-                [ -x "$SCRIPT_DIR/entware.sh" ] && $SCRIPT_DIR/entware.sh hotplug
+                [ -x "$SCRIPT_DIR/usb-mount.sh" ] && "$SCRIPT_DIR/usb-mount.sh" hotplug
+                [ -x "$SCRIPT_DIR/entware.sh" ] && "$SCRIPT_DIR/entware.sh" hotplug
             ;;
             "net")
-                [ -x "$SCRIPT_DIR/usb-network.sh" ] && $SCRIPT_DIR/usb-network.sh hotplug
+                [ -x "$SCRIPT_DIR/usb-network.sh" ] && "$SCRIPT_DIR/usb-network.sh" hotplug
             ;;
             "misc")
                 # empty for now
