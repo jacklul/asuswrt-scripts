@@ -124,11 +124,15 @@ setup_mount() {
         ;;
         "remove")
             if mount | grep -q "$_MOUNTPOINT"; then
-                if umount "$_MOUNTPOINT"; then
-                    rmdir "$_MOUNTPOINT"
-                    logger -st "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
+                if [ "$(mount | grep -c "$_DEVICE")" -gt "1" ]; then
+                    logger -st "$SCRIPT_TAG" "Unable to unmount $_MOUNTPOINT - device $_DEVICE is used by another mount"
                 else
-                    logger -st "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
+                    if umount "$_MOUNTPOINT"; then
+                        rmdir "$_MOUNTPOINT"
+                        logger -st "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
+                    else
+                        logger -st "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
+                    fi
                 fi
             fi
         ;;
