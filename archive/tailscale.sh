@@ -24,9 +24,8 @@ STATE_FILE="/jffs/tailscaled.state" # where to store state file, preferably pers
 INTERFACE="tailscale0" # interface to use, if you change TAILSCALED_ARGUMENTS make sure correct interface is being used
 TAILSCALED_ARGUMENTS="-no-logs-no-support -tun $INTERFACE" # 'tailscaled' arguments
 TAILSCALE_ARGUMENTS="--accept-dns=false --advertise-exit-node" # 'tailscale up' arguments, refer to https://tailscale.com/kb/1080/cli/#command-reference
-TAILSCALED_PATH="" # path to tailscaled binary, fill TAILSCALE_DOWNLOAD_URL to automatically download
-TAILSCALE_PATH="" # path to tailscale binary, fill TAILSCALE_DOWNLOAD_URL to automatically download
-TAILSCALE_DOWNLOAD_URL="" # Tailscale tgz download URL, "https://pkgs.tailscale.com/stable/tailscale_latest_arm.tgz" should work
+TAILSCALED_PATH="" # path to tailscaled binary
+TAILSCALE_PATH="" # path to tailscale binary
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -83,26 +82,6 @@ lockfile() { #LOCKFUNC_START#
     esac
 } #LOCKFUNC_END#
 
-download_tailscale() {
-    if [ -n "$TAILSCALE_DOWNLOAD_URL" ]; then
-        logger -st "$SCRIPT_TAG" "Downloading Tailscale binaries from '$TAILSCALE_DOWNLOAD_URL'..."
-
-        set -e
-        mkdir -p /tmp/download
-        cd /tmp/download
-        curl -fsSL "$TAILSCALE_DOWNLOAD_URL" -o "tailscale.tgz"
-        tar zxf "tailscale.tgz"
-        mv ./*/tailscaled /tmp/tailscaled
-        mv ./*/tailscale /tmp/tailscale
-        rm -fr /tmp/download/*
-        chmod +x /tmp/tailscaled /tmp/tailscale
-        set +e
-
-        TAILSCALED_PATH="/tmp/tailscaled"
-        TAILSCALE_PATH="/tmp/tailscale"
-    fi
-}
-
 firewall_rules() {
     [ -z "$INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }
 
@@ -145,13 +124,8 @@ case "$1" in
     "run")
         [ ! -f "$TAILSCALED_PATH" ] && [ -f "/tmp/tailscaled" ] && TAILSCALED_PATH="/tmp/tailscaled"
         [ ! -f "$TAILSCALE_PATH" ] && [ -f "/tmp/tailscale" ] && TAILSCALE_PATH="/tmp/tailscale"
-
-        if [ ! -f "$TAILSCALED_PATH" ] || [ ! -f "$TAILSCALE_PATH" ]; then
-            download_tailscale
-
-            [ ! -f "$TAILSCALED_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
-            [ ! -f "$TAILSCALE_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
-        fi
+        [ ! -f "$TAILSCALED_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find tailscaled binary: $TAILSCALED_PATH"; exit 1; }
+        [ ! -f "$TAILSCALE_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find tailscale binary: $TAILSCALE_PATH"; exit 1; }
 
         if [ -f "/opt/bin/tailscaled" ]; then
             logger -st "$SCRIPT_TAG" "Tailscale was installed through Entware - do not use this script in this case"

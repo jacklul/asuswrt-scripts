@@ -8,7 +8,7 @@ These scripts are no longer supported.
 
 This script installs [Tailscale](https://tailscale.com) service on your router, allowing it to be used as an exit node.
 
-You should probably store the binaries on USB drive but the script has also an option to automatically download the binaries - make sure your device has enough memory for this though.
+You have to download the binaries and place it on the USB drive first.
 
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
