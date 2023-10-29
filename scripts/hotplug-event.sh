@@ -21,6 +21,7 @@ fi
 
 lockfile() { #LOCKFUNC_START#
     _LOCKFILE="/tmp/$SCRIPT_NAME.lock"
+    [ -n "$2" ] && _LOCKFILE="/tmp/$SCRIPT_NAME-$2.lock"
 
     case "$1" in
         "lock")
@@ -106,12 +107,12 @@ EOT
 case "$1" in
     "run")
         if [ -n "$2" ] && [ -n "$3" ]; then # handles calls from hotplug
-            lockfile lock
-
             ARG_SUBSYSTEM="$2"
             ARG_ACTION="$3"
 
-            case "$2" in
+            lockfile lock "$ARG_SUBSYSTEM"
+
+            case "$ARG_SUBSYSTEM" in
                 "block"|"net"|"misc")
                     logger -st "$SCRIPT_TAG" "Running script (args: \"${ARG_SUBSYSTEM}\" \"${ARG_ACTION}\")"
                 ;;
@@ -120,7 +121,7 @@ case "$1" in
             sh "$SCRIPT_PATH" event "$ARG_SUBSYSTEM" "$ARG_ACTION"
             [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$ARG_SUBSYSTEM" "$ARG_ACTION"
 
-            lockfile unlock
+            lockfile unlock "$ARG_SUBSYSTEM"
         else # handles cron
             if ! grep -q "$SCRIPT_PATH" /etc/hotplug2.rules; then
                 hotplug_config modify
