@@ -156,7 +156,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script can backup all NVRAM variables and selected `/jffs` contents to cloud service using [Rclone](https://github.com/rclone/rclone).
 
-You should probably store the binary on USB drive but the script has also an option to automatically download the binary - make sure your device has enough memory for this though. If you installed Rclone through Entware it will be detected and used.
+You have to download the binary and place it on the USB drive, if you installed it through the Entware then it will be automatically detected.
 
 [Example backup list](/examples/rclone-backup.list) that can be used with this script.
 
@@ -168,7 +168,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 Enables masquerade for Samba ports to allow VPN clients to connect to your LAN shares.
 
-By default, default networks for WireGuard, OpenVPN and IPSec are set.
+By default, networks for WireGuard, OpenVPN and IPSec are set.
 
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
@@ -180,7 +180,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event. [Example custom script](/examples/service-script.sh) that can be used with this script.
 
-By default, integrates with all scripts present in this repository.
+By default, integrates with all scripts (when required) present in this repository.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
@@ -207,6 +207,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`update-notify.sh`](/scripts/update-notify.sh)
 
 This script will send you a Telegram message when new router firmware is available.
+
 You need to create a Telegram bot for this to work.
 
 ```sh
