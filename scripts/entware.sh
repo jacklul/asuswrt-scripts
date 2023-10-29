@@ -92,7 +92,7 @@ init_opt() {
 
         if mount --bind "$_TARGET_PATH" /opt; then
             MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
-            [ -n "$MOUNT_DEVICE" ] && echo "$MOUNT_DEVICE" > "$CACHE_FILE"
+            [ -n "$MOUNT_DEVICE" ] && basename "$MOUNT_DEVICE" > "$CACHE_FILE"
 
             logger -st "$SCRIPT_TAG" "Mounted $_TARGET_PATH on /opt"
         else
@@ -213,7 +213,7 @@ case "$1" in
                     fi
                 ;;
                 "remove")
-                    if [ "$LAST_ENTWARE_DEVICE" = "/dev/$DEVICENAME" ]; then
+                    if [ "$LAST_ENTWARE_DEVICE" = "$DEVICENAME" ]; then
                         entware stop
                     fi
                 ;;
