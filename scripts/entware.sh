@@ -168,21 +168,23 @@ case "$1" in
             ! wget -q --spider "http://bin.entware.net" && { echo "Cannot reach entware.net server"; exit; }
 
             if [ ! -f "/opt/etc/init.d/rc.unslung" ]; then # is it mounted?
-                lockfile lock
+                {
+                    lockfile lock
 
-                if [ ! -f "/tmp/entware/etc/init.d/rc.unslung" ]; then # is it installed?
-                    logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
+                    if [ ! -f "/tmp/entware/etc/init.d/rc.unslung" ]; then # is it installed?
+                        logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
 
-                    if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
-                        logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log"
-                        cru d "$SCRIPT_NAME"
-                        exit 1
+                        if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
+                            logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log"
+                            cru d "$SCRIPT_NAME"
+                            exit 1
+                        fi
                     fi
-                fi
 
-                lockfile unlock
+                    lockfile unlock
 
-                entware start "/tmp/entware"
+                    entware start "/tmp/entware"
+                } &
             fi
 
             exit
