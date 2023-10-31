@@ -70,7 +70,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`entware.sh`](/scripts/entware.sh)
 
-This script installs and enables Entware.
+This script installs and enables Entware, even in RAM (`/tmp`).
+
+When installing to `/tmp` it will automatically install specified packages and copy contents from `/jffs/entware` to `/opt`.
 
 Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 

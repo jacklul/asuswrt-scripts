@@ -16,6 +16,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
+IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
 USE_HTTPS=true # retrieve files using HTTPS with OPKG, disable when downloads fails
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
@@ -108,13 +109,13 @@ init_opt() {
 }
 
 backup_initd_scripts() {
-    [ -d "/tmp/$SCRIPT_NAME/init.d" ] && rm -rf "/tmp/$SCRIPT_NAME/init.d"
-    mkdir -p "/tmp/$SCRIPT_NAME/init.d"
+    [ -d "/tmp/$SCRIPT_NAME-init.d" ] && rm -rf "/tmp/$SCRIPT_NAME-init.d"
+    mkdir -p "/tmp/$SCRIPT_NAME-init.d"
 
     for FILE in /opt/etc/init.d/*; do
         [ ! -x "$FILE" ] && continue
         [ "$(basename "$FILE")" = "rc.unslung" ] && continue
-        cp -f "$FILE" "/tmp/$SCRIPT_NAME/init.d/$FILE"
+        cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d/$FILE"
     done
 }
 
@@ -140,15 +141,15 @@ services() {
                 logger -st "$SCRIPT_TAG" "Stopping services..."
 
                 /opt/etc/init.d/rc.unslung stop
-            elif [ -d "/tmp/$SCRIPT_NAME/init.d" ]; then
+            elif [ -d "/tmp/$SCRIPT_NAME-init.d" ]; then
                 logger -st "$SCRIPT_TAG" "Killing services..."
 
-                for FILE in "/tmp/$SCRIPT_NAME/init.d/"*; do
+                for FILE in "/tmp/$SCRIPT_NAME-init.d/"*; do
                     [ ! -x "$FILE" ] && continue
                     eval "$FILE kill"
                 done
 
-                rm -rf "/tmp/$SCRIPT_NAME/init.d"
+                rm -rf "/tmp/$SCRIPT_NAME-init.d"
             fi
         ;;
     esac
@@ -184,6 +185,31 @@ entware() {
 
 case "$1" in
     "run")
+        if [ -n "$IN_RAM" ]; then
+            { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
+            ! wget -q --spider "http://bin.entware.net" && { echo "Cannot reach entware.net server"; exit; }
+
+            if [ ! -f "/opt/etc/init.d/rc.unslung" ]; then # is it mounted?
+                lockfile lock
+
+                if [ ! -f "/tmp/entware/etc/init.d/rc.unslung" ]; then # is it installed?
+                    logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
+
+                    if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
+                        logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log"
+                        cru d "$SCRIPT_NAME"
+                        exit 1
+                    fi
+                fi
+
+                lockfile unlock
+
+                entware start "/tmp/entware"
+            fi
+
+            exit
+        fi
+
         if ! is_entware_mounted; then
             for DIR in /tmp/mnt/*; do
                 if [ -d "$DIR/entware" ]; then
@@ -203,6 +229,8 @@ case "$1" in
         fi
     ;;
     "hotplug")
+        [ -n "$IN_RAM" ] && exit
+
         if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
             case "$ACTION" in
                 "add")
@@ -245,7 +273,7 @@ case "$1" in
     "install")
         is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing"; exit 1; }
 
-        echo
+        [ -z "$IN_RAM" ] && echo
 
         TARGET_PATH="$2"
         [ -z "$ARCHITECTURE" ] && ARCHITECTURE="$3"
@@ -290,9 +318,11 @@ case "$1" in
                 ;;
             esac
 
-            echo "Detected architecture: $ARCHITECTURE"
-            echo "You can override it by providing it as the third argument."
-            echo
+            if [ -z "$IN_RAM" ]; then
+                echo "Detected architecture: $ARCHITECTURE"
+                echo "You can override it by providing it as the third argument."
+                echo
+            fi
         fi
 
         case "$ARCHITECTURE" in
@@ -310,8 +340,10 @@ case "$1" in
 
         echo "Will install Entware on $TARGET_PATH from $INSTALL_URL"
 
-        #shellcheck disable=SC3045,SC2162
-        read -p "Press any key to continue or CTRL-C to cancel... "
+        if [ -z "$IN_RAM" ]; then
+            #shellcheck disable=SC3045,SC2162
+            read -p "Press any key to continue or CTRL-C to cancel... "
+        fi
 
         set -e
 
@@ -357,6 +389,18 @@ case "$1" in
         done
 
         [ -f "/etc/localtime" ] && ln -sfv "/etc/localtime" "/opt/etc/localtime"
+
+        if [ -n "$IN_RAM" ]; then
+            echo "Installing selected packages..."
+
+            #shellcheck disable=SC2086
+            /opt/bin/opkg install $IN_RAM
+
+            if [ -d "/jffs/entware" ]; then
+                echo "Copying data from /jffs/entware..."
+                cp -afv /jffs/entware/* /opt
+            fi
+        fi
 
         echo "Installation complete!"
     ;;
