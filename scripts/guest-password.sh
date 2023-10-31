@@ -26,8 +26,6 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-{ [ "$ROTATE_ON_START" = "true" ] || [ "$ROTATE_ON_START" = true ]; } && ROTATE_ON_START="1" || ROTATE_ON_START="0"
-
 get_random_password() {
     #shellcheck disable=SC2002
     cat /dev/urandom | env LC_CTYPE=C tr -dc "$CHAR_LIST" | head -c $PASSWORD_LENGTH; echo;
@@ -59,7 +57,7 @@ case "$1" in
 
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
-        if [ "$ROTATE_ON_START" = "1" ]; then
+        if [ "$ROTATE_ON_START" = true ]; then
             if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
                 { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
             else

@@ -31,9 +31,7 @@ fi
 
 [ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
 
-{ [ "$PERSISTENT" = "true" ] || [ "$PERSISTENT" = true ]; } && PERSISTENT="1" || PERSISTENT="0"
-
-PERSISTENT_STATE="$([ "$PERSISTENT" = "1" ] && echo " (preserved)")"
+PERSISTENT_STATE="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
 
 if [ -n "$PERSISTENT_STATE" ] && [ -n "$MERLIN" ]; then
     PERSISTENT_STATE=""
@@ -69,7 +67,7 @@ switch_leds() {
     case "$1" in
         "on")
             if [ -n "$MERLIN" ]; then
-                [ "$PERSISTENT" = "1" ] && nvram commit
+                [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds >/dev/null
             else
                 loop_led_ctrl on
@@ -81,7 +79,7 @@ switch_leds() {
         "off")
             if [ -n "$MERLIN" ]; then
                 nvram set led_disable=1
-                [ "$PERSISTENT" = "1" ] && nvram commit
+                [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds >/dev/null
             else
                 loop_led_ctrl off
@@ -155,7 +153,7 @@ case "$1" in
         cru d "${SCRIPT_NAME}-Off"
 
         if [ -n "$MERLIN" ] && [ "$(nvram get led_disable)" = 1 ]; then
-            PERSISTENT="1"
+            PERSISTENT=true
             switch_leds on
         fi
 

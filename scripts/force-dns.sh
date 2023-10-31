@@ -66,8 +66,6 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
     fi
 fi
 
-{ [ "$BLOCK_ROUTER_DNS" = "true" ] || [ "$BLOCK_ROUTER_DNS" = true ]; } && BLOCK_ROUTER_DNS="1" || BLOCK_ROUTER_DNS="0"
-
 lockfile() { #LOCKFUNC_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _FD=9
@@ -116,7 +114,7 @@ iptables_chains() {
                     done
                 fi
 
-                if [ "$BLOCK_ROUTER_DNS" = "1" ] && ! $_IPTABLES -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
+                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_IPTABLES -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
                     if [ "$_IPTABLES" = "ip6tables" ]; then
                         _ROUTER_IP="$ROUTER_IP6"
                     else
@@ -209,7 +207,7 @@ iptables_rules() {
             _ROUTER_IP="$ROUTER_IP"
         fi
 
-        [ "$_ROUTER_IP" = "$_SET_DNS_SERVER" ] && _BLOCK_ROUTER_DNS=0
+        [ "$_ROUTER_IP" = "$_SET_DNS_SERVER" ] && _BLOCK_ROUTER_DNS=false
 
         if [ -n "$PERMIT_MAC" ]; then
             for MAC in $(echo "$PERMIT_MAC" | tr ',' ' '); do
@@ -241,12 +239,12 @@ iptables_rules() {
             $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$_PERMIT_IP" -j RETURN
         fi
 
-        [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -d "$_ROUTER_IP" -j RETURN
+        [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -d "$_ROUTER_IP" -j RETURN
 
         $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -j DNAT --to-destination "$_SET_DNS_SERVER"
         $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_SET_DNS_SERVER" -j REJECT
 
-        [ "$_BLOCK_ROUTER_DNS" = "1" ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -j REJECT
+        [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -j REJECT
     done
 }
 
@@ -335,7 +333,7 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
+        if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = false ]; then
             logger -st "$SCRIPT_TAG" "Merlin firmware detected, you should probably use DNS Director instead!"
         fi
 
