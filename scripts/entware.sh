@@ -16,6 +16,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
+ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
 USE_HTTPS=true # retrieve files using HTTPS with OPKG, disable when downloads fails
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
@@ -247,7 +248,7 @@ case "$1" in
         echo
 
         TARGET_PATH="$2"
-        ARCHITECTURE="$3"
+        [ -z "$ARCHITECTURE" ] && ARCHITECTURE="$3"
 
         if [ -z "$TARGET_PATH" ]; then
             for DIR in /tmp/mnt/*; do
@@ -307,7 +308,7 @@ case "$1" in
             ;;
         esac
 
-        echo "Will install Entware from: $INSTALL_URL"
+        echo "Will install Entware on $TARGET_PATH from $INSTALL_URL"
 
         #shellcheck disable=SC3045,SC2162
         read -p "Press any key to continue or CTRL-C to cancel... "
@@ -327,18 +328,20 @@ case "$1" in
 
         chmod 777 /opt/tmp
 
+        echo "Installing package manager..."
+
         if [ ! -f "/opt/bin/opkg" ]; then
-            wget -nv "$INSTALL_URL/opkg" -O /opt/bin/opkg
+            wget -q "$INSTALL_URL/opkg" -O /opt/bin/opkg
             chmod 755 /opt/bin/opkg
         fi
 
         if [ ! -f "/opt/etc/opkg.conf" ]; then
-            wget -nv "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
+            wget -q "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
 
             [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
         fi
 
-        echo "Basic packages installation..."
+        echo "Installing core packages..."
 
         /opt/bin/opkg update
         /opt/bin/opkg install entware-opt
