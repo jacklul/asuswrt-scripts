@@ -35,9 +35,9 @@ if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
     RCLONE_PATH="/opt/bin/rclone"
 fi
 
-# Install through Entware
+# Install it through Entware then remove it after we are done
 if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/opkg" ]; then
-    /opt/bin/opkg install rclone && RCLONE_PATH="/opt/bin/rclone"
+    /opt/bin/opkg install rclone && RCLONE_INSTALLED=1 && RCLONE_PATH="/opt/bin/rclone"
 fi
 
 case "$1" in
@@ -58,6 +58,7 @@ case "$1" in
         STATUS="$?"
 
         rm -f "$NVRAMTXT_FILE" "$NVRAMCFG_FILE"
+        [ -n "$RCLONE_INSTALLED" ] && /opt/bin/opkg remove rclone --autoremove
 
         if [ "$STATUS" = "0" ]; then
             logger -st "$SCRIPT_TAG" "Backup completed successfully"
