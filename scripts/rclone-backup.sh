@@ -36,8 +36,12 @@ if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
 fi
 
 # Install it through Entware then remove it after we are done
-if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/opkg" ]; then
-    /opt/bin/opkg install rclone && RCLONE_INSTALLED=1 && RCLONE_PATH="/opt/bin/rclone"
+if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/opkg" ] && /opt/bin/opkg update && /opt/bin/opkg install rclone; then
+    RCLONE_PATH="/opt/bin/rclone"
+
+    if mount | grep "on /opt " | grep -q "tmpfs"; then
+        ENTWARE_ON_TMPFS=1
+    fi
 fi
 
 case "$1" in
@@ -58,7 +62,7 @@ case "$1" in
         STATUS="$?"
 
         rm -f "$NVRAMTXT_FILE" "$NVRAMCFG_FILE"
-        [ -n "$RCLONE_INSTALLED" ] && /opt/bin/opkg remove rclone --autoremove
+        [ -n "$ENTWARE_ON_TMPFS" ] && /opt/bin/opkg remove rclone --autoremove
 
         if [ "$STATUS" = "0" ]; then
             logger -st "$SCRIPT_TAG" "Backup completed successfully"
