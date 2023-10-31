@@ -21,6 +21,8 @@ fi
 
 TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www"
 
+[ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
+
 replace_and_check() {
     _SED="$1"
     _FILE="$2"
@@ -106,6 +108,9 @@ guest_wifi_qr_code() {
 notrendmicro_support() {
     case "$1" in
         "set")
+            # we override menuTree.js which is also used by addons, to not create conflict we skip this, might have to figure this out in the future...
+            [ -n "$MERLIN" ] && { logger -st "$SCRIPT_TAG" "Tweak 'notrendmicro_support' cannot be used on Merlin firmware!"; return; }
+
             if ! mount | grep -q "/www/state.js"; then
                 [ ! -f "$TMP_WWW_PATH/state.js" ] && cp -f /www/state.js "$TMP_WWW_PATH/state.js"
 
@@ -129,6 +134,8 @@ notrendmicro_support() {
             fi
         ;;
         "unset")
+            [ -n "$MERLIN" ] && return
+
             if mount | grep -q "/www/state.js"; then
                 umount "/www/state.js"
                 rm -f "$TMP_WWW_PATH/state.js"
