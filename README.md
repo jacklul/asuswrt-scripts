@@ -25,8 +25,6 @@ Install scripts you want to use from [section below](#available-scripts).
 
 You can override config variables for scripts by creating `.conf` with the same base name as the script.
 
-If there is another file with the same base name as the script then it is required for that script to work.
-
 Remember to mark the scripts as executable after installing, you can do it in one command like this:
 ```sh
 chmod +x /jffs/scripts/*.sh
@@ -161,7 +159,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script can backup all NVRAM variables and selected `/jffs` contents to cloud service using [Rclone](https://github.com/rclone/rclone).
 
-You have to download the binary and place it on the USB drive, if you installed it through the Entware then it will be automatically detected.
+You have to download the binary and place it on the USB drive. If you installed it through the Entware then it will be automatically detected, alternatively it will install it when it detects Entware installation (then remove it after the job is done - this feature is targeted for Entware in `/tmp`).
 
 [Example backup list](/examples/rclone-backup.list) that can be used with this script.
 
@@ -173,7 +171,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 Enables masquerade for Samba ports to allow VPN clients to connect to your LAN shares.
 
-By default, networks for WireGuard, OpenVPN and IPSec are set.
+By default, default networks for WireGuard, OpenVPN and IPSec are set.
 
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
@@ -221,7 +219,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`update-scripts.sh`](/scripts/update-scripts.sh)
 
-This script updates all `*.sh` scripts present in the `/jffs/scripts` folder (also including their extra files).
+This script updates all `*.sh` scripts present in the `/jffs/scripts` folder.
 
 This is on-demand script that must be ran manually.
 
