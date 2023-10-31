@@ -30,22 +30,28 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-# Detect when installed through Entware
-if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
-    RCLONE_PATH="/opt/bin/rclone"
-fi
-
-# Install it through Entware then remove it after we are done
-if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/opkg" ] && /opt/bin/opkg update && /opt/bin/opkg install rclone; then
-    RCLONE_PATH="/opt/bin/rclone"
-
-    if mount | grep "on /opt " | grep -q "tmpfs"; then
-        ENTWARE_ON_TMPFS=1
-    fi
-fi
-
 case "$1" in
     "run")
+        # Detect when installed through Entware
+        if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
+            RCLONE_PATH="/opt/bin/rclone"
+        fi
+
+        # Install it through Entware then remove it after we are done
+        if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/opkg" ]; then
+            logger -st "$SCRIPT_TAG" "Installing Rclone..."
+
+            if /opt/bin/opkg update && /opt/bin/opkg install rclone; then
+                RCLONE_PATH="/opt/bin/rclone"
+
+                if mount | grep "on /opt " | grep -q "tmpfs"; then
+                    ENTWARE_ON_TMPFS=1
+                fi
+            else
+                logger -st "$SCRIPT_TAG" "Failed to install Rclone!"
+            fi
+        fi
+
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
         [ ! -f "$FILTER_FILE" ] && { logger -st "$SCRIPT_TAG" "Could not find filter file: $FILTER_FILE"; exit 1; }
@@ -62,7 +68,11 @@ case "$1" in
         STATUS="$?"
 
         rm -f "$NVRAMTXT_FILE" "$NVRAMCFG_FILE"
-        [ -n "$ENTWARE_ON_TMPFS" ] && /opt/bin/opkg remove rclone --autoremove
+        
+        if [ -n "$ENTWARE_ON_TMPFS" ]; then
+            logger -st "$SCRIPT_TAG" "Uninstalling Rclone..."
+            /opt/bin/opkg remove rclone --autoremove
+        fi
 
         if [ "$STATUS" = "0" ]; then
             logger -st "$SCRIPT_TAG" "Backup completed successfully"
