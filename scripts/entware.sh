@@ -82,13 +82,18 @@ init_opt() {
 }
 
 backup_initd_scripts() {
-    [ -d "/tmp/$SCRIPT_NAME-init.d" ] && rm -rf "/tmp/$SCRIPT_NAME-init.d"
-    mkdir -p "/tmp/$SCRIPT_NAME-init.d"
+    [ ! -d "/opt/etc/init.d" ] && return
+
+    if [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
+        rm -rf "/tmp/$SCRIPT_NAME-init.d-backup/*"
+    else
+        mkdir -p "/tmp/$SCRIPT_NAME-init.d-backup"
+    fi
 
     for FILE in /opt/etc/init.d/*; do
         [ ! -x "$FILE" ] && continue
         [ "$(basename "$FILE")" = "rc.unslung" ] && continue
-        cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d/$FILE"
+        cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
     done
 }
 
@@ -101,7 +106,7 @@ services() {
 
                     /opt/etc/init.d/rc.unslung start
 
-                    backup_initd_scripts
+                    [ -z "$IN_RAM" ] && backup_initd_scripts
                 else
                     logger -st "$SCRIPT_TAG" "Entware is not installed"
                 fi
@@ -114,15 +119,15 @@ services() {
                 logger -st "$SCRIPT_TAG" "Stopping services..."
 
                 /opt/etc/init.d/rc.unslung stop
-            elif [ -d "/tmp/$SCRIPT_NAME-init.d" ]; then
+            elif [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
                 logger -st "$SCRIPT_TAG" "Killing services..."
 
-                for FILE in "/tmp/$SCRIPT_NAME-init.d/"*; do
+                for FILE in "/tmp/$SCRIPT_NAME-init.d-backup/"*; do
                     [ ! -x "$FILE" ] && continue
                     eval "$FILE kill"
                 done
 
-                rm -rf "/tmp/$SCRIPT_NAME-init.d"
+                rm -rf "/tmp/$SCRIPT_NAME-init.d-backup"
             fi
         ;;
     esac
@@ -193,7 +198,8 @@ case "$1" in
             done
         else
             [ -z "$LAST_ENTWARE_DEVICE" ] && exit
-
+            [ -z "$IN_RAM" ] && backup_initd_scripts
+            
             TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
 
             if [ -z "$TARGET_PATH" ]; then
