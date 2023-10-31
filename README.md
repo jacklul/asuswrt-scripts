@@ -62,6 +62,8 @@ This script implements [custom DDNS feature from Merlin firmware](https://github
 
 Checks every minute for new IP in NVRAM variable `wan0_ipaddr`. You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
+On Merlin firmware you should call this script from `ddns-start` with `force` argument instead of `start`.
+
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
