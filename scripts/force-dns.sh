@@ -362,7 +362,7 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ -f "/usr/sbin/helper.sh" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
+        if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ -z "$REQUIRE_INTERFACE" ] && [ "$BLOCK_ROUTER_DNS" = "0" ]; then
             logger -st "$SCRIPT_TAG" "Merlin firmware detected, you should probably use DNS Director instead!"
         fi
 

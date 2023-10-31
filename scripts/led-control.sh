@@ -29,11 +29,14 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+MERLIN="0"
+[ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
+
 { [ "$PERSISTENT" = "true" ] || [ "$PERSISTENT" = true ]; } && PERSISTENT="1" || PERSISTENT="0"
 
 PERSISTENT_STATE="$([ "$PERSISTENT" = "1" ] && echo " (preserved)")"
 
-if [ -n "$PERSISTENT_STATE" ] && [ ! -f "/usr/sbin/helper.sh" ]; then
+if [ -n "$PERSISTENT_STATE" ] && [ "$MERLIN" = "1" ]; then
     PERSISTENT_STATE=""
     logger -st "$SCRIPT_TAG" "Persistent LED state is only supported on Merlin firmware"
 fi
@@ -66,7 +69,7 @@ loop_led_ctrl() {
 switch_leds() {
     case "$1" in
         "on")
-            if [ -f "/usr/sbin/helper.sh" ]; then
+            if [ "$MERLIN" = "1" ]; then
                 [ "$PERSISTENT" = "1" ] && nvram commit
                 service restart_leds >/dev/null
             else
@@ -77,7 +80,7 @@ switch_leds() {
             logger -st "$SCRIPT_TAG" "LEDs are now ON$PERSISTENT_STATE"
         ;;
         "off")
-            if [ -f "/usr/sbin/helper.sh" ]; then
+            if [ "$MERLIN" = "1" ]; then
                 nvram set led_disable=1
                 [ "$PERSISTENT" = "1" ] && nvram commit
                 service restart_leds >/dev/null
@@ -119,13 +122,13 @@ case "$1" in
                 fi
 
                 if [ "$setLedsOn" = 1 ]; then
-                    if [ -f "/usr/sbin/helper.sh" ]; then
+                    if [ "$MERLIN" = "1" ]; then
                         [ "$(nvram get led_disable)" = 1 ] && sh "$SCRIPT_PATH" off
                     else
                         sh "$SCRIPT_PATH" off
                     fi
                 elif [ "$setLedsOn" = 0 ]; then
-                    if [ -f "/usr/sbin/helper.sh" ]; then
+                    if [ "$MERLIN" = "1" ]; then
                         [ "$(nvram get led_disable)" = 0 ] && sh "$SCRIPT_PATH" on
                     else
                         sh "$SCRIPT_PATH" on
@@ -152,7 +155,7 @@ case "$1" in
         cru d "${SCRIPT_NAME}-On"
         cru d "${SCRIPT_NAME}-Off"
 
-        if [ -f "/usr/sbin/helper.sh" ] && [ "$(nvram get led_disable)" = 1 ]; then
+        if [ "$MERLIN" = "1" ] && [ "$(nvram get led_disable)" = 1 ]; then
             PERSISTENT="1"
             switch_leds on
         fi

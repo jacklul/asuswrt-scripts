@@ -36,13 +36,16 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+MERLIN="0"
+[ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
+
 #shellcheck disable=SC2009
 PROCESS_PID="$(ps w | grep "$SCRIPT_NAME.sh run" | grep -v "grep\|$$" | awk '{print $1}')"
 PROCESS_PID_LIST="$(echo "$PROCESS_PID" | tr '\n' ' ' | awk '{$1=$1};1')"
 
 case "$1" in
     "run")
-        [ -f "/usr/sbin/helper.sh" ] && exit
+        [ "$MERLIN" = "1" ] && exit
         [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -ge 2 ] && { echo "Already running!"; exit 1; }
         [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
@@ -212,7 +215,7 @@ case "$1" in
         exit
     ;;
     "init-run")
-        [ -f "/usr/sbin/helper.sh" ] && exit
+        [ "$MERLIN" = "1" ] && exit
 
         if [ "$2" = "restart" ]; then
             kill "$PROCESS_PID_LIST"
@@ -223,7 +226,7 @@ case "$1" in
         [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
     ;;
     "start")
-        if [ -f "/usr/sbin/helper.sh" ]; then # use service-event-end on Merlin firmware
+        if [ "$MERLIN" = "1" ]; then # use service-event-end on Merlin firmware
             if [ ! -f /jffs/scripts/service-event-end ]; then
                 cat <<EOT > /jffs/scripts/service-event-end
 #!/bin/sh
@@ -245,7 +248,7 @@ EOT
         [ -n "$PROCESS_PID" ] && kill "$PROCESS_PID_LIST"
     ;;
     "restart")
-        if [ -f "/usr/sbin/helper.sh" ]; then # use service-event-end on Merlin firmware
+        if [ "$MERLIN" = "1" ]; then # use service-event-end on Merlin firmware
             sh "$SCRIPT_PATH" stop
             sh "$SCRIPT_PATH" start
         else
