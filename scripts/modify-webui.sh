@@ -109,6 +109,7 @@ notrendmicro_support() {
     case "$1" in
         "set")
             # we override menuTree.js which is also used by addons, to not create conflict we skip this, might have to figure this out in the future...
+            # for future reference - we should use flocking with 386>/tmp/addonwebui.lock as that's what addon authors been doing
             [ -n "$MERLIN" ] && { logger -st "$SCRIPT_TAG" "Tweak 'notrendmicro_support' cannot be used on Merlin firmware!"; return; }
 
             if ! mount | grep -q "/www/state.js"; then
