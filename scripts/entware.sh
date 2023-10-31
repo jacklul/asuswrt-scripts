@@ -16,6 +16,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
+USE_HTTPS=true # retrieve files using HTTPS with OPKG, disable when downloads fails
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -333,6 +334,8 @@ case "$1" in
 
         if [ ! -f "/opt/etc/opkg.conf" ]; then
             wget -nv "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
+
+            [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
         fi
 
         echo "Basic packages installation..."
