@@ -35,8 +35,6 @@ if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
     RCLONE_PATH="/opt/bin/rclone"
 fi
 
-{ [ "$REMOVE_BINARY_AFTER" = "true" ] || [ "$REMOVE_BINARY_AFTER" = true ]; } && REMOVE_BINARY_AFTER="1" || REMOVE_BINARY_AFTER="0"
-
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
