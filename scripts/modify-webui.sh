@@ -124,12 +124,16 @@ notrendmicro_support() {
                 mkdir -p "$TMP_WWW_PATH/require/modules"
                 [ ! -f "$TMP_WWW_PATH/require/modules/menuTree.js" ] && cp -f /www/require/modules/menuTree.js "$TMP_WWW_PATH/require/modules/menuTree.js"
 
-                INTERNETSPEED_TAB="$(grep -P '{url: "AdaptiveQoS_InternetSpeed\.asp.*tabName:.*"(.*)"},' -o "/www/require/modules/menuTree.js" | head -n 1)"
+                INTERNETSPEED_TAB="$(grep 'url: \"AdaptiveQoS_InternetSpeed\.asp' "/www/require/modules/menuTree.js" | tail -n 1)"
+
+                if [ -n "$INTERNETSPEED_TAB" ]; then
+                    replace_and_check 's@{url: "AdaptiveQoS_InternetSpeed.asp"@//{url: "AdaptiveQoS_InternetSpeed.asp"@g' "$TMP_WWW_PATH/require/modules/menuTree.js"
+                    replace_and_check "s@{url: \"Advanced_Smart_Connect.asp\"@$INTERNETSPEED_TAB\n{url: \"Advanced_Smart_Connect.asp\"@g" "$TMP_WWW_PATH/require/modules/menuTree.js"
+                else
+                    logger -st "$SCRIPT_TAG" "There was a problem running modification on file $TMP_WWW_PATH/require/modules/menuTree.js: unable to find AdaptiveQoS_InternetSpeed line"
+                fi
 
                 replace_and_check 's@return menuTree;@menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support\&\&notrendmicro_support\&\&e.push("menu_ParentalControl"),notrendmicro_support\&\&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support\&\&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();\nreturn menuTree;@g' "$TMP_WWW_PATH/require/modules/menuTree.js"
-
-                replace_and_check 's@{url: "AdaptiveQoS_InternetSpeed.asp"@//{url: "AdaptiveQoS_InternetSpeed.asp"@g' "$TMP_WWW_PATH/require/modules/menuTree.js"
-                replace_and_check 's@{url: "Advanced_Smart_Connect.asp"@'"$INTERNETSPEED_TAB"'\n{url: "Advanced_Smart_Connect.asp"@g' "$TMP_WWW_PATH/require/modules/menuTree.js"
 
                 mount --bind "$TMP_WWW_PATH/require/modules/menuTree.js" /www/require/modules/menuTree.js
             fi
