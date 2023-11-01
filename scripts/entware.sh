@@ -391,15 +391,15 @@ case "$1" in
         [ -f "/etc/localtime" ] && ln -sfv "/etc/localtime" "/opt/etc/localtime"
 
         if [ -n "$IN_RAM" ]; then
-            echo "Installing selected packages..."
-
-            #shellcheck disable=SC2086
-            /opt/bin/opkg install $IN_RAM
-
             if [ -d "/jffs/entware" ]; then
                 echo "Copying data from /jffs/entware..."
                 cp -afv /jffs/entware/* /opt
             fi
+
+            echo "Installing selected packages..."
+
+            #shellcheck disable=SC2086
+            /opt/bin/opkg install $IN_RAM
         fi
 
         echo "Installation complete!"
