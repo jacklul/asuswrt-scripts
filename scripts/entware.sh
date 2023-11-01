@@ -220,7 +220,7 @@ case "$1" in
         else
             [ -z "$LAST_ENTWARE_DEVICE" ] && exit
             [ -z "$IN_RAM" ] && backup_initd_scripts
-            
+
             TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
 
             if [ -z "$TARGET_PATH" ]; then

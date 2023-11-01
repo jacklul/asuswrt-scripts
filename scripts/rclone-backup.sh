@@ -68,7 +68,7 @@ case "$1" in
         STATUS="$?"
 
         rm -f "$NVRAMTXT_FILE" "$NVRAMCFG_FILE"
-        
+
         if [ -n "$ENTWARE_ON_TMPFS" ]; then
             logger -st "$SCRIPT_TAG" "Uninstalling Rclone..."
             /opt/bin/opkg remove rclone --autoremove
