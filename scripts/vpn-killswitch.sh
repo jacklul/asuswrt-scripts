@@ -69,7 +69,6 @@ firewall_rules() {
     lockfile lock
 
     _RULES_ADDED=0
-
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")

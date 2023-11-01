@@ -81,21 +81,18 @@ EOT
 case "$1" in
     "run")
         if [ -n "$2" ] && [ -n "$3" ]; then # handles calls from hotplug
-            ARG_SUBSYSTEM="$2"
-            ARG_ACTION="$3"
+            lockfile lock "$2"
 
-            lockfile lock "$ARG_SUBSYSTEM"
-
-            case "$ARG_SUBSYSTEM" in
+            case "$2" in
                 "block"|"net"|"misc")
-                    logger -st "$SCRIPT_TAG" "Running script (args: \"${ARG_SUBSYSTEM}\" \"${ARG_ACTION}\")"
+                    logger -st "$SCRIPT_TAG" "Running script (args: \"$2\" \"$3\")"
                 ;;
             esac
 
-            sh "$SCRIPT_PATH" event "$ARG_SUBSYSTEM" "$ARG_ACTION"
-            [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$ARG_SUBSYSTEM" "$ARG_ACTION"
+            sh "$SCRIPT_PATH" event "$2" "$3"
+            [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
 
-            lockfile unlock "$ARG_SUBSYSTEM"
+            lockfile unlock "$2"
         else # handles cron
             if ! grep -q "$SCRIPT_PATH" /etc/hotplug2.rules; then
                 hotplug_config modify

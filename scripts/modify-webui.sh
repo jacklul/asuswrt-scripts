@@ -24,20 +24,15 @@ TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www"
 [ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
 
 replace_and_check() {
-    _SED="$1"
-    _FILE="$2"
-
-    _MD5SUM="$(md5sum "$_FILE" | awk '{print $1}')"
-
-    sed -i "$_SED" "$_FILE"
-
-    _MD5SUM2="$(md5sum "$_FILE" | awk '{print $1}')"
+    _MD5SUM="$(md5sum "$2" | awk '{print $1}')"
+    sed -i "$1" "$2"
+    _MD5SUM2="$(md5sum "$2" | awk '{print $1}')"
 
     if [ "$_MD5SUM" != "$_MD5SUM2" ]; then
         return 0
     fi
 
-    logger -st "$SCRIPT_TAG" "There was a problem running modification on file $_FILE: $_SED"
+    logger -st "$SCRIPT_TAG" "There was a problem running modification on file $2: $1"
 
     return 1
 }

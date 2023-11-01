@@ -35,15 +35,14 @@ get_binary_location() {
 restart_process() {
     [ -z "$1" ] && { echo "Process name not provided"; exit 1; }
 
-    _NAME="$1"
     _STARTED=
-    for PID in $(ps | grep "$_NAME" | grep -v "grep" | awk '{print $1}'); do
+    for PID in $(ps | grep "$1" | grep -v "grep" | awk '{print $1}'); do
         [ ! -f "/proc/$PID/cmdline" ] && continue
         _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
 
         echo "$_CMDLINE"
 
-        killall "$_NAME"
+        killall "$1"
         [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID" 2>/dev/null
         [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID" 2>/dev/null
 

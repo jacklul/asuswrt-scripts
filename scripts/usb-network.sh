@@ -61,39 +61,37 @@ is_interface_up() {
 }
 
 setup_inteface() {
-    _INTERFACE="$2"
-
-    [ -z "$_INTERFACE" ] && { echo "You must specify a network interface"; exit 1; }
-    [ -z "$BRIDGE_INTERFACE" ] && { echo "You must specify a bridge interface"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
+    [ -z "$2" ] && { echo "You must specify a network interface"; exit 1; }
 
     lockfile lock
 
     case "$1" in
         "add")
-            [ ! -d "/sys/class/net/$_INTERFACE" ] && return
+            [ ! -d "/sys/class/net/$2" ] && return
 
-            if ! is_interface_up "$_INTERFACE"; then
-                logger -st "$SCRIPT_TAG" "Bringing interface $_INTERFACE up..."
-                ifconfig "$_INTERFACE" up
+            if ! is_interface_up "$2"; then
+                logger -st "$SCRIPT_TAG" "Bringing interface $2 up..."
+                ifconfig "$2" up
             fi
 
-            if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" && brctl addif "$BRIDGE_INTERFACE" "$_INTERFACE"; then
-                logger -st "$SCRIPT_TAG" "Added interface $_INTERFACE to bridge $BRIDGE_INTERFACE"
+            if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
+                logger -st "$SCRIPT_TAG" "Added interface $2 to bridge $BRIDGE_INTERFACE"
             fi
         ;;
         "remove")
-            if brctl show "$BRIDGE_INTERFACE" | grep -q "$_INTERFACE" && brctl delif "$BRIDGE_INTERFACE" "$_INTERFACE"; then
-                logger -st "$SCRIPT_TAG" "Removed interface $_INTERFACE from bridge $BRIDGE_INTERFACE"
+            if brctl show "$BRIDGE_INTERFACE" | grep -q "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
+                logger -st "$SCRIPT_TAG" "Removed interface $2 from bridge $BRIDGE_INTERFACE"
             fi
 
-            if [ -d "/sys/class/net/$_INTERFACE" ] && is_interface_up "$_INTERFACE"; then
-                logger -st "$SCRIPT_TAG" "Taking interface $_INTERFACE down..."
-                ifconfig "$_INTERFACE" down
+            if [ -d "/sys/class/net/$2" ] && is_interface_up "$2"; then
+                logger -st "$SCRIPT_TAG" "Taking interface $2 down..."
+                ifconfig "$2" down
             fi
         ;;
     esac
 
-    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$_INTERFACE"
+    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$2"
 
     lockfile unlock
 }

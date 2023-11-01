@@ -70,27 +70,25 @@ is_entware_mounted() {
 }
 
 init_opt() {
-    _TARGET_PATH="$1"
+    [ -z "$1" ] && { echo "Target path not provided"; exit 1; }
 
-    [ -z "$_TARGET_PATH" ] && { logger -st "$SCRIPT_TAG" "Target path not provided"; exit 1; }
-
-    if [ -f "$_TARGET_PATH/etc/init.d/rc.unslung" ]; then
+    if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted && ! umount /opt; then
             logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
             exit 1
         fi
 
-        if mount --bind "$_TARGET_PATH" /opt; then
+        if mount --bind "$1" /opt; then
             MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
             [ -n "$MOUNT_DEVICE" ] && basename "$MOUNT_DEVICE" > "$CACHE_FILE"
 
-            logger -st "$SCRIPT_TAG" "Mounted $_TARGET_PATH on /opt"
+            logger -st "$SCRIPT_TAG" "Mounted $1 on /opt"
         else
-            logger -st "$SCRIPT_TAG" "Failed to mount $_TARGET_PATH on /opt"
+            logger -st "$SCRIPT_TAG" "Failed to mount $1 on /opt"
             exit 1
         fi
     else
-        logger -st "$SCRIPT_TAG" "Entware not found in $_TARGET_PATH"
+        logger -st "$SCRIPT_TAG" "Entware not found in $1"
         exit 1
     fi
 }
@@ -176,10 +174,9 @@ entware() {
 
     case "$1" in
         "start")
-            _ENTWARE_PATH="$2"
-            [ -z "$_ENTWARE_PATH" ] && { logger -st "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
+            [ -z "$2" ] && { logger -st "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
 
-            init_opt "$_ENTWARE_PATH"
+            init_opt "$2"
             services start
         ;;
         "stop")

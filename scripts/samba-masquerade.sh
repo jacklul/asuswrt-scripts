@@ -52,7 +52,6 @@ firewall_rules() {
     lockfile lock
 
     _RULES_ADDED=0
-
     for _IPTABLES in $FOR_IPTABLES; do
         if [ "$_IPTABLES" = "ip6tables" ]; then
             _VPN_NETWORKS="$VPN_NETWORKS6"

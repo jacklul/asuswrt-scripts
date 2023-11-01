@@ -304,10 +304,8 @@ interface_exists() {
 }
 
 rules_exist() {
-    _DNS_SERVER="$1"
-
     if iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1 && iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
-        if iptables -t nat -C "$CHAIN_DNAT" -j DNAT --to-destination "$_DNS_SERVER" >/dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN_DNAT" -j DNAT --to-destination "$1" >/dev/null 2>&1; then
             return 0
         fi
     fi
