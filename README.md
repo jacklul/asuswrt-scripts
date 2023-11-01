@@ -42,6 +42,24 @@ By default, reboot happens at 5AM when uptime exceeds 7 days.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
 ```
 
+## [`custom-configs.sh`](/scripts/custom-configs.sh)
+
+This script implements [Custom config files from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to use custom config files for certain services.
+
+Supported config files:
+- avahi-daemon.conf
+- dnsmasq.conf
+- minidlna.conf
+- profile (profile.add only)
+- smb.conf
+- vsftpd.conf
+
+_NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`!_
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
+```
+
 ## [`disable-wps.sh`](/scripts/disable-wps.sh)
 
 This script does exactly what you would expect - makes sure WPS stays disabled.

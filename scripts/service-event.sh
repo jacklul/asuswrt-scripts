@@ -129,7 +129,7 @@ case "$1" in
                             iptables -nL "$CHAINS_WGS_LANONLY" >/dev/null 2>&1 ||
                             iptables -nL "$CHAINS_FORCEDNS" -t nat >/dev/null 2>&1 ||
                             iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_TAILSCALE" >/dev/null 2>&1; 
+                            iptables -nL "$CHAINS_TAILSCALE" >/dev/null 2>&1;
                         } && [ "$_TIMER" -lt "60" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1
@@ -142,6 +142,7 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && "$SCRIPT_DIR/samba-masquerade.sh" run &
                     [ -x "$SCRIPT_DIR/tailscale.sh" ] && "$SCRIPT_DIR/tailscale.sh" firewall &
 
+                    sh "$SCRIPT_PATH" event restart custom_configs &
                 fi
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
@@ -175,6 +176,8 @@ case "$1" in
                 sh "$SCRIPT_PATH" event restart firewall &
                 # some of these also restart wireless so execute that too just in case
                 sh "$SCRIPT_PATH" event restart wireless &
+                # some of these also recreate configs so execute that too just in case
+                sh "$SCRIPT_PATH" event restart custom_configs &
             ;;
             "wireless")
                 # probably a good idea to run this just in case
@@ -201,6 +204,9 @@ case "$1" in
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
                 [ -x "$SCRIPT_DIR/swap.sh" ] && "$SCRIPT_DIR/swap.sh" run &
+            ;;
+            "custom_configs"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd")
+                [ -x "$SCRIPT_DIR/custom-configs.sh" ] && { sleep 1 && "$SCRIPT_DIR/custom-configs.sh" run; } &
             ;;
         esac
 
