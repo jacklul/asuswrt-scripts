@@ -56,6 +56,8 @@ Supported config files:
 
 _NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`!_
 
+Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
 ```
@@ -163,6 +165,16 @@ Currently applied modifications:
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
+```
+
+## [`netboot-tftp.sh`](/scripts/netboot-tftp.sh)
+
+Automatically download specified files from [netboot.xyz](https://netboot.xyz).
+
+This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-tftp.sh" -o /jffs/scripts/netboot-tftp.sh
 ```
 
 ## [`process-killer.sh`](/scripts/process-killer.sh)
