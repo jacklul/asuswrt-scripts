@@ -104,10 +104,13 @@ backup_initd_scripts() {
         mkdir -p "/tmp/$SCRIPT_NAME-init.d-backup"
     fi
 
+    cp -f /opt/etc/init.d/rc.func "/tmp/$SCRIPT_NAME-init.d-backup"
+
     for FILE in /opt/etc/init.d/*; do
         [ ! -x "$FILE" ] && continue
         [ "$(basename "$FILE")" = "rc.unslung" ] && continue
         cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
+        sed "s#/opt/etc/init.d/rc.func#/tmp/$SCRIPT_NAME-init.d-backup/rc.func#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
     done
 }
 
@@ -118,7 +121,7 @@ services() {
                 if [ -f "/opt/etc/init.d/rc.unslung" ]; then
                     logger -st "$SCRIPT_TAG" "Starting services..."
 
-                    /opt/etc/init.d/rc.unslung start
+                    /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH"
 
                     [ -z "$IN_RAM" ] && backup_initd_scripts
                 else
@@ -132,7 +135,7 @@ services() {
             if [ -f "/opt/etc/init.d/rc.unslung" ]; then
                 logger -st "$SCRIPT_TAG" "Stopping services..."
 
-                /opt/etc/init.d/rc.unslung stop
+                /opt/etc/init.d/rc.unslung stop "$SCRIPT_PATH"
             elif [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
                 logger -st "$SCRIPT_TAG" "Killing services..."
 
