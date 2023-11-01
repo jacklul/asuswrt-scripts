@@ -20,23 +20,56 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+get_binary_location() {
+    [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
+
+    _BINARY_NAME="$(echo "$1"| awk '{print $1}')"
+
+    case "$_BINARY_NAME" in
+        "avahi-daemon"|"dnsmasq"|"minidlna"|"mt-daapd"|"nmbd"|"smbd"|"vsftpd")
+            [ -f "/usr/sbin/$_BINARY_NAME" ] && echo "/usr/sbin/$_BINARY_NAME" && return
+        ;;
+    esac
+}
+
 restart_process() {
-    [ -z "$1" ] && { logger -st "$SCRIPT_TAG" "Process name not provided"; exit 1; }
+    [ -z "$1" ] && { echo "Process name not provided"; exit 1; }
 
     _NAME="$1"
     _STARTED=
     for PID in $(ps | grep "$_NAME" | grep -v "grep" | awk '{print $1}'); do
         [ ! -f "/proc/$PID/cmdline" ] && continue
         _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
+
+        echo "$_CMDLINE"
+
         killall "$_NAME"
-        [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID"
-        [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID"
-        [ -z "$_STARTED" ] && $_CMDLINE && _STARTED=1 && logger -st "$SCRIPT_TAG" "Restarted process: $_CMDLINE"
+        [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID" 2>/dev/null
+        [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID" 2>/dev/null
+
+        echo "progress"
+
+        if [ -z "$_STARTED" ]; then
+            # make sure we are executing build-in binary
+            _FULL_BINARY_PATH=
+            if [ "$(echo "$_CMDLINE" | cut -c1-1)" != "/" ]; then
+                _FULL_BINARY_PATH="$(get_binary_location "$_CMDLINE")"
+            fi
+
+            if [ -n "$_FULL_BINARY_PATH" ]; then
+                _CMDLINE="$(echo "$_CMDLINE" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')"
+
+                #shellcheck disable=SC2086
+                "$_FULL_BINARY_PATH" $_CMDLINE && _STARTED=1 && logger -st "$SCRIPT_TAG" "Restarted process: $_FULL_BINARY_PATH $_CMDLINE"
+            else
+                $_CMDLINE && _STARTED=1 && logger -st "$SCRIPT_TAG" "Restarted process: $_CMDLINE"
+            fi
+        fi
     done
 }
 
 run_postconf_script() {
-    [ -z "$1" ] && { logger -st "$SCRIPT_TAG" "File name not provided"; exit 1; }
+    [ -z "$1" ] && { echo "File name not provided"; exit 1; }
 
     _SCRIPT="$(basename "$1" | cut -d. -f1)"
 
