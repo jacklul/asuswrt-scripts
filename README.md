@@ -51,12 +51,19 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 This script implements [Custom config files from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to use custom config files for certain services.
 
 **Supported config files:**
+- profile (profile.add only)
 - avahi-daemon.conf
 - dnsmasq.conf
 - minidlna.conf
-- profile (profile.add only)
 - smb.conf
 - vsftpd.conf
+
+**Supported postconf scripts:**
+- avahi-daemon.postconf
+- dnsmasq.postconf
+- minidlna.postconf
+- smb.postconf
+- vsftpd.postconf
 
 _NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`!_
 

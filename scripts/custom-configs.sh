@@ -21,19 +21,29 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 restart_process() {
+    [ -z "$1" ] && { logger -st "$SCRIPT_TAG" "Process name not provided"; exit 1; }
+
     _NAME="$1"
-
-    [ -z "$_NAME" ] && { logger -st "$SCRIPT_TAG" "Process name not provided"; exit 1; }
-
-    STARTED=
+    _STARTED=
     for PID in $(ps | grep "$_NAME" | grep -v "grep" | awk '{print $1}'); do
         [ ! -f "/proc/$PID/cmdline" ] && continue
-        CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
+        _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
         killall "$_NAME"
         [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID"
         [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID"
-        [ -z "$STARTED" ] && $CMDLINE && STARTED=1 && logger -st "$SCRIPT_TAG" "Restarted process: $CMDLINE"
+        [ -z "$_STARTED" ] && $_CMDLINE && _STARTED=1 && logger -st "$SCRIPT_TAG" "Restarted process: $_CMDLINE"
     done
+}
+
+run_postconf_script() {
+    [ -z "$1" ] && { logger -st "$SCRIPT_TAG" "File name not provided"; exit 1; }
+
+    _SCRIPT="$(basename "$1" | cut -d. -f1)"
+
+    if [ -x "$SCRIPT_DIR/$_SCRIPT.postconf" ]; then
+        logger -st "$SCRIPT_TAG" "Running $SCRIPT_DIR/$_SCRIPT.postconf script..."
+        sh "$SCRIPT_DIR/$_SCRIPT.postconf" "$1"
+    fi
 }
 
 case "$1" in
@@ -70,6 +80,7 @@ case "$1" in
 
             if [ -f "/tmp/avahi/avahi-daemon.conf.new" ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /tmp/avahi/avahi-daemon.conf.new
+                run_postconf_script /tmp/avahi/avahi-daemon.conf.new
 
                 if [ "$(md5sum "/tmp/avahi/avahi-daemon.conf" | awk '{print $1}')" != "$(md5sum "/tmp/avahi/avahi-daemon.conf.new" | awk '{print $1}')" ]; then
                     cp -f /tmp/avahi/avahi-daemon.conf.new "/tmp/avahi/avahi-daemon.conf"
@@ -92,6 +103,7 @@ case "$1" in
 
             if [ -f "/etc/dnsmasq.conf.new" ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/dnsmasq.conf.new
+                run_postconf_script /etc/dnsmasq.conf.new
 
                 if [ "$(md5sum "/etc/dnsmasq.conf" | awk '{print $1}')" != "$(md5sum "/etc/dnsmasq.conf.new" | awk '{print $1}')" ]; then
                     cp -f /etc/dnsmasq.conf.new "/etc/dnsmasq.conf"
@@ -114,6 +126,7 @@ case "$1" in
 
             if [ -f "/etc/smb.conf.new" ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/smb.conf.new
+                run_postconf_script /etc/smb.conf.new
 
                 if [ "$(md5sum "/etc/smb.conf" | awk '{print $1}')" != "$(md5sum "/etc/smb.conf.new" | awk '{print $1}')" ]; then
                     cp -f /etc/smb.conf.new "/etc/smb.conf"
@@ -145,6 +158,7 @@ case "$1" in
 
             if [ -f "/etc/vsftpd.conf.new" ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/vsftpd.conf.new
+                run_postconf_script /etc/vsftpd.conf.new
 
                 if [ "$(md5sum "/etc/vsftpd.conf" | awk '{print $1}')" != "$(md5sum "/etc/vsftpd.conf.new" | awk '{print $1}')" ]; then
                     cp -f /etc/vsftpd.conf.new "/etc/vsftpd.conf"
@@ -172,6 +186,7 @@ case "$1" in
 
             if [ -f "/etc/minidlna.conf.new" ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/minidlna.conf.new
+                run_postconf_script /etc/minidlna.conf.new
 
                 if [ "$(md5sum "/etc/minidlna.conf" | awk '{print $1}')" != "$(md5sum "/etc/minidlna.conf.new" | awk '{print $1}')" ]; then
                     cp -f /etc/minidlna.conf.new "/etc/minidlna.conf"
