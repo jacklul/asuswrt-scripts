@@ -193,14 +193,14 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 <br>
 
-## [`netboot-tftp.sh`](/scripts/netboot-tftp.sh)
+## [`netboot-download.sh`](/scripts/netboot-download.sh)
 
 Automatically download specified bootloader files from [netboot.xyz](https://netboot.xyz).
 
 This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-tftp.sh" -o /jffs/scripts/netboot-tftp.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
 ```
 
 <br>
