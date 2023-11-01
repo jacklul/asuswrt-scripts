@@ -87,7 +87,7 @@ case "$1" in
 
                     logger -st "$SCRIPT_TAG" "Modified /tmp/avahi/avahi-daemon.conf"
 
-                    avahi-daemon --kill && avahi-daemon -D && logger -st "$SCRIPT_TAG" "Restarted avahi-daemon"
+                    avahi-daemon --kill && avahi-daemon -D && logger -st "$SCRIPT_TAG" "Restarted process: avahi-daemon"
                 fi
             fi
         fi
