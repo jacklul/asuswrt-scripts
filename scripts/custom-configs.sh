@@ -120,7 +120,7 @@ case "$1" in
 
                     logger -st "$SCRIPT_TAG" "Modified /tmp/avahi/avahi-daemon.conf"
 
-                    avahi-daemon --kill && avahi-daemon -D && logger -st "$SCRIPT_TAG" "Restarted process: avahi-daemon"
+                    /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logger -st "$SCRIPT_TAG" "Restarted process: avahi-daemon"
                 fi
             fi
         fi
@@ -148,6 +148,52 @@ case "$1" in
             fi
         fi
 
+        if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/minidlna.conf; then
+            if [ -f /jffs/configs/minidlna.conf ]; then
+                cp /etc/minidlna.conf /etc/minidlna.conf.new
+                cat /jffs/configs/minidlna.conf > /etc/minidlna.conf.new
+            elif [ -f /jffs/configs/minidlna.conf.add ]; then
+                cp /etc/minidlna.conf /etc/minidlna.conf.new
+                cat /jffs/configs/minidlna.conf.add >> /etc/minidlna.conf.new
+            fi
+
+            if [ -f /etc/minidlna.conf.new ]; then
+                echo "# Modified by $SCRIPT_NAME" >> /etc/minidlna.conf.new
+                run_postconf_script /etc/minidlna.conf.new
+
+                if [ "$(md5sum /etc/minidlna.conf | awk '{print $1}')" != "$(md5sum /etc/minidlna.conf.new | awk '{print $1}')" ]; then
+                    cp -f /etc/minidlna.conf.new /etc/minidlna.conf
+
+                    logger -st "$SCRIPT_TAG" "Modified /etc/minidlna.conf"
+
+                    restart_process minidlna
+                fi
+            fi
+        fi
+
+        if ps | grep -v "grep" | grep -q "mt-daapd" && [ -f /etc/mt-daapd.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/mt-daapd.conf; then
+            if [ -f /jffs/configs/mt-daapd.conf ]; then
+                cp /etc/mt-daapd.conf /etc/mt-daapd.conf.new
+                cat /jffs/configs/mt-daapd.conf > /etc/mt-daapd.conf.new
+            elif [ -f /jffs/configs/mt-daapd.conf.add ]; then
+                cp /etc/mt-daapd.conf /etc/mt-daapd.conf.new
+                cat /jffs/configs/mt-daapd.conf.add >> /etc/mt-daapd.conf.new
+            fi
+
+            if [ -f /etc/mt-daapd.conf.new ]; then
+                echo "# Modified by $SCRIPT_NAME" >> /etc/mt-daapd.conf.new
+                run_postconf_script /etc/mt-daapd.conf.new
+
+                if [ "$(md5sum /etc/mt-daapd.conf | awk '{print $1}')" != "$(md5sum /etc/mt-daapd.conf.new | awk '{print $1}')" ]; then
+                    cp -f /etc/mt-daapd.conf.new /etc/mt-daapd.conf
+
+                    logger -st "$SCRIPT_TAG" "Modified /etc/mt-daapd.conf"
+
+                    restart_process mt-daapd
+                fi
+            fi
+        fi
+
         if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f /etc/smb.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/smb.conf; then
             if [ -f /jffs/configs/smb.conf ]; then
                 cp /etc/smb.conf /etc/smb.conf.new
@@ -165,14 +211,6 @@ case "$1" in
                     cp -f /etc/smb.conf.new /etc/smb.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/smb.conf"
-
-                    # Causes debug logging in syslog?
-                    #for PID in $(ps | grep nmbd | grep -v "grep" | awk '{print $1}'); do
-                    #    kill -s SIGHUP "$PID"
-                    #done
-                    #for PID in $(ps | grep smbd | grep -v "grep" | awk '{print $1}'); do
-                    #    kill -s SIGHUP "$PID"
-                    #done
 
                     restart_process nmbd
                     restart_process smbd
@@ -196,37 +234,12 @@ case "$1" in
                 if [ "$(md5sum /etc/vsftpd.conf | awk '{print $1}')" != "$(md5sum /etc/vsftpd.conf.new | awk '{print $1}')" ]; then
                     cp -f /etc/vsftpd.conf.new /etc/vsftpd.conf
 
+                    # we need background=YES to correctly restart the process without blocking the script
+                    ! grep -q "background=" /etc/vsftpd.conf && sed -i "/listen=/abackground=YES" /etc/vsftpd.conf
+
                     logger -st "$SCRIPT_TAG" "Modified /etc/vsftpd.conf"
 
-                    # Causes debug logging in syslog?
-                    #for PID in $(ps | grep vsftpd | grep -v "grep" | awk '{print $1}'); do
-                    #    kill -s SIGHUP "$PID"
-                    #done
-
                     restart_process vsftpd
-                fi
-            fi
-        fi
-
-        if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/minidlna.conf; then
-            if [ -f /jffs/configs/minidlna.conf ]; then
-                cp /etc/minidlna.conf /etc/minidlna.conf.new
-                cat /jffs/configs/minidlna.conf > /etc/minidlna.conf.new
-            elif [ -f /jffs/configs/minidlna.conf.add ]; then
-                cp /etc/minidlna.conf /etc/minidlna.conf.new
-                cat /jffs/configs/minidlna.conf.add >> /etc/minidlna.conf.new
-            fi
-
-            if [ -f /etc/minidlna.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/minidlna.conf.new
-                run_postconf_script /etc/minidlna.conf.new
-
-                if [ "$(md5sum /etc/minidlna.conf | awk '{print $1}')" != "$(md5sum /etc/minidlna.conf.new | awk '{print $1}')" ]; then
-                    cp -f /etc/minidlna.conf.new /etc/minidlna.conf
-
-                    logger -st "$SCRIPT_TAG" "Modified /etc/minidlna.conf"
-
-                    restart_process minidlna
                 fi
             fi
         fi
@@ -257,6 +270,18 @@ case "$1" in
             logger -st "$SCRIPT_TAG" "Restarted dnsmasq service"
         fi
 
+        if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf.new ]; then
+            service restart_media > /dev/null
+            rm -f /etc/minidlna.conf.new
+            logger -st "$SCRIPT_TAG" "Restarted minidlna service"
+        fi
+
+        if ps | grep -v "grep" | grep -q "mt-daapd" && [ -f /etc/mt-daapd.conf.new ]; then
+            service restart_media > /dev/null
+            rm -f /etc/mt-daapd.conf.new
+            logger -st "$SCRIPT_TAG" "Restarted mt-daapd service"
+        fi
+
         if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f /etc/smb.conf.new ]; then
             service restart_samba > /dev/null
             rm -f /etc/smb.conf.new
@@ -267,12 +292,6 @@ case "$1" in
             service restart_ftpd > /dev/null
             rm -f /etc/vsftpd.conf.new
             logger -st "$SCRIPT_TAG" "Restarted ftpd service"
-        fi
-
-        if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf.new ]; then
-            service restart_media > /dev/null
-            rm -f /etc/minidlna.conf.new
-            logger -st "$SCRIPT_TAG" "Restarted media service"
         fi
     ;;
     "restart")

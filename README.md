@@ -55,6 +55,7 @@ This script implements [Custom config files from Merlin firmware](https://github
 - avahi-daemon.conf
 - dnsmasq.conf
 - minidlna.conf
+- mt-daapd.conf
 - smb.conf
 - vsftpd.conf
 
@@ -62,6 +63,7 @@ This script implements [Custom config files from Merlin firmware](https://github
 - avahi-daemon.postconf
 - dnsmasq.postconf
 - minidlna.postconf
+- mt-daapd.postconf
 - smb.postconf
 - vsftpd.postconf
 
