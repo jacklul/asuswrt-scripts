@@ -71,7 +71,10 @@ case "$1" in
 
         if [ -n "$ENTWARE_ON_TMPFS" ]; then
             logger -st "$SCRIPT_TAG" "Uninstalling Rclone..."
-            /opt/bin/opkg remove rclone --autoremove
+
+            if ! /opt/bin/opkg remove rclone --autoremove; then
+                logger -st "$SCRIPT_TAG" "Failed to uninstall Rclone!"
+            fi
         fi
 
         if [ "$STATUS" = "0" ]; then
