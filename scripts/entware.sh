@@ -47,6 +47,20 @@ lockfile() { #LOCKFUNC_START#
     esac
 } #LOCKFUNC_END#
 
+is_started_by_system() {
+    _PPID=$PPID
+    while true; do
+        [ -z "$_PPID" ] && break
+        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_PPID/comm" && return 0
+        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
+        [ "$_PPID" -gt "1" ] || break
+    done
+
+    return 1
+}
+
 is_entware_mounted() {
     if mount | grep -q "on /opt "; then
         return 0
@@ -133,6 +147,27 @@ services() {
     esac
 }
 
+entware_in_ram() {
+    lockfile lock
+
+    if [ ! -f "/opt/etc/init.d/rc.unslung" ]; then # is it not mounted?
+        if [ ! -f "/tmp/entware/etc/init.d/rc.unslung" ]; then # is it not installed?
+            logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
+
+            if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
+                logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
+                cru d "$SCRIPT_NAME"
+                exit 1
+            fi
+        fi
+
+        ! is_entware_mounted && init_opt /tmp/entware
+        services start
+    fi
+
+    lockfile unlock
+}
+
 entware() {
     lockfile lock
 
@@ -140,8 +175,6 @@ entware() {
         "start")
             _ENTWARE_PATH="$2"
             [ -z "$_ENTWARE_PATH" ] && { logger -st "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
-
-            [ -d "$_ENTWARE_PATH/entware" ] && TARGET_PATH="$_ENTWARE_PATH/entware"
 
             init_opt "$_ENTWARE_PATH"
             services start
@@ -165,26 +198,12 @@ case "$1" in
     "run")
         if [ -n "$IN_RAM" ]; then
             { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
-            ! wget -q --spider "http://bin.entware.net" && { echo "Cannot reach entware.net server"; exit; }
+            ! wget -q --spider "http://bin.entware.net" && { echo "Cannot reach entware.net server"; exit 1; }
 
-            if [ ! -f "/opt/etc/init.d/rc.unslung" ]; then # is it mounted?
-                {
-                    lockfile lock
-
-                    if [ ! -f "/tmp/entware/etc/init.d/rc.unslung" ]; then # is it installed?
-                        logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
-
-                        if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
-                            logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log"
-                            cru d "$SCRIPT_NAME"
-                            exit 1
-                        fi
-                    fi
-
-                    lockfile unlock
-
-                    entware start "/tmp/entware"
-                } &
+            if is_started_by_system; then
+                entware_in_ram &
+            else
+                entware_in_ram
             fi
 
             exit
