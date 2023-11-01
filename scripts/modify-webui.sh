@@ -45,7 +45,7 @@ replace_and_check() {
 cpu_temperature() {
     case "$1" in
         "set")
-            if ! mount | grep -q "/www/cpu_ram_status.asp"; then
+            if ! mount | grep -q /www/cpu_ram_status.asp; then
                 [ ! -f "$TMP_WWW_PATH/cpu_ram_status.asp" ] && cp -f /www/cpu_ram_status.asp "$TMP_WWW_PATH/cpu_ram_status.asp"
 
                 echo "cpuTemp = '<%get_cpu_temperature();%>';" >> "$TMP_WWW_PATH/cpu_ram_status.asp"
@@ -53,7 +53,7 @@ cpu_temperature() {
                 mount --bind "$TMP_WWW_PATH/cpu_ram_status.asp" /www/cpu_ram_status.asp
             fi
 
-            if ! mount | grep -q "/www/device-map/router_status.asp"; then
+            if ! mount | grep -q /www/device-map/router_status.asp; then
                 mkdir -p "$TMP_WWW_PATH/device-map"
                 [ ! -f "$TMP_WWW_PATH/device-map/router_status.asp" ] && cp -f /www/device-map/router_status.asp "$TMP_WWW_PATH/device-map/router_status.asp"
 
@@ -66,13 +66,13 @@ cpu_temperature() {
             fi
         ;;
         "unset")
-            if mount | grep -q "/www/cpu_ram_status.asp"; then
-                umount "/www/cpu_ram_status.asp"
+            if mount | grep -q /www/cpu_ram_status.asp; then
+                umount /www/cpu_ram_status.asp
                 rm -f "$TMP_WWW_PATH/cpu_ram_status.asp"
             fi
 
-            if mount | grep -q "/www/device-map/router_status.asp"; then
-                umount "/www/device-map/router_status.asp"
+            if mount | grep -q /www/device-map/router_status.asp; then
+                umount /www/device-map/router_status.asp
                 rm -f "$TMP_WWW_PATH/device-map/router_status.asp"
             fi
         ;;
@@ -82,7 +82,7 @@ cpu_temperature() {
 guest_wifi_qr_code() {
     case "$1" in
         "set")
-            if ! mount | grep -q "/www/Guest_network.asp"; then
+            if ! mount | grep -q /www/Guest_network.asp; then
                 [ ! -f "$TMP_WWW_PATH/Guest_network.asp" ] && cp -f /www/Guest_network.asp "$TMP_WWW_PATH/Guest_network.asp"
 
                 replace_and_check 's@<script type="text/javascript" src="js/httpApi.js"></script>@<script type="text/javascript" src="js/httpApi.js"></script>\n<script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>@g' "$TMP_WWW_PATH/Guest_network.asp"
@@ -95,8 +95,8 @@ guest_wifi_qr_code() {
             fi
         ;;
         "unset")
-            if mount | grep -q "/www/Guest_network.asp"; then
-                umount "/www/Guest_network.asp"
+            if mount | grep -q /www/Guest_network.asp; then
+                umount /www/Guest_network.asp
                 rm -f "$TMP_WWW_PATH/Guest_network.asp"
             fi
 
@@ -112,7 +112,7 @@ notrendmicro_support() {
             # for future reference - we should use flocking with 386>/tmp/addonwebui.lock as that's what addon authors been doing
             [ -n "$MERLIN" ] && { logger -st "$SCRIPT_TAG" "Tweak 'notrendmicro_support' cannot be used on Merlin firmware!"; return; }
 
-            if ! mount | grep -q "/www/state.js"; then
+            if ! mount | grep -q /www/state.js; then
                 [ ! -f "$TMP_WWW_PATH/state.js" ] && cp -f /www/state.js "$TMP_WWW_PATH/state.js"
 
                 replace_and_check 's@var lyra_hide_support = isSupport("lyra_hide");@var lyra_hide_support = isSupport("lyra_hide");\nvar notrendmicro_support = isSupport("notrendmicro");@g' "$TMP_WWW_PATH/state.js"
@@ -120,11 +120,11 @@ notrendmicro_support() {
                 mount --bind "$TMP_WWW_PATH/state.js" /www/state.js
             fi
 
-            if ! mount | grep -q "/www/require/modules/menuTree.js"; then
+            if ! mount | grep -q /www/require/modules/menuTree.js; then
                 mkdir -p "$TMP_WWW_PATH/require/modules"
                 [ ! -f "$TMP_WWW_PATH/require/modules/menuTree.js" ] && cp -f /www/require/modules/menuTree.js "$TMP_WWW_PATH/require/modules/menuTree.js"
 
-                INTERNETSPEED_TAB="$(grep 'url: \"AdaptiveQoS_InternetSpeed\.asp' "/www/require/modules/menuTree.js" | tail -n 1)"
+                INTERNETSPEED_TAB="$(grep 'url: \"AdaptiveQoS_InternetSpeed\.asp' /www/require/modules/menuTree.js | tail -n 1)"
 
                 if [ -n "$INTERNETSPEED_TAB" ]; then
                     replace_and_check 's@{url: "AdaptiveQoS_InternetSpeed.asp"@//{url: "AdaptiveQoS_InternetSpeed.asp"@g' "$TMP_WWW_PATH/require/modules/menuTree.js"
@@ -141,13 +141,13 @@ notrendmicro_support() {
         "unset")
             [ -n "$MERLIN" ] && return
 
-            if mount | grep -q "/www/state.js"; then
-                umount "/www/state.js"
+            if mount | grep -q /www/state.js; then
+                umount /www/state.js
                 rm -f "$TMP_WWW_PATH/state.js"
             fi
 
-            if mount | grep -q "/www/require/modules/menuTree.js"; then
-                umount "/www/require/modules/menuTree.js"
+            if mount | grep -q /www/require/modules/menuTree.js; then
+                umount /www/require/modules/menuTree.js
                 rm -f "$TMP_WWW_PATH/require/modules/menuTree.js"
             fi
 

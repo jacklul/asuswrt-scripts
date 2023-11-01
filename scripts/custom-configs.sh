@@ -51,18 +51,18 @@ case "$1" in
         cru l | grep -q "#$SCRIPT_NAME#" || exit
 
         if [ -f /etc/profile ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/profile; then
-            [ ! -f "/etc/profile.bak" ] && cp /etc/profile /etc/profile.bak
+            [ ! -f /etc/profile.bak ] && cp /etc/profile /etc/profile.bak
 
-            if [ -f "/jffs/configs/profile.add" ]; then
+            if [ -f /jffs/configs/profile.add ]; then
                 cp /etc/profile /etc/profile.new
-                cat "/jffs/configs/profile.add" >> /etc/profile.new
+                cat /jffs/configs/profile.add >> /etc/profile.new
             fi
 
-            if [ -f "/etc/profile.new" ]; then
+            if [ -f /etc/profile.new ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/profile.new
 
-                if [ "$(md5sum "/etc/profile" | awk '{print $1}')" != "$(md5sum "/etc/profile.new" | awk '{print $1}')" ]; then
-                    cp -f /etc/profile.new "/etc/profile"
+                if [ "$(md5sum /etc/profile | awk '{print $1}')" != "$(md5sum /etc/profile.new | awk '{print $1}')" ]; then
+                    cp -f /etc/profile.new /etc/profile
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/profile"
                 fi
@@ -70,20 +70,20 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f /tmp/avahi/avahi-daemon.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /tmp/avahi/avahi-daemon.conf; then
-            if [ -f "/jffs/configs/avahi-daemon.conf" ]; then
+            if [ -f /jffs/configs/avahi-daemon.conf ]; then
                 cp /tmp/avahi/avahi-daemon.conf /tmp/avahi/avahi-daemon.conf.new
                 cat /jffs/configs/avahi-daemon.conf > /tmp/avahi/vsftpd.conf.new
-            elif [ -f "/jffs/configs/avahi-daemon.conf.add" ]; then
+            elif [ -f /jffs/configs/avahi-daemon.conf.add ]; then
                 cp /tmp/avahi/avahi-daemon.conf /tmp/avahi/avahi-daemon.conf.new
-                cat "/jffs/configs/avahi-daemon.conf.add" >> /tmp/avahi/avahi-daemon.conf.new
+                cat /jffs/configs/avahi-daemon.conf.add >> /tmp/avahi/avahi-daemon.conf.new
             fi
 
-            if [ -f "/tmp/avahi/avahi-daemon.conf.new" ]; then
+            if [ -f /tmp/avahi/avahi-daemon.conf.new ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /tmp/avahi/avahi-daemon.conf.new
                 run_postconf_script /tmp/avahi/avahi-daemon.conf.new
 
-                if [ "$(md5sum "/tmp/avahi/avahi-daemon.conf" | awk '{print $1}')" != "$(md5sum "/tmp/avahi/avahi-daemon.conf.new" | awk '{print $1}')" ]; then
-                    cp -f /tmp/avahi/avahi-daemon.conf.new "/tmp/avahi/avahi-daemon.conf"
+                if [ "$(md5sum /tmp/avahi/avahi-daemon.conf | awk '{print $1}')" != "$(md5sum /tmp/avahi/avahi-daemon.conf.new | awk '{print $1}')" ]; then
+                    cp -f /tmp/avahi/avahi-daemon.conf.new /tmp/avahi/avahi-daemon.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /tmp/avahi/avahi-daemon.conf"
 
@@ -93,20 +93,20 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "dnsmasq" && [ -f /etc/dnsmasq.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/dnsmasq.conf; then
-            if [ -f "/jffs/configs/dnsmasq.conf" ]; then
+            if [ -f /jffs/configs/dnsmasq.conf ]; then
                 cp /etc/dnsmasq.conf /etc/dnsmasq.conf.new
                 cat /jffs/configs/dnsmasq.conf > /etc/dnsmasq.conf.new
-            elif [ -f "/jffs/configs/dnsmasq.conf.add" ]; then
+            elif [ -f /jffs/configs/dnsmasq.conf.add ]; then
                 cp /etc/dnsmasq.conf /etc/dnsmasq.conf.new
-                cat "/jffs/configs/dnsmasq.conf.add" >> /etc/dnsmasq.conf.new
+                cat /jffs/configs/dnsmasq.conf.add >> /etc/dnsmasq.conf.new
             fi
 
-            if [ -f "/etc/dnsmasq.conf.new" ]; then
+            if [ -f /etc/dnsmasq.conf.new ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/dnsmasq.conf.new
                 run_postconf_script /etc/dnsmasq.conf.new
 
-                if [ "$(md5sum "/etc/dnsmasq.conf" | awk '{print $1}')" != "$(md5sum "/etc/dnsmasq.conf.new" | awk '{print $1}')" ]; then
-                    cp -f /etc/dnsmasq.conf.new "/etc/dnsmasq.conf"
+                if [ "$(md5sum /etc/dnsmasq.conf | awk '{print $1}')" != "$(md5sum /etc/dnsmasq.conf.new | awk '{print $1}')" ]; then
+                    cp -f /etc/dnsmasq.conf.new /etc/dnsmasq.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/dnsmasq.conf"
 
@@ -116,20 +116,20 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f /etc/smb.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/smb.conf; then
-            if [ -f "/jffs/configs/smb.conf" ]; then
+            if [ -f /jffs/configs/smb.conf ]; then
                 cp /etc/smb.conf /etc/smb.conf.new
                 cat /jffs/configs/smb.conf > /etc/smb.conf.new
-            elif [ -f "/jffs/configs/smb.conf.add" ]; then
+            elif [ -f /jffs/configs/smb.conf.add ]; then
                 cp /etc/smb.conf /etc/smb.conf.new
-                cat "/jffs/configs/smb.conf.add" >> /etc/smb.conf.new
+                cat /jffs/configs/smb.conf.add >> /etc/smb.conf.new
             fi
 
-            if [ -f "/etc/smb.conf.new" ]; then
+            if [ -f /etc/smb.conf.new ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/smb.conf.new
                 run_postconf_script /etc/smb.conf.new
 
-                if [ "$(md5sum "/etc/smb.conf" | awk '{print $1}')" != "$(md5sum "/etc/smb.conf.new" | awk '{print $1}')" ]; then
-                    cp -f /etc/smb.conf.new "/etc/smb.conf"
+                if [ "$(md5sum /etc/smb.conf | awk '{print $1}')" != "$(md5sum /etc/smb.conf.new | awk '{print $1}')" ]; then
+                    cp -f /etc/smb.conf.new /etc/smb.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/smb.conf"
 
@@ -148,20 +148,20 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "vsftpd" && [ -f /etc/vsftpd.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/vsftpd.conf; then
-            if [ -f "/jffs/configs/vsftpd.conf" ]; then
+            if [ -f /jffs/configs/vsftpd.conf ]; then
                 cp /etc/vsftpd.conf /etc/vsftpd.conf.new
                 cat /jffs/configs/vsftpd.conf > /etc/vsftpd.conf.new
-            elif [ -f "/jffs/configs/vsftpd.conf.add" ]; then
+            elif [ -f /jffs/configs/vsftpd.conf.add ]; then
                 cp /etc/vsftpd.conf /etc/vsftpd.conf.new
-                cat "/jffs/configs/vsftpd.conf.add" >> /etc/vsftpd.conf.new
+                cat /jffs/configs/vsftpd.conf.add >> /etc/vsftpd.conf.new
             fi
 
-            if [ -f "/etc/vsftpd.conf.new" ]; then
+            if [ -f /etc/vsftpd.conf.new ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/vsftpd.conf.new
                 run_postconf_script /etc/vsftpd.conf.new
 
-                if [ "$(md5sum "/etc/vsftpd.conf" | awk '{print $1}')" != "$(md5sum "/etc/vsftpd.conf.new" | awk '{print $1}')" ]; then
-                    cp -f /etc/vsftpd.conf.new "/etc/vsftpd.conf"
+                if [ "$(md5sum /etc/vsftpd.conf | awk '{print $1}')" != "$(md5sum /etc/vsftpd.conf.new | awk '{print $1}')" ]; then
+                    cp -f /etc/vsftpd.conf.new /etc/vsftpd.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/vsftpd.conf"
 
@@ -176,20 +176,20 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/minidlna.conf; then
-            if [ -f "/jffs/configs/minidlna.conf" ]; then
+            if [ -f /jffs/configs/minidlna.conf ]; then
                 cp /etc/minidlna.conf /etc/minidlna.conf.new
                 cat /jffs/configs/minidlna.conf > /etc/minidlna.conf.new
-            elif [ -f "/jffs/configs/minidlna.conf.add" ]; then
+            elif [ -f /jffs/configs/minidlna.conf.add ]; then
                 cp /etc/minidlna.conf /etc/minidlna.conf.new
-                cat "/jffs/configs/minidlna.conf.add" >> /etc/minidlna.conf.new
+                cat /jffs/configs/minidlna.conf.add >> /etc/minidlna.conf.new
             fi
 
-            if [ -f "/etc/minidlna.conf.new" ]; then
+            if [ -f /etc/minidlna.conf.new ]; then
                 echo "# Modified by $SCRIPT_NAME" >> /etc/minidlna.conf.new
                 run_postconf_script /etc/minidlna.conf.new
 
-                if [ "$(md5sum "/etc/minidlna.conf" | awk '{print $1}')" != "$(md5sum "/etc/minidlna.conf.new" | awk '{print $1}')" ]; then
-                    cp -f /etc/minidlna.conf.new "/etc/minidlna.conf"
+                if [ "$(md5sum /etc/minidlna.conf | awk '{print $1}')" != "$(md5sum /etc/minidlna.conf.new | awk '{print $1}')" ]; then
+                    cp -f /etc/minidlna.conf.new /etc/minidlna.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/minidlna.conf"
 
@@ -206,39 +206,39 @@ case "$1" in
     "stop")
         cru d "$SCRIPT_NAME"
 
-        if  [ -f "/etc/profile.bak" ] && [ -f "/etc/profile.new" ]; then
+        if  [ -f /etc/profile.bak ] && [ -f /etc/profile.new ]; then
             cp -f /etc/profile.bak /etc/profile
-            rm -f "/etc/profile.new"
+            rm -f /etc/profile.new
             logger -st "$SCRIPT_TAG" "Restored /etc/profile"
         fi
 
-        if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f "/tmp/avahi/avahi-daemon.conf.new" ]; then
+        if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f /tmp/avahi/avahi-daemon.conf.new ]; then
             service restart_mdns > /dev/null
-            rm -f "/tmp/avahi/avahi-daemon.conf.new"
+            rm -f /tmp/avahi/avahi-daemon.conf.new
             logger -st "$SCRIPT_TAG" "Restarted avahi-daemon service"
         fi
 
-        if ps | grep -v "grep" | grep -q "dnsmasq" && [ -f "/etc/dnsmasq.conf.new" ]; then
+        if ps | grep -v "grep" | grep -q "dnsmasq" && [ -f /etc/dnsmasq.conf.new ]; then
             service restart_dnsmasq > /dev/null
-            rm -f "/etc/dnsmasq.conf.new"
+            rm -f /etc/dnsmasq.conf.new
             logger -st "$SCRIPT_TAG" "Restarted dnsmasq service"
         fi
 
-        if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f "/etc/smb.conf.new" ]; then
+        if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f /etc/smb.conf.new ]; then
             service restart_samba > /dev/null
-            rm -f "/etc/smb.conf.new"
+            rm -f /etc/smb.conf.new
             logger -st "$SCRIPT_TAG" "Restarted samba service"
         fi
 
-        if ps | grep -v "grep" | grep -q "vsftpd" && [ -f "/etc/vsftpd.conf.new" ]; then
+        if ps | grep -v "grep" | grep -q "vsftpd" && [ -f /etc/vsftpd.conf.new ]; then
             service restart_ftpd > /dev/null
-            rm -f "/etc/vsftpd.conf.new"
+            rm -f /etc/vsftpd.conf.new
             logger -st "$SCRIPT_TAG" "Restarted ftpd service"
         fi
 
-        if ps | grep -v "grep" | grep -q "minidlna" && [ -f "/etc/minidlna.conf.new" ]; then
+        if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf.new ]; then
             service restart_media > /dev/null
-            rm -f "/etc/minidlna.conf.new"
+            rm -f /etc/minidlna.conf.new
             logger -st "$SCRIPT_TAG" "Restarted media service"
         fi
     ;;

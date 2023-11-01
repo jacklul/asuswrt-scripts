@@ -185,7 +185,7 @@ case "$1" in
 
                 # this service event recreates rc_support so we have to re-run this script
                 if [ -x "$SCRIPT_DIR/modify-features.sh" ]; then
-                    if [ -f "/tmp/rc_support.last" ]; then
+                    if [ -f /tmp/rc_support.last ]; then
                         RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
 
                         if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware

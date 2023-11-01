@@ -15,7 +15,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-SWAP_FILE="" # swap file path, like "/tmp/mnt/USBDEVICE/swap.img", leave empty to search for it in /tmp/mnt/*/swap.img
+SWAP_FILE="" # swap file path, like /tmp/mnt/USBDEVICE/swap.img, leave empty to search for it in /tmp/mnt/*/swap.img
 SWAP_SIZE=128000 # swap file size, changing after swap is created requires it to be manually removed, 128000 = 128MB
 
 if [ -f "$SCRIPT_CONFIG" ]; then

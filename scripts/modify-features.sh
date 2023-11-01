@@ -23,14 +23,14 @@ fi
 rc_support() {
     case "$1" in
         "modify")
-            if [ ! -f "/tmp/rc_support.bak" ]; then
+            if [ ! -f /tmp/rc_support.bak ]; then
                 RC_SUPPORT="$(nvram get rc_support)"
-                echo "$RC_SUPPORT" > "/tmp/rc_support.bak"
+                echo "$RC_SUPPORT" > /tmp/rc_support.bak
             else
                 RC_SUPPORT="$(cat /tmp/rc_support.bak)"
             fi
 
-            if [ -f "/tmp/rc_support.last" ]; then
+            if [ -f /tmp/rc_support.last ]; then
                 RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
             fi
 
@@ -59,7 +59,7 @@ rc_support() {
         "restore")
             rm -f /tmp/rc_support.last
 
-            if [ -f "/tmp/rc_support.bak" ]; then
+            if [ -f /tmp/rc_support.bak ]; then
                 RC_SUPPORT="$(cat /tmp/rc_support.bak)"
 
                 nvram set rc_support="$RC_SUPPORT"

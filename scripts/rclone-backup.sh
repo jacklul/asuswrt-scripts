@@ -33,12 +33,12 @@ fi
 case "$1" in
     "run")
         # Detect when installed through Entware
-        if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/rclone" ]; then
+        if [ -z "$RCLONE_PATH" ] && [ -f /opt/bin/rclone ]; then
             RCLONE_PATH="/opt/bin/rclone"
         fi
 
         # Install it through Entware then remove it after we are done
-        if [ -z "$RCLONE_PATH" ] && [ -f "/opt/bin/opkg" ]; then
+        if [ -z "$RCLONE_PATH" ] && [ -f /opt/bin/opkg ]; then
             logger -st "$SCRIPT_TAG" "Installing Rclone..."
 
             if /opt/bin/opkg update && /opt/bin/opkg install rclone; then

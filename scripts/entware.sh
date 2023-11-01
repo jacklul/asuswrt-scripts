@@ -96,7 +96,7 @@ init_opt() {
 }
 
 backup_initd_scripts() {
-    [ ! -d "/opt/etc/init.d" ] && return
+    [ ! -d /opt/etc/init.d ] && return
 
     if [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
         rm -rf "/tmp/$SCRIPT_NAME-init.d-backup/*"
@@ -118,7 +118,7 @@ services() {
     case "$1" in
         "start")
             if is_entware_mounted; then
-                if [ -f "/opt/etc/init.d/rc.unslung" ]; then
+                if [ -f /opt/etc/init.d/rc.unslung ]; then
                     logger -st "$SCRIPT_TAG" "Starting services..."
 
                     /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH"
@@ -132,7 +132,7 @@ services() {
             fi
         ;;
         "stop")
-            if [ -f "/opt/etc/init.d/rc.unslung" ]; then
+            if [ -f /opt/etc/init.d/rc.unslung ]; then
                 logger -st "$SCRIPT_TAG" "Stopping services..."
 
                 /opt/etc/init.d/rc.unslung stop "$SCRIPT_PATH"
@@ -153,8 +153,8 @@ services() {
 entware_in_ram() {
     lockfile lock
 
-    if [ ! -f "/opt/etc/init.d/rc.unslung" ]; then # is it not mounted?
-        if [ ! -f "/tmp/entware/etc/init.d/rc.unslung" ]; then # is it not installed?
+    if [ ! -f /opt/etc/init.d/rc.unslung ]; then # is it not mounted?
+        if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
             logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
 
             if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
@@ -365,12 +365,12 @@ case "$1" in
 
         echo "Installing package manager..."
 
-        if [ ! -f "/opt/bin/opkg" ]; then
+        if [ ! -f /opt/bin/opkg ]; then
             wget -q "$INSTALL_URL/opkg" -O /opt/bin/opkg
             chmod 755 /opt/bin/opkg
         fi
 
-        if [ ! -f "/opt/etc/opkg.conf" ]; then
+        if [ ! -f /opt/etc/opkg.conf ]; then
             wget -q "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
 
             [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
@@ -391,10 +391,10 @@ case "$1" in
             fi
         done
 
-        [ -f "/etc/localtime" ] && ln -sfv "/etc/localtime" "/opt/etc/localtime"
+        [ -f /etc/localtime ] && ln -sfv /etc/localtime /opt/etc/localtime
 
         if [ -n "$IN_RAM" ]; then
-            if [ -d "/jffs/entware" ]; then
+            if [ -d /jffs/entware ]; then
                 echo "Copying data from /jffs/entware..."
                 cp -afv /jffs/entware/* /opt
             fi

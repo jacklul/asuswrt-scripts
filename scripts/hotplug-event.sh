@@ -42,10 +42,10 @@ lockfile() {
 hotplug_config() {
     case "$1" in
         "modify")
-            if [ -f "/etc/hotplug2.rules" ]; then
+            if [ -f /etc/hotplug2.rules ]; then
                 grep -q "$SCRIPT_PATH" /etc/hotplug2.rules && return # already modified
 
-                [ ! -f "/etc/hotplug2.rules.bak" ] && mv /etc/hotplug2.rules /etc/hotplug2.rules.bak
+                [ ! -f /etc/hotplug2.rules.bak ] && mv /etc/hotplug2.rules /etc/hotplug2.rules.bak
 
                 cat /etc/hotplug2.rules.bak > /etc/hotplug2.rules
 
@@ -67,7 +67,7 @@ EOT
             fi
         ;;
         "restore")
-            if [ -f "/etc/hotplug2.rules" ] && [ -f "/etc/hotplug2.rules.bak" ]; then
+            if [ -f /etc/hotplug2.rules ] && [ -f /etc/hotplug2.rules.bak ]; then
                 rm /etc/hotplug2.rules
                 cp /etc/hotplug2.rules.bak /etc/hotplug2.rules
                 killall hotplug2

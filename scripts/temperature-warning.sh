@@ -40,7 +40,7 @@ get_temperatures() {
         [ -n "$ETH_24G" ] && [ -n "$ETH_5G" ] && break
     done
 
-    [ -f "/sys/class/thermal/thermal_zone0/temp" ] && CPU_TEMPERATURE="$(awk '{print $1 / 1000}' < /sys/class/thermal/thermal_zone0/temp)"
+    [ -f /sys/class/thermal/thermal_zone0/temp ] && CPU_TEMPERATURE="$(awk '{print $1 / 1000}' < /sys/class/thermal/thermal_zone0/temp)"
     [ -n "$ETH_24G" ] && WIFI_24G_TEMPERATURE="$(wl -i "$ETH_24G" phy_tempsense | awk '{print $1 / 2 + 20}')"
     [ -n "$ETH_5G" ] && WIFI_5G_TEMPERATURE="$(wl -i "$ETH_5G" phy_tempsense | awk '{print $1 / 2 + 20}')"
 }
