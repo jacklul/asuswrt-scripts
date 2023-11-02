@@ -24,10 +24,13 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+WGET_BINARY="wget"
+[ -f /opt/bin/wget ] && WGET_BINARY="/opt/bin/wget"
+
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
-        ! wget -q --spider "http://boot.netboot.xyz" && { echo "Cannot reach netboot.xyz server"; exit 1; }
+        ! $WGET_BINARY -q --spider "http://boot.netboot.xyz" && { echo "Cannot reach netboot.xyz server"; exit 1; }
 
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
 
@@ -35,7 +38,7 @@ case "$1" in
         for FILE in $FILES; do
             [ -f "$DIRECTORY/$FILE" ] && continue
 
-            if curl -fsSL "$BASE_URL$FILE" -o "$DIRECTORY/$FILE"; then
+            if $WGET_BINARY -q "$BASE_URL$FILE" -O "$DIRECTORY/$FILE"; then
                 DOWNLOADED="$DOWNLOADED $FILE"
             else
                 logger -st "$SCRIPT_TAG" "Failed to download: $BASE_URL$FILE"
@@ -46,7 +49,7 @@ case "$1" in
         [ -n "$DOWNLOADED" ] && logger -st "$SCRIPT_TAG" "Downloaded files from netboot.xyz: $(echo "$DOWNLOADED" | xargs)"
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
