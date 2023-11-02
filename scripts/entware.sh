@@ -466,7 +466,7 @@ case "$1" in
         [ -f /etc/localtime ] && ln -sfv /etc/localtime /opt/etc/localtime
 
         if [ -n "$IN_RAM" ]; then
-            if [ -d /jffs/entware ]; then
+            if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
                 echo "Copying data from /jffs/entware..."
                 cp -afv /jffs/entware/* /opt
             fi
