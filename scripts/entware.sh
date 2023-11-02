@@ -18,7 +18,9 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
-USE_HTTPS=true # retrieve files using HTTPS with OPKG, disable when downloads fails
+USE_HTTPS=true # retrieve files using HTTPS, applies to opkg and curl only
+USE_CURL=true # use curl instead of wget
+WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -28,6 +30,8 @@ fi
 
 LAST_ENTWARE_DEVICE=""
 [ -f "$CACHE_FILE" ] && LAST_ENTWARE_DEVICE="$(cat "$CACHE_FILE")"
+CHECK_URL="http://bin.entware.net"
+[ "$USE_CURL" = true ] && [ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
 
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
@@ -183,6 +187,14 @@ services() {
 }
 
 entware_in_ram() {
+    { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; return 1; }
+
+    if [ "$USE_CURL" = true ]; then
+        curl -fs "$CHECK_URL" || { echo "Cannot reach entware.net server"; return 1; }
+    else
+        wget -q --spider "$CHECK_URL" || { echo "Cannot reach entware.net server"; return 1; }
+    fi
+
     lockfile lockwait
 
     if [ ! -f /opt/etc/init.d/rc.unslung ]; then # is it not mounted?
@@ -192,7 +204,7 @@ entware_in_ram() {
             if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
                 logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
                 cru d "$SCRIPT_NAME"
-                exit 1
+                return 1
             fi
         fi
 
@@ -201,6 +213,8 @@ entware_in_ram() {
     fi
 
     lockfile unlock
+
+    return 0
 }
 
 entware() {
@@ -231,13 +245,26 @@ entware() {
 case "$1" in
     "run")
         if [ -n "$IN_RAM" ]; then
-            { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
-            ! wget -q --spider "http://bin.entware.net" && { echo "Cannot reach entware.net server"; exit 1; }
+            if is_started_by_system && [ "$2" != "nohup" ]; then
+                lockfile check && exit
 
-            if is_started_by_system; then
-                entware_in_ram &
+                nohup "$SCRIPT_PATH" run nohup >/dev/null 2>&1 &
             else
-                entware_in_ram
+                lockfile lockfail "inram" 8 || { echo "Already running! ($_LOCKPID)"; exit 1; }
+
+                LIMIT="$WAIT_LIMIT"
+                while true; do
+                    [ -f /opt/etc/init.d/rc.unslung ] && break
+                    entware_in_ram && break
+
+                    LIMIT=$((LIMIT-1))
+                    [ "$LIMIT" -le "0" ] && break
+
+                    sleep 60
+                done
+                [ "$LIMIT" -le "0" ] && logger -st "$SCRIPT_TAG" "Failed to start Entware installation (tried for $WAIT_LIMIT minutes) - network connection could not be established"
+
+                lockfile unlock "inram" 8
             fi
 
             exit
@@ -291,7 +318,7 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        [ -z "$IN_RAM" ] && cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
 
         sh "$SCRIPT_PATH" run
     ;;
@@ -299,6 +326,7 @@ case "$1" in
         cru d "$SCRIPT_NAME"
 
         entware stop
+        lockfile kill "inram" 8
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
@@ -347,7 +375,7 @@ case "$1" in
                 ;;
                 *)
                     echo "Unsupported platform or failed to detect - provide supported architecture as the third argument."
-                    echo "Check https://bin.entware.net or http://pkg.entware.net/binaries/ for supported ones."
+                    echo "Check https://bin.entware.net or https://pkg.entware.net/binaries/ for supported ones."
                     exit 1
                 ;;
             esac
@@ -361,7 +389,7 @@ case "$1" in
 
         case "$ARCHITECTURE" in
             "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
-                INSTALL_URL="https://bin.entware.net/$ARCHITECTURE/installer"
+                INSTALL_URL="http://bin.entware.net/$ARCHITECTURE/installer"
             ;;
             "mips"|"mipsel"|"armv5"|"armv7"|"x86-32"|"x86-64")
                 INSTALL_URL="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
@@ -371,6 +399,10 @@ case "$1" in
                 exit 1;
             ;;
         esac
+
+        if [ "$USE_CURL" = true ] && [ "$USE_HTTPS" = true ]; then
+            INSTALL_URL="$(echo "$INSTALL_URL" | sed 's/http:/https:/')"
+        fi
 
         echo "Will install Entware on $TARGET_PATH from $INSTALL_URL"
 
@@ -397,12 +429,21 @@ case "$1" in
         echo "Installing package manager..."
 
         if [ ! -f /opt/bin/opkg ]; then
-            wget -q "$INSTALL_URL/opkg" -O /opt/bin/opkg
+            if [ "$USE_CURL" = true ]; then
+                curl -fs "$INSTALL_URL/opkg" -o /opt/bin/opkg
+            else
+                wget -q "$INSTALL_URL/opkg" -O /opt/bin/opkg
+            fi
+
             chmod 755 /opt/bin/opkg
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
-            wget -q "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
+            if [ "$USE_CURL" = true ]; then
+                curl -fs "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
+            else
+                 wget -q "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
+            fi
 
             [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
         fi
