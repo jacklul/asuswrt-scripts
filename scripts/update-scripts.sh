@@ -23,8 +23,8 @@ if [ -f "$SCRIPT_CONFIG" ]; then
 fi
 
 DOWNLOAD_URL="$BASE_URL/$BRANCH/$BASE_PATH"
-WGET_BINARY="wget"
-[ -f /opt/bin/wget ] && WGET_BINARY="/opt/bin/wget"
+CURL_BINARY="curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
 md5_compare() {
     { [ ! -f "$1" ] || [ ! -f "$2" ]; } && return 1
@@ -40,7 +40,7 @@ md5_compare() {
 
 download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
-        if $WGET_BINARY -q "$1?$(date +%s)" -O "/tmp/$SCRIPT_NAME-download"; then
+        if $CURL_BINARY -fsSL "$1?$(date +%s)" -o "/tmp/$SCRIPT_NAME-download"; then
             if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
                 return 0
             fi

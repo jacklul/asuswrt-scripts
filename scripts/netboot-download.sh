@@ -24,13 +24,13 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-WGET_BINARY="wget"
-[ -f /opt/bin/wget ] && WGET_BINARY="/opt/bin/wget"
+CURL_BINARY="curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
-        ! $WGET_BINARY -q --spider "http://boot.netboot.xyz" && { echo "Cannot reach netboot.xyz server"; exit 1; }
+        ! $CURL_BINARY -fs "https://boot.netboot.xyz" && { echo "Cannot reach netboot.xyz server"; exit 1; }
 
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
 
@@ -38,7 +38,7 @@ case "$1" in
         for FILE in $FILES; do
             [ -f "$DIRECTORY/$FILE" ] && continue
 
-            if $WGET_BINARY -q "$BASE_URL$FILE" -O "$DIRECTORY/$FILE"; then
+            if $CURL_BINARY -fsSL "$BASE_URL$FILE" -o "$DIRECTORY/$FILE"; then
                 DOWNLOADED="$DOWNLOADED $FILE"
             else
                 logger -st "$SCRIPT_TAG" "Failed to download: $BASE_URL$FILE"
