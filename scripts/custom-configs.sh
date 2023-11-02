@@ -40,13 +40,9 @@ restart_process() {
         [ ! -f "/proc/$PID/cmdline" ] && continue
         _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
 
-        echo "$_CMDLINE"
-
         killall "$1"
         [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID" 2>/dev/null
         [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID" 2>/dev/null
-
-        echo "progress"
 
         if [ -z "$_STARTED" ]; then
             # make sure we are executing build-in binary
@@ -67,15 +63,58 @@ restart_process() {
     done
 }
 
+modify_config_file() {
+    [ -z "$1" ] && { echo "File name not provided"; exit 1; }
+
+    _BASENAME="$(basename "$1")"
+
+	if [ -f "/jffs/configs/$_BASENAME" ] && [ "$2" != "noreplace" ]; then
+		cat "/jffs/configs/$_BASENAME" > "$1.new"
+	elif [ -f "/jffs/configs/$_BASENAME.add" ]; then
+		cp "$1" "$1.new"
+		cat "/jffs/configs/$_BASENAME.add" >> "$1.new"
+	fi
+}
+
 run_postconf_script() {
     [ -z "$1" ] && { echo "File name not provided"; exit 1; }
 
-    _SCRIPT="$(basename "$1" | cut -d. -f1)"
+    _BASENAME="$(basename "$1" | cut -d. -f1)"
 
-    if [ -x "$SCRIPT_DIR/$_SCRIPT.postconf" ]; then
-        logger -st "$SCRIPT_TAG" "Running $SCRIPT_DIR/$_SCRIPT.postconf script..."
-        sh "$SCRIPT_DIR/$_SCRIPT.postconf" "$1"
+    if [ -x "/jffs/scripts/$_BASENAME.postconf" ]; then
+        logger -st "$SCRIPT_TAG" "Running /jffs/scripts/$_BASENAME.postconf script..."
+
+		[ ! -f "$1" ] && touch "$1"
+        sh "/jffs/scripts/$_BASENAME.postconf" "$1"
     fi
+}
+
+is_config_file_modified() {
+    [ -z "$1" ] && { echo "File name not provided"; exit 1; }
+	[ ! -f "$1" ] && { echo "File $1 does not exist"; return 1; }
+	[ ! -f "$1.new" ] && { echo "File $1.new does not exist"; return 1; }
+
+	if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
+		return 0
+	fi
+
+	return 1
+}
+
+add_modified_mark() {
+    [ -z "$1" ] && { echo "File name not provided"; exit 1; }
+
+	echo "# Modified by $SCRIPT_NAME" >> "$1"
+}
+
+commit_new_file() {
+    [ -z "$1" ] && { echo "File name not provided"; exit 1; }
+	[ ! -f "$1" ] && { echo "File $1 does not exist"; exit 1; }
+	[ !  -f "$1.new" ] && { echo "File $1.new does not exist"; exit 1; }
+
+	cp -f "$1.new" "$1"
+
+	logger -st "$SCRIPT_TAG" "Modified $1"
 }
 
 case "$1" in
@@ -85,39 +124,23 @@ case "$1" in
         if [ -f /etc/profile ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/profile; then
             [ ! -f /etc/profile.bak ] && cp /etc/profile /etc/profile.bak
 
-            if [ -f /jffs/configs/profile.add ]; then
-                cp /etc/profile /etc/profile.new
-                cat /jffs/configs/profile.add >> /etc/profile.new
-            fi
+			modify_config_file /etc/profile noreplace
 
             if [ -f /etc/profile.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/profile.new
-
-                if [ "$(md5sum /etc/profile | awk '{print $1}')" != "$(md5sum /etc/profile.new | awk '{print $1}')" ]; then
-                    cp -f /etc/profile.new /etc/profile
-
-                    logger -st "$SCRIPT_TAG" "Modified /etc/profile"
-                fi
+                add_modified_mark /etc/profile.new
+                is_config_file_modified /etc/profile && commit_new_file /etc/profile
             fi
         fi
 
         if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f /tmp/avahi/avahi-daemon.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /tmp/avahi/avahi-daemon.conf; then
-            if [ -f /jffs/configs/avahi-daemon.conf ]; then
-                cp /tmp/avahi/avahi-daemon.conf /tmp/avahi/avahi-daemon.conf.new
-                cat /jffs/configs/avahi-daemon.conf > /tmp/avahi/vsftpd.conf.new
-            elif [ -f /jffs/configs/avahi-daemon.conf.add ]; then
-                cp /tmp/avahi/avahi-daemon.conf /tmp/avahi/avahi-daemon.conf.new
-                cat /jffs/configs/avahi-daemon.conf.add >> /tmp/avahi/avahi-daemon.conf.new
-            fi
+			modify_config_file /tmp/avahi/avahi-daemon.conf
+			run_postconf_script /tmp/avahi/avahi-daemon.conf.new
 
             if [ -f /tmp/avahi/avahi-daemon.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /tmp/avahi/avahi-daemon.conf.new
-                run_postconf_script /tmp/avahi/avahi-daemon.conf.new
+                add_modified_mark /tmp/avahi/avahi-daemon.conf.new
 
-                if [ "$(md5sum /tmp/avahi/avahi-daemon.conf | awk '{print $1}')" != "$(md5sum /tmp/avahi/avahi-daemon.conf.new | awk '{print $1}')" ]; then
-                    cp -f /tmp/avahi/avahi-daemon.conf.new /tmp/avahi/avahi-daemon.conf
-
-                    logger -st "$SCRIPT_TAG" "Modified /tmp/avahi/avahi-daemon.conf"
+                if is_config_file_modified /tmp/avahi/avahi-daemon.conf; then
+					commit_new_file /tmp/avahi/avahi-daemon.conf
 
                     /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logger -st "$SCRIPT_TAG" "Restarted process: avahi-daemon"
                 fi
@@ -125,19 +148,13 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "dnsmasq" && [ -f /etc/dnsmasq.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/dnsmasq.conf; then
-            if [ -f /jffs/configs/dnsmasq.conf ]; then
-                cp /etc/dnsmasq.conf /etc/dnsmasq.conf.new
-                cat /jffs/configs/dnsmasq.conf > /etc/dnsmasq.conf.new
-            elif [ -f /jffs/configs/dnsmasq.conf.add ]; then
-                cp /etc/dnsmasq.conf /etc/dnsmasq.conf.new
-                cat /jffs/configs/dnsmasq.conf.add >> /etc/dnsmasq.conf.new
-            fi
+			modify_config_file /etc/dnsmasq.conf
+			run_postconf_script /etc/dnsmasq.conf.new
 
             if [ -f /etc/dnsmasq.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/dnsmasq.conf.new
-                run_postconf_script /etc/dnsmasq.conf.new
+                add_modified_mark /etc/dnsmasq.conf.new
 
-                if [ "$(md5sum /etc/dnsmasq.conf | awk '{print $1}')" != "$(md5sum /etc/dnsmasq.conf.new | awk '{print $1}')" ]; then
+                if is_config_file_modified /etc/dnsmasq.conf; then
                     cp -f /etc/dnsmasq.conf.new /etc/dnsmasq.conf
 
                     logger -st "$SCRIPT_TAG" "Modified /etc/dnsmasq.conf"
@@ -148,22 +165,14 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/minidlna.conf; then
-            if [ -f /jffs/configs/minidlna.conf ]; then
-                cp /etc/minidlna.conf /etc/minidlna.conf.new
-                cat /jffs/configs/minidlna.conf > /etc/minidlna.conf.new
-            elif [ -f /jffs/configs/minidlna.conf.add ]; then
-                cp /etc/minidlna.conf /etc/minidlna.conf.new
-                cat /jffs/configs/minidlna.conf.add >> /etc/minidlna.conf.new
-            fi
+			modify_config_file /etc/minidlna.conf
+			run_postconf_script /etc/minidlna.conf.new
 
             if [ -f /etc/minidlna.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/minidlna.conf.new
-                run_postconf_script /etc/minidlna.conf.new
+                add_modified_mark /etc/minidlna.conf.new
 
-                if [ "$(md5sum /etc/minidlna.conf | awk '{print $1}')" != "$(md5sum /etc/minidlna.conf.new | awk '{print $1}')" ]; then
-                    cp -f /etc/minidlna.conf.new /etc/minidlna.conf
-
-                    logger -st "$SCRIPT_TAG" "Modified /etc/minidlna.conf"
+                if is_config_file_modified /etc/minidlna.conf; then
+                    commit_new_file /etc/minidlna.conf
 
                     restart_process minidlna
                 fi
@@ -171,22 +180,14 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "mt-daapd" && [ -f /etc/mt-daapd.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/mt-daapd.conf; then
-            if [ -f /jffs/configs/mt-daapd.conf ]; then
-                cp /etc/mt-daapd.conf /etc/mt-daapd.conf.new
-                cat /jffs/configs/mt-daapd.conf > /etc/mt-daapd.conf.new
-            elif [ -f /jffs/configs/mt-daapd.conf.add ]; then
-                cp /etc/mt-daapd.conf /etc/mt-daapd.conf.new
-                cat /jffs/configs/mt-daapd.conf.add >> /etc/mt-daapd.conf.new
-            fi
+			modify_config_file /etc/mt-daapd.conf
+			run_postconf_script /etc/mt-daapd.conf.new
 
             if [ -f /etc/mt-daapd.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/mt-daapd.conf.new
-                run_postconf_script /etc/mt-daapd.conf.new
+                add_modified_mark /etc/mt-daapd.conf.new
 
-                if [ "$(md5sum /etc/mt-daapd.conf | awk '{print $1}')" != "$(md5sum /etc/mt-daapd.conf.new | awk '{print $1}')" ]; then
-                    cp -f /etc/mt-daapd.conf.new /etc/mt-daapd.conf
-
-                    logger -st "$SCRIPT_TAG" "Modified /etc/mt-daapd.conf"
+                if is_config_file_modified /etc/mt-daapd.conf; then
+                    commit_new_file /etc/mt-daapd.conf
 
                     restart_process mt-daapd
                 fi
@@ -194,22 +195,14 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f /etc/smb.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/smb.conf; then
-            if [ -f /jffs/configs/smb.conf ]; then
-                cp /etc/smb.conf /etc/smb.conf.new
-                cat /jffs/configs/smb.conf > /etc/smb.conf.new
-            elif [ -f /jffs/configs/smb.conf.add ]; then
-                cp /etc/smb.conf /etc/smb.conf.new
-                cat /jffs/configs/smb.conf.add >> /etc/smb.conf.new
-            fi
+			modify_config_file /etc/smb.conf
+			run_postconf_script /etc/smb.conf.new
 
             if [ -f /etc/smb.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/smb.conf.new
-                run_postconf_script /etc/smb.conf.new
+                add_modified_mark /etc/smb.conf.new
 
-                if [ "$(md5sum /etc/smb.conf | awk '{print $1}')" != "$(md5sum /etc/smb.conf.new | awk '{print $1}')" ]; then
-                    cp -f /etc/smb.conf.new /etc/smb.conf
-
-                    logger -st "$SCRIPT_TAG" "Modified /etc/smb.conf"
+                if is_config_file_modified /etc/smb.conf; then
+                   commit_new_file /etc/smb.conf
 
                     restart_process nmbd
                     restart_process smbd
@@ -218,27 +211,23 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "vsftpd" && [ -f /etc/vsftpd.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/vsftpd.conf; then
-            if [ -f /jffs/configs/vsftpd.conf ]; then
-                cp /etc/vsftpd.conf /etc/vsftpd.conf.new
-                cat /jffs/configs/vsftpd.conf > /etc/vsftpd.conf.new
-            elif [ -f /jffs/configs/vsftpd.conf.add ]; then
-                cp /etc/vsftpd.conf /etc/vsftpd.conf.new
-                cat /jffs/configs/vsftpd.conf.add >> /etc/vsftpd.conf.new
-            fi
+			modify_config_file /etc/vsftpd.conf
+            run_postconf_script /etc/vsftpd.conf.new
 
             if [ -f /etc/vsftpd.conf.new ]; then
-                echo "# Modified by $SCRIPT_NAME" >> /etc/vsftpd.conf.new
-                run_postconf_script /etc/vsftpd.conf.new
+                add_modified_mark /etc/vsftpd.conf.new
 
-                if [ "$(md5sum /etc/vsftpd.conf | awk '{print $1}')" != "$(md5sum /etc/vsftpd.conf.new | awk '{print $1}')" ]; then
-                    cp -f /etc/vsftpd.conf.new /etc/vsftpd.conf
+                if is_config_file_modified /etc/vsftpd.conf; then
+                    commit_new_file /etc/vsftpd.conf
 
                     # we need background=YES to correctly restart the process without blocking the script
                     ! grep -q "background=" /etc/vsftpd.conf && sed -i "/listen=/abackground=YES" /etc/vsftpd.conf
 
-                    logger -st "$SCRIPT_TAG" "Modified /etc/vsftpd.conf"
-
-                    restart_process vsftpd
+					if grep -q "background=YES" /etc/vsftpd.conf; then
+						restart_process vsftpd
+					else
+						logger -st "$SCRIPT_TAG" "Unable to restart vsftpd process - \"background=YES\" not found in the config file"
+					fi
                 fi
             fi
         fi

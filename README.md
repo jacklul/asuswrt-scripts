@@ -67,7 +67,9 @@ This script implements [Custom config files from Merlin firmware](https://github
 - smb.postconf
 - vsftpd.postconf
 
-_NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`!_
+**Keep in mind that for **postconf scripts** you have to reference `.new` in the file name instead (for example `/etc/smb.conf.new`), the correct file path will be passed as an argument to the script.**
+
+_NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`._
 
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
