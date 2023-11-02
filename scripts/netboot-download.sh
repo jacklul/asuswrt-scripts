@@ -30,7 +30,7 @@ CURL_BINARY="curl"
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
-        ! $CURL_BINARY -fs "https://boot.netboot.xyz" && { echo "Cannot reach netboot.xyz server"; exit 1; }
+        ! $CURL_BINARY -fs "https://boot.netboot.xyz" > /dev/null && { echo "Cannot reach netboot.xyz server"; exit 1; }
 
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
 

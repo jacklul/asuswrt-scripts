@@ -52,7 +52,7 @@ case "$1" in
         elif [ "$IPECHO_URL" = "nvram2" ]; then
             WAN_IP="$(nvram get wan1_ipaddr)"
         elif [ -n "$IPECHO_URL" ]; then
-            WAN_IP="$($CURL_BINARY -fsSL "$IPECHO_URL" -m "$IPECHO_TIMEOUT")"
+            WAN_IP="$($CURL_BINARY -fsL "$IPECHO_URL" -m "$IPECHO_TIMEOUT")"
         else
             FORCE=true
         fi

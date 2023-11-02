@@ -190,7 +190,7 @@ entware_in_ram() {
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; return 1; }
 
     if [ "$USE_CURL" = true ]; then
-        curl -fs "$CHECK_URL" || { echo "Cannot reach entware.net server"; return 1; }
+        curl -fs "$CHECK_URL" > /dev/null || { echo "Cannot reach entware.net server"; return 1; }
     else
         wget -q --spider "$CHECK_URL" || { echo "Cannot reach entware.net server"; return 1; }
     fi
