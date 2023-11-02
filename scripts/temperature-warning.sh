@@ -29,7 +29,7 @@ get_temperatures() {
         [ ! -d "$_INTERFACE" ] && continue
 
         _INTERFACE="$(basename "$_INTERFACE")"
-        _STATUS="$(wl -i "$_INTERFACE" status 2>/dev/null)"
+        _STATUS="$(wl -i "$_INTERFACE" status 2> /dev/null)"
 
         if echo "$_STATUS" | grep -q "2.4GHz"; then
             ETH_24G="$_INTERFACE"

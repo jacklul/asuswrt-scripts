@@ -60,8 +60,8 @@ case "$1" in
         logger -st "$SCRIPT_TAG" "Creating backup..."
 
         echo "" > "$LOG_FILE"
-        [ -n "$NVRAMTXT_FILE" ] && nvram show > "$NVRAMTXT_FILE" 2>/dev/null
-        [ -n "$NVRAMCFG_FILE" ] && nvram save "$NVRAMCFG_FILE" 2>/dev/null
+        [ -n "$NVRAMTXT_FILE" ] && nvram show > "$NVRAMTXT_FILE" 2> /dev/null
+        [ -n "$NVRAMCFG_FILE" ] && nvram save "$NVRAMCFG_FILE" 2> /dev/null
 
         #shellcheck disable=SC2086
         "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" --log-file="$LOG_FILE" $PARAMETERS

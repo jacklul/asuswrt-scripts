@@ -46,7 +46,7 @@ set_wl_leds() {
         [ ! -d "$_INTERFACE" ] && continue
 
         _INTERFACE="$(basename "$_INTERFACE")"
-        _STATUS="$(wl -i "$_INTERFACE" status 2>/dev/null)"
+        _STATUS="$(wl -i "$_INTERFACE" status 2> /dev/null)"
 
         if echo "$_STATUS" | grep -q "2.4GHz" || echo "$_STATUS" | grep -q "5GHz"; then
             wl -i "$_INTERFACE" leddc $_STATE
@@ -68,7 +68,7 @@ switch_leds() {
         "on")
             if [ -n "$MERLIN" ]; then
                 [ "$PERSISTENT" = true ] && nvram commit
-                service restart_leds >/dev/null
+                service restart_leds > /dev/null
             else
                 loop_led_ctrl on
                 set_wl_leds on
@@ -80,7 +80,7 @@ switch_leds() {
             if [ -n "$MERLIN" ]; then
                 nvram set led_disable=1
                 [ "$PERSISTENT" = true ] && nvram commit
-                service restart_leds >/dev/null
+                service restart_leds > /dev/null
             else
                 loop_led_ctrl off
                 set_wl_leds off

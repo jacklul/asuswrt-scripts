@@ -182,7 +182,7 @@ case "$1" in
         if is_started_by_system && [ "$2" != "nohup" ]; then
             lockfile check && exit
 
-            nohup "$SCRIPT_PATH" run nohup >/dev/null 2>&1 &
+            nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
         else
             service_monitor
         fi
@@ -200,11 +200,11 @@ case "$1" in
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
-                            iptables -nL "$CHAINS_VPN_KILLSWITCH" >/dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_WGS_LANONLY" >/dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_FORCEDNS" -t nat >/dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat >/dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_TAILSCALE" >/dev/null 2>&1;
+                            iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_FORCEDNS" -t nat > /dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat > /dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_TAILSCALE" > /dev/null 2>&1;
                         } && [ "$_TIMER" -lt "60" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1

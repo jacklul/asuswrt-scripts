@@ -106,7 +106,7 @@ firewall_rules() {
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
-                if ! $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                if ! $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
                     _RULES_ADDED=1
 
                     $_IPTABLES -N "$CHAIN"
@@ -115,7 +115,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                if $_IPTABLES -nL "$CHAIN" >/dev/null 2>&1; then
+                if $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
                     $_IPTABLES -D FORWARD -i "$BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
                     $_IPTABLES -F "$CHAIN"
                     $_IPTABLES -X "$CHAIN"

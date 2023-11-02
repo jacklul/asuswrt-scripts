@@ -248,7 +248,7 @@ case "$1" in
             if is_started_by_system && [ "$2" != "nohup" ]; then
                 lockfile check && exit
 
-                nohup "$SCRIPT_PATH" run nohup >/dev/null 2>&1 &
+                nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
             else
                 lockfile lockfail "inram" 8 || { echo "Already running! ($_LOCKPID)"; exit 1; }
 

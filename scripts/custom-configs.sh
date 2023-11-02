@@ -41,8 +41,8 @@ restart_process() {
         _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
 
         killall "$1"
-        [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID" 2>/dev/null
-        [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID" 2>/dev/null
+        [ -f "/proc/$PID/cmdline" ] && kill -s SIGTERM "$PID" 2> /dev/null
+        [ -f "/proc/$PID/cmdline" ] && kill -s SIGKILL "$PID" 2> /dev/null
 
         if [ -z "$_STARTED" ]; then
             # make sure we are executing build-in binary

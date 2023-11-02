@@ -99,7 +99,7 @@ firewall_rules() {
 
         case "$1" in
             "add")
-                if ! $_IPTABLES -t nat -nL "$CHAIN" >/dev/null 2>&1; then
+                if ! $_IPTABLES -t nat -nL "$CHAIN" > /dev/null 2>&1; then
                     _RULES_ADDED=1
 
                     $_IPTABLES -t nat -N "$CHAIN"
@@ -120,13 +120,13 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                if $_IPTABLES -t nat -nL "$CHAIN" >/dev/null 2>&1; then
+                if $_IPTABLES -t nat -nL "$CHAIN" > /dev/null 2>&1; then
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
-                        if [ -n "$_DESTINATION_NETWORK" ] && $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" >/dev/null 2>&1; then
+                        if [ -n "$_DESTINATION_NETWORK" ] && $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1; then
                             $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
                         fi
 
-                        if $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" >/dev/null 2>&1; then
+                        if $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1; then
                             $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
                         fi
                     done
