@@ -77,7 +77,7 @@ lockfile() { #LOCKFILE_START#
     esac
 } #LOCKFILE_END#
 
-is_started_by_system() {
+is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     _PPID=$PPID
     while true; do
         [ -z "$_PPID" ] && break
@@ -89,7 +89,7 @@ is_started_by_system() {
     done
 
     return 1
-}
+} #STARTEDBYSYSTEMFUNC_END#
 
 is_entware_mounted() {
     if mount | grep -q "on /opt "; then
