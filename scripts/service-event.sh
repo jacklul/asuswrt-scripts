@@ -38,79 +38,150 @@ fi
 
 [ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
 
-#shellcheck disable=SC2009
-PROCESS_PID="$(ps w | grep "$SCRIPT_NAME.sh run" | grep -v "grep\|$$" | awk '{print $1}')"
-PROCESS_PID_LIST="$(echo "$PROCESS_PID" | tr '\n' ' ' | awk '{$1=$1};1')"
+lockfile() { #LOCKFILE_START#
+    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
+    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
+    _FD=9
+
+    if [ -n "$2" ]; then
+        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
+        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+    fi
+
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3"
+
+    _LOCKPID=
+    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+
+    case "$1" in
+        "lockwait"|"lockfail"|"lockexit")
+            eval exec "$_FD>$_LOCKFILE"
+
+            case "$1" in
+                "lockwait")
+                    flock -x "$_FD"
+                ;;
+                "lockfail")
+                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 1
+                    flock -x "$_FD"
+                ;;
+                "lockexit")
+                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && exit 1
+                    flock -x "$_FD"
+                ;;
+            esac
+
+            echo $$ > "$_PIDFILE"
+            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+        ;;
+        "unlock")
+            flock -u "$_FD"
+            rm -f "$_LOCKFILE" "$_PIDFILE"
+            trap - INT TERM EXIT
+        ;;
+        "check")
+            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            return 1
+        ;;
+    esac
+} #LOCKFILE_END#
+
+is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
+    _PPID=$PPID
+    while true; do
+        [ -z "$_PPID" ] && break
+        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_PPID/comm" && return 0
+        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
+        [ "$_PPID" -gt "1" ] || break
+    done
+
+    return 1
+} #STARTEDBYSYSTEMFUNC_END#
+
+service_monitor() {
+    lockfile lockfail || { echo "Already running! ($_LOCKPID)"; exit 1; }
+
+    set -e
+
+    logger -st "$SCRIPT_TAG" "Started service event monitoring..."
+
+    if [ -f "$CACHE_FILE" ]; then
+        LAST_LINE="$(cat "$CACHE_FILE")"
+    else
+        LAST_LINE="$(wc -l < "$SYSLOG_FILE")"
+        LAST_LINE="$((LAST_LINE+1))"
+    fi
+
+    while true; do
+        TOTAL_LINES="$(wc -l < "$SYSLOG_FILE")"
+        if [ "$TOTAL_LINES" -lt "$((LAST_LINE-1))" ]; then
+            logger -st "$SCRIPT_TAG" "Log file has been rotated, resetting line pointer..."
+            LAST_LINE=1
+            continue
+        fi
+
+        NEW_LINES="$(tail "$SYSLOG_FILE" -n "+$LAST_LINE")"
+
+        if [ -n "$NEW_LINES" ]; then
+            MATCHING_LINES="$(echo "$NEW_LINES" | grep -En 'rc_service.*notify_rc' || echo '')"
+
+            if [ -n "$MATCHING_LINES" ]; then
+                LAST_LINE_OLD=$LAST_LINE
+
+                IFS="$(printf '\n\b')"
+                for NEW_LINE in $MATCHING_LINES; do
+                    LINE_NUMBER="$(echo "$NEW_LINE" | cut -f1 -d:)"
+                    LAST_LINE="$((LAST_LINE_OLD+LINE_NUMBER))"
+
+                    EVENTS="$(echo "$NEW_LINE" | awk -F 'notify_rc ' '{print $2}')"
+
+                    if [ -n "$INIT" ]; then
+                        OLDIFS=$IFS
+                        IFS=';'
+                        for EVENT in $EVENTS; do
+                            if [ -n "$EVENT" ]; then
+                                EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
+                                EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2- | cut -d' ' -f1)"
+
+                                logger -st "$SCRIPT_TAG" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
+
+                                sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
+                                [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &
+                            fi
+                        done
+                        IFS=$OLDIFS
+                    fi
+                done
+            else
+                TOTAL_LINES="$(echo "$NEW_LINES" | wc -l)"
+                LAST_LINE="$((LAST_LINE+TOTAL_LINES))"
+            fi
+        fi
+
+        echo "$LAST_LINE" > "$CACHE_FILE"
+
+        [ -z "$INIT" ] && INIT=1
+
+        sleep "$SLEEP"
+    done
+
+    lockfile unlock
+}
 
 case "$1" in
     "run")
         [ -n "$MERLIN" ] && exit
-        [ -n "$PROCESS_PID" ] && [ "$(echo "$PROCESS_PID" | wc -l)" -ge 2 ] && { echo "Already running!"; exit 1; }
         [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
-        set -e
+        if is_started_by_system && [ "$2" != "nohup" ]; then
+            lockfile check && exit
 
-        logger -st "$SCRIPT_TAG" "Started service event monitoring..."
-
-        if [ -f "$CACHE_FILE" ]; then
-            LAST_LINE="$(cat "$CACHE_FILE")"
+            nohup "$SCRIPT_PATH" run nohup >/dev/null 2>&1 &
         else
-            LAST_LINE="$(wc -l < "$SYSLOG_FILE")"
-            LAST_LINE="$((LAST_LINE+1))"
+            service_monitor
         fi
-
-        while true; do
-            TOTAL_LINES="$(wc -l < "$SYSLOG_FILE")"
-            if [ "$TOTAL_LINES" -lt "$((LAST_LINE-1))" ]; then
-                logger -st "$SCRIPT_TAG" "Log file has been rotated, resetting line pointer..."
-                LAST_LINE=1
-                continue
-            fi
-
-            NEW_LINES="$(tail "$SYSLOG_FILE" -n "+$LAST_LINE")"
-
-            if [ -n "$NEW_LINES" ]; then
-                MATCHING_LINES="$(echo "$NEW_LINES" | grep -En 'rc_service.*notify_rc' || echo '')"
-
-                if [ -n "$MATCHING_LINES" ]; then
-                    LAST_LINE_OLD=$LAST_LINE
-
-                    IFS="$(printf '\n\b')"
-                    for NEW_LINE in $MATCHING_LINES; do
-                        LINE_NUMBER="$(echo "$NEW_LINE" | cut -f1 -d:)"
-                        LAST_LINE="$((LAST_LINE_OLD+LINE_NUMBER))"
-
-                        EVENTS="$(echo "$NEW_LINE" | awk -F 'notify_rc ' '{print $2}')"
-
-                        if [ -n "$INIT" ]; then
-                            OLDIFS=$IFS
-                            IFS=';'
-                            for EVENT in $EVENTS; do
-                                if [ -n "$EVENT" ]; then
-                                    EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
-                                    EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2- | cut -d' ' -f1)"
-
-                                    logger -st "$SCRIPT_TAG" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
-
-                                    sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
-                                    [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &
-                                fi
-                            done
-                            IFS=$OLDIFS
-                        fi
-                    done
-                else
-                    TOTAL_LINES="$(echo "$NEW_LINES" | wc -l)"
-                    LAST_LINE="$((LAST_LINE+TOTAL_LINES))"
-                fi
-            fi
-
-            echo "$LAST_LINE" > "$CACHE_FILE"
-
-            [ -z "$INIT" ] && INIT=1
-
-            sleep "$SLEEP"
-        done
     ;;
     "event")
         # $2 = event, $3 = target
@@ -219,17 +290,6 @@ case "$1" in
 
         exit
     ;;
-    "init-run")
-        [ -n "$MERLIN" ] && exit
-
-        if [ "$2" = "restart" ]; then
-            kill "$PROCESS_PID_LIST"
-            PROCESS_PID=
-            sh "$SCRIPT_PATH" start
-        fi
-
-        [ -z "$PROCESS_PID" ] && nohup "$SCRIPT_PATH" run >/dev/null 2>&1 &
-    ;;
     "start")
         if [ -n "$MERLIN" ]; then # use service-event-end on Merlin firmware
             if [ ! -f /jffs/scripts/service-event-end ]; then
@@ -244,21 +304,20 @@ EOT
                 echo "$SCRIPT_PATH event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
             fi
         else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run"
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            echo "Will launch in the next minute by cron..."
         fi
     ;;
     "stop")
         cru d "$SCRIPT_NAME"
 
-        [ -n "$PROCESS_PID" ] && kill "$PROCESS_PID_LIST"
+        if [ -f "/var/run/script-$SCRIPT_NAME.pid" ]; then
+            kill -9 "$(cat "/var/run/script-$SCRIPT_NAME.pid")" 2> /dev/null
+        fi
     ;;
     "restart")
-        if [ -n "$MERLIN" ]; then # use service-event-end on Merlin firmware
-            sh "$SCRIPT_PATH" stop
-            sh "$SCRIPT_PATH" start
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH init-run restart"
-        fi
+        sh "$SCRIPT_PATH" stop
+        sh "$SCRIPT_PATH" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"
