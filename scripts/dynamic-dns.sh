@@ -28,6 +28,8 @@ fi
 WAN_IP=""
 LAST_WAN_IP=""
 [ -f "$CACHE_FILE" ] && LAST_WAN_IP="$(cat "$CACHE_FILE")"
+WGET_BINARY="wget"
+[ -f /opt/bin/wget ] && WGET_BINARY="/opt/bin/wget"
 
 run_ddns_update() {
     if inadyn --config="$CONFIG_FILE" --once --foreground; then
@@ -50,7 +52,7 @@ case "$1" in
         elif [ "$IPECHO_URL" = "nvram2" ]; then
             WAN_IP="$(nvram get wan1_ipaddr)"
         elif [ -n "$IPECHO_URL" ]; then
-            WAN_IP="$(curl -fsSL "$IPECHO_URL" -m "$IPECHO_TIMEOUT")"
+            WAN_IP="$($WGET_BINARY -q "$IPECHO_URL" -m "$IPECHO_TIMEOUT" -O -)"
         else
             FORCE=true
         fi
