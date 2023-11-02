@@ -206,6 +206,8 @@ entware_in_ram() {
                 cru d "$SCRIPT_NAME"
                 return 1
             fi
+
+            logger -st "$SCRIPT_TAG" "Installation successful"
         fi
 
         ! is_entware_mounted && init_opt /tmp/entware
