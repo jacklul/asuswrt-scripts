@@ -18,8 +18,7 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
-USE_HTTPS=true # retrieve files using HTTPS, applies to opkg and curl only
-USE_CURL=true # use curl instead of wget
+USE_HTTPS=true # retrieve files using HTTPS, applies to opkg repository and script curl downloads
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
@@ -31,7 +30,7 @@ fi
 LAST_ENTWARE_DEVICE=""
 [ -f "$CACHE_FILE" ] && LAST_ENTWARE_DEVICE="$(cat "$CACHE_FILE")"
 CHECK_URL="http://bin.entware.net"
-[ "$USE_CURL" = true ] && [ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
+[ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
 
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
@@ -188,12 +187,7 @@ services() {
 
 entware_in_ram() {
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; return 1; }
-
-    if [ "$USE_CURL" = true ]; then
-        curl -fs "$CHECK_URL" > /dev/null || { echo "Cannot reach entware.net server"; return 1; }
-    else
-        wget -q --spider "$CHECK_URL" || { echo "Cannot reach entware.net server"; return 1; }
-    fi
+    curl -fs "$CHECK_URL" > /dev/null || { echo "Cannot reach entware.net server"; return 1; }
 
     lockfile lockwait
 
@@ -402,9 +396,7 @@ case "$1" in
             ;;
         esac
 
-        if [ "$USE_CURL" = true ] && [ "$USE_HTTPS" = true ]; then
-            INSTALL_URL="$(echo "$INSTALL_URL" | sed 's/http:/https:/')"
-        fi
+        [ "$USE_HTTPS" = true ] && INSTALL_URL="$(echo "$INSTALL_URL" | sed 's/http:/https:/')"
 
         echo "Will install Entware on $TARGET_PATH from $INSTALL_URL"
 
@@ -431,22 +423,11 @@ case "$1" in
         echo "Installing package manager..."
 
         if [ ! -f /opt/bin/opkg ]; then
-            if [ "$USE_CURL" = true ]; then
-                curl -fs "$INSTALL_URL/opkg" -o /opt/bin/opkg
-            else
-                wget -q "$INSTALL_URL/opkg" -O /opt/bin/opkg
-            fi
-
-            chmod 755 /opt/bin/opkg
+            curl -fs "$INSTALL_URL/opkg" -o /opt/bin/opkg && chmod 755 /opt/bin/opkg
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
-            if [ "$USE_CURL" = true ]; then
-                curl -fs "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
-            else
-                 wget -q "$INSTALL_URL/opkg.conf" -O /opt/etc/opkg.conf
-            fi
-
+            curl -fs "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
             [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
         fi
 
