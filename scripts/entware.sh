@@ -419,6 +419,7 @@ case "$1" in
         done
 
         chmod 777 /opt/tmp
+        PATH=/opt/bin:/opt/sbin:$PATH
 
         echo "Installing package manager..."
 
@@ -433,8 +434,8 @@ case "$1" in
 
         echo "Installing core packages..."
 
-        /opt/bin/opkg update
-        /opt/bin/opkg install entware-opt
+        opkg update
+        opkg install entware-opt
 
         echo "Checking and copying required files..."
 
