@@ -32,27 +32,57 @@ if [ -z "$SWAP_FILE" ]; then
     done
 fi
 
-lockfile() { #LOCKFUNC_START#
+lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
+    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
     _FD=9
 
+    if [ -n "$2" ]; then
+        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
+        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+    fi
+
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3"
+
+    _LOCKPID=
+    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+
     case "$1" in
-        "lock")
+        "lockwait"|"lockfail"|"lockexit")
             eval exec "$_FD>$_LOCKFILE"
-            flock -x $_FD
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE"; exit $?' EXIT
+
+            case "$1" in
+                "lockwait")
+                    flock -x "$_FD"
+                ;;
+                "lockfail")
+                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 1
+                    flock -x "$_FD"
+                ;;
+                "lockexit")
+                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && exit 1
+                    flock -x "$_FD"
+                ;;
+            esac
+
+            echo $$ > "$_PIDFILE"
+            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
         ;;
         "unlock")
             flock -u "$_FD"
-            rm -f "$_LOCKFILE"
-            trap - EXIT
+            rm -f "$_LOCKFILE" "$_PIDFILE"
+            trap - INT TERM EXIT
+        ;;
+        "check")
+            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            return 1
         ;;
     esac
-} #LOCKFUNC_END#
+} #LOCKFILE_END#
 
 case "$1" in
     "run")
-        lockfile lock
+        lockfile lockexit
 
         if [ "$(nvram get usb_idle_enable)" != "0" ]; then
             logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
