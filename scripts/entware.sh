@@ -8,7 +8,7 @@
 #  https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/a46283c8cbf2cdd62d8bda231c7a79f5a2d3b889/release/src/router/others/entware-setup.sh
 #
 
-#shellcheck disable=SC2155
+#shellcheck disable=SC2155,SC2016
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
@@ -466,6 +466,10 @@ case "$1" in
         done
 
         [ -f /etc/localtime ] && ln -sfv /etc/localtime /opt/etc/localtime
+
+        echo "Modifying /opt/etc/init.d/rc.* scripts..."
+        ! grep -q "CALLER=unknown" /opt/etc/init.d/rc.func && sed -i '/CALLER=$2/a[ -z "$CALLER" ] && CALLER=unknown' /opt/etc/init.d/rc.func
+        ! grep -q "CALLER=unknown" /opt/etc/init.d/rc.unslung && sed -i '/CALLER=$2/a[ -z "$CALLER" ] && CALLER=unknown' /opt/etc/init.d/rc.unslung
 
         if [ -n "$IN_RAM" ]; then
             if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
