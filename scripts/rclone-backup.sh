@@ -41,7 +41,10 @@ case "$1" in
         if [ -z "$RCLONE_PATH" ] && [ -f /opt/bin/opkg ]; then
             logger -st "$SCRIPT_TAG" "Installing Rclone..."
 
-            if /opt/bin/opkg update && /opt/bin/opkg install rclone; then
+            # Required to setup execution env for OPKG
+            PATH=/opt/bin:/opt/sbin:$PATH
+
+            if opkg update && opkg install rclone; then
                 RCLONE_PATH="/opt/bin/rclone"
 
                 if mount | grep "on /opt " | grep -q "tmpfs"; then
