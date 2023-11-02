@@ -294,7 +294,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script will send you a notification when new router firmware is available.
 
-Currently only [Telegram](https://telegram.org) is supported - you will need to create a bot for this to work.
+Currently only [Telegram](https://telegram.org) is supported and you will need to create a bot for this to work.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
