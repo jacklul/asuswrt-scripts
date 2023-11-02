@@ -48,7 +48,7 @@ lockfile() { #LOCKFILE_START#
             eval exec "$_FD>$_LOCKFILE"
 
             case "$1" in
-                "lockwait")
+                "lockwait"|"lock")
                     flock -x "$_FD"
                 ;;
                 "lockfail")
@@ -71,6 +71,10 @@ lockfile() { #LOCKFILE_START#
         ;;
         "check")
             [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            return 1
+        ;;
+        "kill")
+            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
             return 1
         ;;
     esac
