@@ -18,7 +18,7 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
-USE_HTTPS=true # retrieve files using HTTPS, applies to opkg repository and script curl downloads
+USE_HTTPS=false # retrieve files using HTTPS, applies to opkg repository and script curl downloads
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
