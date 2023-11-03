@@ -6,7 +6,7 @@ Obviously this requires some kind of USB storage plugged into the router for thi
 
 **If your router is not executing commands from `script_usbmount` NVRAM variable on USB mount - [look here](/asusware-usbmount) for a workaround.**
 
-Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware versions. Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
+Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware ones. Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
 
 **A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki), big thanks to everyone who made those contributions to the community.**
 
@@ -60,7 +60,7 @@ Install scripts you want to use from [section below](#available-scripts).
 </tr>
 </table>
 
-You can override config variables for scripts by creating `.conf` with the same base name as the script.
+You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `conditional-reboot.conf`).
 
 Remember to mark the scripts as executable after installing, you can do it in one command like this:
 ```sh
@@ -136,7 +136,7 @@ Checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`. You c
 
 On Merlin firmware you should call this script from `ddns-start` with `force` argument instead of `start`.
 
-**You might have to install Entware's `curl` package to bypass the limitations of the firmware version.**
+**You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -152,7 +152,7 @@ This script installs and enables [Entware](https://github.com/Entware/Entware), 
 
 When installing to `/tmp` it will automatically install specified packages and copy contents from `/jffs/entware` to `/opt`.
 
-**If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates` packages.**
+**If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates`.**
 
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
@@ -249,7 +249,7 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 
 This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
 
-**You might have to install Entware's `curl` package to bypass the limitations of the firmware version.**
+**You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
@@ -275,7 +275,7 @@ This script can backup all NVRAM variables and selected `/jffs` contents to clou
 
 You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation (then remove it after the job is done - this feature is targeted for installation in `/tmp`).
 
-**If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) package to bypass the limitations of the firmware version.**
+**If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) to bypass the limitations of the firmware one.**
 
 [Example backup list](/examples/rclone.list) that can be used with this script.
 
@@ -343,7 +343,7 @@ This script will send you a notification when new router firmware is available.
 - [Pushover](https://pushover.net)
 - [Pushbullet](https://www.pushbullet.com)
 
-**You might have to install Entware's `curl` package to bypass the limitations of the firmware version.**
+**You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
 
 _You can test the notifications by using `update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands._
 
