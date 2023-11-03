@@ -31,6 +31,20 @@ fi
 CURL_BINARY="curl"
 [ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
+is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
+    _PPID=$PPID
+    while true; do
+        [ -z "$_PPID" ] && break
+        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_PPID/comm" && return 0
+        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
+        [ "$_PPID" -gt "1" ] || break
+    done
+
+    return 1
+} #STARTEDBYSYSTEMFUNC_END#
+
 send_telegram_message() {
     [ -z "$1" ] && { echo "Message not provided"; return 1; }
 
@@ -53,18 +67,17 @@ send_notification() {
     [ -z "$1" ] && { echo "Version not provided"; exit 1; }
 
     _NEW_VERSION="$1"
+    _ROUTER_IP="$(nvram get lan_ipaddr)"
+    _ROUTER_NAME="$(nvram get lan_hostname)"
+    [ -z "$_ROUTER_NAME" ] && _ROUTER_NAME="$_ROUTER_IP"
 
-    ROUTER_IP="$(nvram get lan_ipaddr)"
-    ROUTER_NAME="$(nvram get lan_hostname)"
-    [ -z "$ROUTER_NAME" ] && ROUTER_NAME="$ROUTER_IP"
-
-    if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
+    if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
         logger -st "$SCRIPT_TAG" "Sending update notification through Telegram..."
 
-        LINE_BREAK=$(printf '\n\r')
-        MESSAGE="<b>New router firmware notification @ $ROUTER_NAME</b>${LINE_BREAK}${LINE_BREAK}New firmware version <b>$NEW_VERSION</b> is now available for your router."
+        _LINE_BREAK=$(printf '\n\r')
+        _MESSAGE="<b>New router firmware notification @ $_ROUTER_NAME</b>${_LINE_BREAK}${_LINE_BREAK}New firmware version <b>$_NEW_VERSION</b> is now available for your router."
 
-        send_telegram_message "$MESSAGE"
+        send_telegram_message "$_MESSAGE"
     fi
 }
 
@@ -94,7 +107,11 @@ case "$1" in
         fi
     ;;
     "test")
-        if cru l | grep -q "#$SCRIPT_NAME-test#"; then
+        if is_started_by_system && cru l | grep -q "#$SCRIPT_NAME-test#"; then
+            logger -st "$SCRIPT_TAG" "Testing notification..."
+
+            cru d "$SCRIPT_NAME-test"
+
             BUILDNO=$(nvram get buildno)
             EXTENDNO=$(nvram get extendno)
 
@@ -103,16 +120,12 @@ case "$1" in
             else
                 logger -st "$SCRIPT_TAG" "Unable to obtain current version info"
             fi
-
-            cru d "$SCRIPT_NAME-test"
         else
-            cru a "$SCRIPT_NAME-test" "*/1 * * * * $SCRIPT_PATH test"
+            cru a "$SCRIPT_NAME-test" "*/1 * * * * sh $SCRIPT_PATH test"
             echo "Scheduled a test with crontab, please wait one minute."
         fi
     ;;
     "start")
-        { [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; } && { logger -st "$SCRIPT_TAG" "Unable to start - configuration not set"; exit 1; }
-
         cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
 
         sh "$SCRIPT_PATH" run &
