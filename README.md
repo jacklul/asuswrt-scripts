@@ -106,7 +106,7 @@ This script implements [Custom config files from Merlin firmware](https://github
 
 _NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`._
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
@@ -120,7 +120,7 @@ This script does exactly what you would expect - makes sure WPS stays disabled.
 
 By default, runs check <ins>at boot and at 00:00</ins>, when `service-event.sh` is used also <ins>runs every time wireless is restarted</ins>.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-wps.sh" -o /jffs/scripts/disable-wps.sh
@@ -136,9 +136,9 @@ Checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`. You c
 
 On Merlin firmware you should call this script from `ddns-start` with `force` argument instead of `start`.
 
-**Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
+**You might have to install Entware's `curl` package to bypass the limitations of the firmware version.**
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/dynamic-dns.sh" -o /jffs/scripts/dynamic-dns.sh
@@ -152,7 +152,9 @@ This script installs and enables [Entware](https://github.com/Entware/Entware), 
 
 When installing to `/tmp` it will automatically install specified packages and copy contents from `/jffs/entware` to `/opt`.
 
-Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
+**If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates` packages.**
+
+_Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/entware.sh" -o /jffs/scripts/entware.sh
@@ -166,7 +168,7 @@ This script will force specified DNS server to be used by LAN and Guest WiFi, ca
 
 This script can be very useful when running [Pi-hole](https://pi-hole.net) in your LAN.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/force-dns.sh" -o /jffs/scripts/force-dns.sh
@@ -218,7 +220,7 @@ This script modifies `rc_support` NVRAM variable to enable/disable some features
 
 A good place to look for potential values are `init.c` and `state.js` files in the firmware sources.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
@@ -247,7 +249,7 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 
 This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
 
-**Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
+**You might have to install Entware's `curl` package to bypass the limitations of the firmware version.**
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
@@ -273,6 +275,8 @@ This script can backup all NVRAM variables and selected `/jffs` contents to clou
 
 You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation (then remove it after the job is done - this feature is targeted for installation in `/tmp`).
 
+**If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) package to bypass the limitations of the firmware version.**
+
 [Example backup list](/examples/rclone.list) that can be used with this script.
 
 ```sh
@@ -287,7 +291,7 @@ Enables masquerading for Samba ports to allow VPN clients to connect to your LAN
 
 By default, default networks for WireGuard, OpenVPN and IPSec are allowed.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/samba-masquerade.sh" -o /jffs/scripts/samba-masquerade.sh
@@ -339,7 +343,7 @@ This script will send you a notification when new router firmware is available.
 - [Pushover](https://pushover.net)
 - [Pushbullet](https://www.pushbullet.com)
 
-**Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
+**You might have to install Entware's `curl` package to bypass the limitations of the firmware version.**
 
 _You can test the notifications by using `update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands._
 
@@ -365,7 +369,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script will mount any USB storage device in `/tmp/mnt` directory if for some reason the official firmware does not automount it for you.
 
-Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
+_Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-mount.sh" -o /jffs/scripts/usb-mount.sh
@@ -379,7 +383,7 @@ This script will add any USB networking gadget to LAN bridge interface, making i
 
 This is a great way of running Pi-hole in your network on a [Raspberry Pi Zero connected through USB port](https://github.com/jacklul/asuswrt-usb-raspberry-pi).
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) and [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) and [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
@@ -393,7 +397,7 @@ This script will prevent your LAN from accessing the internet through the WAN in
 
 There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avoid this on stock firmware.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/vpn-killswitch.sh" -o /jffs/scripts/vpn-killswitch.sh
@@ -405,7 +409,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script will prevent clients connected to WireGuard server from accessing the internet.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/wgs-lanonly.sh" -o /jffs/scripts/wgs-lanonly.sh
