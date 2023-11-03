@@ -17,8 +17,19 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-TELEGRAM_BOT_TOKEN="" # Telegram bot token
-TELEGRAM_CHAT_ID="" # Telegram chat identifier, can also be a group id or channel id/username
+EMAIL_SMTP=""
+EMAIL_PORT=""
+EMAIL_USERNAME=""
+EMAIL_PASSWORD=""
+EMAIL_FROM_NAME=""
+EMAIL_FROM_ADDRESS=""
+EMAIL_TO_NAME=""
+EMAIL_TO_ADDRESS=""
+TELEGRAM_BOT_TOKEN=""
+TELEGRAM_CHAT_ID=""
+PUSHOVER_TOKEN=""
+PUSHOVER_USERNAME=""
+PUSHBULLET_TOKEN=""
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
 CRON_MINUTE=0
 CRON_HOUR="*/1"
@@ -28,6 +39,9 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+ROUTER_IP="$(nvram get lan_ipaddr)"
+ROUTER_NAME="$(nvram get lan_hostname)"
+[ -z "$ROUTER_NAME" ] && ROUTER_NAME="$ROUTER_IP"
 CURL_BINARY="curl"
 [ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
@@ -45,10 +59,26 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     return 1
 } #STARTEDBYSYSTEMFUNC_END#
 
-send_telegram_message() {
-    [ -z "$1" ] && { echo "Message not provided"; return 1; }
+send_email_message() {
+    cat <<EOT > /tmp/mail.eml
+From: "$EMAIL_FROM_NAME" <$EMAIL_FROM_ADDRESS>
+To: "$EMAIL_TO_NAME" <$EMAIL_TO_ADDRESS>
+Subject: New router firmware notification @ $ROUTER_NAME
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 
-    RESULT=$($CURL_BINARY -fskSL --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=${1}" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
+New firmware version <b>$1</b> is now available for your router at <a href="$ROUTER_IP">$ROUTER_IP</a>.
+EOT
+
+    curl --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file /tmp/mail.eml --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logger -st "$SCRIPT_TAG" "Failed to send an email message"
+    rm -f /tmp/mail.eml
+}
+
+send_telegram_message() {
+    _LINE_BREAK=$(printf '\n\r')
+    _MESSAGE="<b>New router firmware notification @ $ROUTER_NAME</b>${_LINE_BREAK}${_LINE_BREAK}New firmware version <b>$1</b> is now available for your router at $ROUTER_IP."
+
+    RESULT=$($CURL_BINARY -fsS --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=$_MESSAGE" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
 
     if ! echo "$RESULT" | grep -q '"ok":true'; then
         if echo "$RESULT" | grep -q '"ok":'; then
@@ -56,28 +86,42 @@ send_telegram_message() {
         else
             logger -st "$SCRIPT_TAG" "Connection to Telegram API failed: $RESULT"
         fi
-    else
-        return 0
     fi
+}
 
-    return 1
+send_pushover_message() {
+    curl --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $ROUTER_NAME" --form-string "message=New firmware version $1 is now available for your router at $ROUTER_IP." "https://api.pushover.net/1/messages.json" || logger -st "$SCRIPT_TAG" "Failed to send Pushover message"
+}
+
+send_pushbullet_message () {
+    curl -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $ROUTER_NAME"'", "body": "'"New firmware version $1 is now available for your router at $ROUTER_IP."'"}' "https://api.pushbullet.com/v2/pushes" || logger -st "$SCRIPT_TAG" "Failed to send Pushbullet message"
 }
 
 send_notification() {
     [ -z "$1" ] && { echo "Version not provided"; exit 1; }
 
-    _NEW_VERSION="$1"
-    _ROUTER_IP="$(nvram get lan_ipaddr)"
-    _ROUTER_NAME="$(nvram get lan_hostname)"
-    [ -z "$_ROUTER_NAME" ] && _ROUTER_NAME="$_ROUTER_IP"
+    if [ -n "$EMAIL_SMTP" ] && [ -n "$EMAIL_PORT" ] && [ -n "$EMAIL_USERNAME" ] && [ -n "$EMAIL_PASSWORD" ] && [ -n "$EMAIL_FROM_NAME" ] && [ -n "$EMAIL_FROM_ADDRESS" ] && [ -n "$EMAIL_TO_NAME" ] && [ -n "$EMAIL_TO_ADDRESS" ]; then
+        logger -st "$SCRIPT_TAG" "Sending update notification through Email..."
+
+        send_email_message "$1"
+    fi
 
     if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
         logger -st "$SCRIPT_TAG" "Sending update notification through Telegram..."
 
-        _LINE_BREAK=$(printf '\n\r')
-        _MESSAGE="<b>New router firmware notification @ $_ROUTER_NAME</b>${_LINE_BREAK}${_LINE_BREAK}New firmware version <b>$_NEW_VERSION</b> is now available for your router."
+        send_telegram_message "$1"
+    fi
 
-        send_telegram_message "$_MESSAGE"
+    if [ -n "$PUSHOVER_TOKEN" ] && [ -n "$PUSHOVER_USERNAME" ]; then
+        logger -st "$SCRIPT_TAG" "Sending update notification through Pushover..."
+
+        send_pushover_message "$1"
+    fi
+
+    if [ -n "$PUSHBULLET_TOKEN" ]; then
+        logger -st "$SCRIPT_TAG" "Sending update notification through Pushbullet..."
+
+        send_pushbullet_message "$1"
     fi
 }
 
@@ -107,7 +151,7 @@ case "$1" in
         fi
     ;;
     "test")
-        if is_started_by_system && cru l | grep -q "#$SCRIPT_NAME-test#"; then
+        if { is_started_by_system || [ "$2" = "now" ]; } && cru l | grep -q "#$SCRIPT_NAME-test#"; then
             logger -st "$SCRIPT_TAG" "Testing notification..."
 
             cru d "$SCRIPT_NAME-test"

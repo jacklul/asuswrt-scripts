@@ -298,9 +298,15 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script will send you a notification when new router firmware is available.
 
-Currently only [Telegram](https://telegram.org) is supported and you will need to create a bot for this to work.
+**Currently supported notification providers:**
+- Email
+- [Telegram](https://telegram.org)
+- [Pushover](https://pushover.net)
+- [Pushbullet](https://www.pushbullet.com)
 
 **Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
+
+_You can test the notifications by using `update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
