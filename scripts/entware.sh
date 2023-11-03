@@ -455,8 +455,21 @@ case "$1" in
 
         if [ -n "$IN_RAM" ]; then
             if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
-                echo "Copying data from /jffs/entware..."
-                cp -afv /jffs/entware/* /opt
+                echo "Symlinking data from /jffs/entware..."
+
+                find /jffs/entware -type f -exec sh -c '
+                    TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
+                    TARGET_DIR="$(dirname "$TARGET_FILE")"
+
+                    if [ -f "$TARGET_FILE" ]; then
+                        echo "Warning: File $TARGET_FILE already exists, renaming..."
+                        mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
+                    fi
+
+                    [ ! -d "$TARGET_DIR" ] && mkdir -pv "$TARGET_DIR"
+                    ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
+                ' sh {} \;
+                sleep 1
             fi
 
             echo "Installing selected packages..."
