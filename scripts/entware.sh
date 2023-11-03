@@ -454,6 +454,11 @@ case "$1" in
         ! grep -q "CALLER=unknown" /opt/etc/init.d/rc.unslung && sed -i '/CALLER=$2/a[ -z "$CALLER" ] && CALLER=unknown' /opt/etc/init.d/rc.unslung
 
         if [ -n "$IN_RAM" ]; then
+            echo "Installing selected packages..."
+
+            #shellcheck disable=SC2086
+            opkg install $IN_RAM
+
             if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
                 echo "Symlinking data from /jffs/entware..."
 
@@ -494,11 +499,6 @@ case "$1" in
                     ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
                 ' sh {} \;
             fi
-
-            echo "Installing selected packages..."
-
-            #shellcheck disable=SC2086
-            opkg install $IN_RAM
         fi
 
         echo "Installation complete!"
