@@ -4,9 +4,11 @@ This uses known `script_usbmount` NVRAM variable to run "startup" script on USB 
 
 Obviously this requires some kind of USB storage plugged into the router for this to work, you don't need it on Asuswrt-Merlin though - just start the scripts from [services-start script](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start).
 
+**If your router is not executing commands from `script_usbmount` NVRAM variable on USB mount - [look here](/asusware-usbmount) for a workaround.**
+
 Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware versions. Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
 
-**If your router is not executing commands from `script_usbmount` NVRAM variable on USB mount - [look here](/asusware-usbmount) for a workaround.**
+**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki), big thanks to everyone who made those contributions to the community.**
 
 ## Installation
 
@@ -23,6 +25,41 @@ Install scripts you want to use from [section below](#available-scripts).
 
 # Available scripts
 
+<table>
+<tr>
+<td>
+<a href="#user-content-conditional-rebootsh">conditional-reboot</a><br>
+<a href="#user-content-custom-configssh">custom-configs</a><br>
+<a href="#user-content-disable-wpssh">disable-wps</a><br>
+<a href="#user-content-dynamic-dnssh">dynamic-dns</a><br>
+<a href="#user-content-entwaresh">entware</a><br>
+<a href="#user-content-force-dnssh">force-dns</a><br>
+<a href="#user-content-guest-passwordsh">guest-password</a><br>
+<a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
+<a href="#user-content-led-controlsh">led-control</a><br>
+<a href="#user-content-modify-featuressh">modify-features</a><br>
+</td>
+<td>
+<a href="#user-content-modify-webuish">modify-webui</a><br>
+<a href="#user-content-netboot-downloadsh">netboot-download</a><br>
+<a href="#user-content-process-killersh">process-killer</a><br>
+<a href="#user-content-rclone-backupsh">rclone-backup</a><br>
+<a href="#user-content-samba-masqueradesh">samba-masquerade</a><br>
+<a href="#user-content-service-eventsh">service-event</a><br>
+<a href="#user-content-swapsh">swap</a><br>
+<a href="#user-content-temperature-warningsh">temperature-warning</a><br>
+<a href="#user-content-update-notifysh">update-notify</a><br>
+<a href="#user-content-update-scriptssh">update-scripts</a><br>
+</td>
+<td>
+<a href="#user-content-usb-mountsh">usb-mount</a><br>
+<a href="#user-content-usb-networksh">usb-network</a><br>
+<a href="#user-content-vpn-killswitchsh">vpn-killswitch</a><br>
+<a href="#user-content-wgs-lanonlysh">wgs-lanonly</a><br>
+</td>
+</tr>
+</table>
+
 You can override config variables for scripts by creating `.conf` with the same base name as the script.
 
 Remember to mark the scripts as executable after installing, you can do it in one command like this:
@@ -31,8 +68,6 @@ chmod +x /jffs/scripts/*.sh
 ```
 
 ---
-
-<br>
 
 ## [`conditional-reboot.sh`](/scripts/conditional-reboot.sh)
 
@@ -44,7 +79,7 @@ By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`custom-configs.sh`](/scripts/custom-configs.sh)
 
@@ -77,7 +112,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`disable-wps.sh`](/scripts/disable-wps.sh)
 
@@ -91,7 +126,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-wps.sh" -o /jffs/scripts/disable-wps.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`dynamic-dns.sh`](/scripts/dynamic-dns.sh)
 
@@ -109,7 +144,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/dynamic-dns.sh" -o /jffs/scripts/dynamic-dns.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`entware.sh`](/scripts/entware.sh)
 
@@ -123,7 +158,7 @@ Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/entware.sh" -o /jffs/scripts/entware.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`force-dns.sh`](/scripts/force-dns.sh)
 
@@ -137,7 +172,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/force-dns.sh" -o /jffs/scripts/force-dns.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`guest-password.sh`](/scripts/guest-password.sh)
 
@@ -149,7 +184,7 @@ By default, it rotates passwords for the first network pair happens at <ins>4AM<
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`hotplug-event.sh`](/scripts/hotplug-event.sh)
 
@@ -161,7 +196,7 @@ By default, integrates with all scripts present in this repository.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/hotplug-event.sh" -o /jffs/scripts/hotplug-event.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`led-control.sh`](/scripts/led-control.sh)
 
@@ -175,7 +210,7 @@ By default, LEDs shutdown at <ins>00:00 and turn on at 06:00</ins>.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/led-control.sh" -o /jffs/scripts/led-control.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`modify-features.sh`](/scripts/modify-features.sh)
 
@@ -189,7 +224,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`modify-webui.sh`](/scripts/modify-webui.sh)
 
@@ -204,7 +239,7 @@ This script modifies some web UI elements.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`netboot-download.sh`](/scripts/netboot-download.sh)
 
@@ -218,7 +253,7 @@ This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setu
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`process-killer.sh`](/scripts/process-killer.sh)
 
@@ -230,7 +265,7 @@ This script can kill processes by their names, unfortunately on stock most of th
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-killer.sh" -o /jffs/scripts/process-killer.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`rclone-backup.sh`](/scripts/rclone-backup.sh)
 
@@ -244,7 +279,7 @@ You have to download the binary and place it on the USB drive. If you installed 
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`samba-masquerade.sh`](/scripts/samba-masquerade.sh)
 
@@ -258,7 +293,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/samba-masquerade.sh" -o /jffs/scripts/samba-masquerade.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
@@ -270,7 +305,7 @@ By default, integrates with all scripts (when required) present in this reposito
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`swap.sh`](/scripts/swap.sh)
 
@@ -280,7 +315,7 @@ This script enables swap file on start, with configurable size and location.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/swap.sh" -o /jffs/scripts/swap.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`temperature-warning.sh`](/scripts/temperature-warning.sh)
 
@@ -292,7 +327,7 @@ Be default, the treshold is set to <ins>80C</ins>.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/temperature-warning.sh" -o /jffs/scripts/temperature-warning.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`update-notify.sh`](/scripts/update-notify.sh)
 
@@ -312,7 +347,7 @@ _You can test the notifications by using `update-notify.sh test` (if it works fr
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`update-scripts.sh`](/scripts/update-scripts.sh)
 
@@ -324,7 +359,7 @@ This is on-demand script that must be ran manually.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`usb-mount.sh`](/scripts/usb-mount.sh)
 
@@ -336,7 +371,7 @@ Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-mount.sh" -o /jffs/scripts/usb-mount.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`usb-network.sh`](/scripts/usb-network.sh)
 
@@ -350,7 +385,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) and [`hot
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`vpn-killswitch.sh`](/scripts/vpn-killswitch.sh)
 
@@ -364,7 +399,7 @@ Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/vpn-killswitch.sh" -o /jffs/scripts/vpn-killswitch.sh
 ```
 
-<br>
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
 ## [`wgs-lanonly.sh`](/scripts/wgs-lanonly.sh)
 
