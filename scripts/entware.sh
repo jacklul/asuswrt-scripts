@@ -461,6 +461,15 @@ case "$1" in
                     TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
                     TARGET_DIR="$(dirname "$TARGET_FILE")"
 
+                    TEST_DIR="$(dirname "$1")"
+                    LIMIT=10
+                    while [ "$LIMIT" -gt "0" ]; do
+                        [ -f "$TEST_DIR/.symlinkthisdir" ] && exit
+                        TEST_DIR="$(dirname "$TEST_DIR")"
+                        [ "$TEST_DIR" = "/jffs/entware" ] && break
+                        LIMIT=$((LIMIT-1))
+                    done
+
                     if [ -f "$TARGET_FILE" ]; then
                         echo "Warning: File $TARGET_FILE already exists, renaming..."
                         mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
@@ -469,7 +478,21 @@ case "$1" in
                     [ ! -d "$TARGET_DIR" ] && mkdir -pv "$TARGET_DIR"
                     ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
                 ' sh {} \;
-                sleep 1
+
+                find /jffs/entware -type d -exec sh -c '
+                    [ ! -f "$1/.symlinkthisdir" ] && exit
+
+                    TARGET_DIR="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
+                    TARGET_DIR_DIR="$(dirname "$TARGET_DIR")"
+
+                    if [ -d "$TARGET_DIR" ]; then
+                        echo "Warning: Directory $TARGET_DIR already exists, renaming..."
+                        mv -v "$TARGET_DIR" "$TARGET_DIR.bak_$(date +%s)"
+                    fi
+
+                    [ ! -d "$TARGET_DIR_DIR" ] && mkdir -pv "$TARGET_DIR_DIR"
+                    ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
+                ' sh {} \;
             fi
 
             echo "Installing selected packages..."
