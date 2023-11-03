@@ -195,7 +195,7 @@ entware_in_ram() {
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
             logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
 
-            if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log; then
+            if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log 2>&1; then
                 logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
                 cru d "$SCRIPT_NAME"
                 return 1
