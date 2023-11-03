@@ -475,7 +475,7 @@ case "$1" in
             echo "Installing selected packages..."
 
             #shellcheck disable=SC2086
-            /opt/bin/opkg install $IN_RAM
+            opkg install $IN_RAM
         fi
 
         echo "Installation complete!"
