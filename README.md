@@ -101,6 +101,8 @@ Checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`. You c
 
 On Merlin firmware you should call this script from `ddns-start` with `force` argument instead of `start`.
 
+**Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
+
 Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
@@ -210,6 +212,8 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 
 This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
 
+**Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
 ```
@@ -295,6 +299,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 This script will send you a notification when new router firmware is available.
 
 Currently only [Telegram](https://telegram.org) is supported and you will need to create a bot for this to work.
+
+**Note that you might have to use Entware's `curl` because the build-in one is limited when started by cron.**
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
