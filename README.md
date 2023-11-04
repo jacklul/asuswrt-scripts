@@ -277,7 +277,7 @@ You have to download the binary and place it on the USB drive. If you installed 
 
 **If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) to bypass the limitations of the firmware one.**
 
-[Example backup list](/examples/rclone.list) that can be used with this script.
+[Example backup list](/extras/rclone.list) that can be used with this script.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
@@ -301,7 +301,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
-This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event. [Example custom script](/examples/service-script.sh) that can be used with this script.
+This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event. [Example custom script](/extras/service-script.sh) that can be used with this script.
 
 By default, integrates with all scripts (when required) present in this repository.
 
