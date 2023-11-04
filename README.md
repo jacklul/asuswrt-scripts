@@ -180,7 +180,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script rotates **Guest WiFi** passwords.
 
-By default, it rotates passwords for the first network pair happens at <ins>4AM</ins>.
+By default, it rotates passwords for the first network pair at <ins>4AM</ins>.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
