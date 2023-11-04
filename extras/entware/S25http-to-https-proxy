@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+# https://github.com/yeokm1/http-to-https-proxy
+#
+#shellcheck disable=SC2034,SC2155
+
+ENABLED=yes
+PROCS=http-to-https-proxy
+ARGS="8888 443 4096"
+PREARGS="nohup"
+DESC=$PROCS
+PATH=/opt/sbin:/opt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+readonly SCRIPT_NAME="$(basename "$(readlink -f "$0")" .sh | sed 's/S[0-9]*//')"
+readonly SCRIPT_CONFIG="/opt/etc/http-to-https-proxy.conf"
+
+if [ -f "$SCRIPT_CONFIG" ]; then
+    #shellcheck disable=SC1090
+    . "$SCRIPT_CONFIG"
+fi
+
+ARGS="$ARGS > /dev/null 2>&1 &"
+
+download_binary() {
+	[ "$ENABLED" != "yes" ] && return
+
+	if [ ! -f /opt/bin/http-to-https-proxy ]; then
+		API_URL="https://api.github.com/repos/yeokm1/http-to-https-proxy/releases/latest"
+		API_DATA="$(curl -fsL "$API_URL")"
+
+		if [ -n "$API_DATA" ]; then
+			DOWNLOAD_URL="$(curl -fsL "$API_URL" | grep "browser_download_url.*arm\"" | cut -d : -f 2,3 | tr -d \" | xargs)"
+
+			if [ -n "$DOWNLOAD_URL" ] && echo "$DOWNLOAD_URL" | grep -q "github.com"; then
+				logger -st "$SCRIPT_NAME" "Downloading $DOWNLOAD_URL..."
+
+				if ! curl -fsSL "$DOWNLOAD_URL" -o /opt/bin/http-to-https-proxy; then
+					logger -st "$SCRIPT_NAME" "Unable to install - failed to download"
+					exit 1
+				fi
+
+				chmod 755 /opt/bin/http-to-https-proxy
+			else
+				logger -st "$SCRIPT_NAME" "Unable to install - failed to parse returned data"
+				exit 1
+			fi
+		else
+			logger -st "$SCRIPT_NAME" "Unable to install - failed to obtain data from $API_URL"
+			exit 1
+		fi
+	fi
+}
+
+case "$1" in
+    "start")
+		download_binary
+	;;
+    "restart")
+		download_binary
+	;;
+esac
+
+#shellcheck disable=SC1091
+. /opt/etc/init.d/rc.func

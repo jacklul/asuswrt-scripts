@@ -1,0 +1,161 @@
+#!/bin/sh
+#
+# Fetch playlists before xupnpd2 starts
+#
+# Supports excluding by text match in EXTINF line and adding handlers
+# by REGEX match (for when the URL doesn't end with supported extension)
+#
+# For more info about the handlers see:
+#  https://gist.github.com/WolfganP/19da4d736237c86e0c50637b1d124aaa#playlist-structure
+#
+# Sample playlists.txt:
+# https://iptv-org.github.io/iptv/languages/eng.m3u
+#
+# Sample playlists_exclude.txt:
+# BabyFirst.us
+# LoveNature.ca
+# AngelTVEurope.in
+# CNNInternationalEurope.us
+# FashionTVEurope.fr
+#
+# One exact text match in EXTINF section per line
+#
+# Sample playlists_handlers.txt :
+# \.mpd$|type=mpeg handler=http
+#
+# Use sed extended regex syntax, test it with this command:
+# sed -E "/EXTINF/ {N; /YOUR_PATTERN_HERE/ s/\-1 /\-1 YOUR_CONTENT_HERE /}" "/tmp/playlist.m3u"
+#
+# You can override the cron schedule in `/opt/etc/xupnpd2/playlists.conf`
+# by setting `CRON` variable to desired schedule string
+#
+
+#shellcheck disable=SC2155
+
+readonly SCRIPT_PATH="$(readlink -f "$0")"
+readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh | sed 's/S[0-9]*//')"
+readonly SCRIPT_CONFIG="/opt/etc/xupnpd2/playlists.conf"
+
+PLAYLISTS_FILE="/opt/etc/xupnpd2/playlists.txt"
+EXCLUDE_FILE="/opt/etc/xupnpd2/playlists_exclude.txt"
+HANDLERS_FILE="/opt/etc/xupnpd2/playlists_handlers.txt"
+RESCAN_PATH="scripts/scan.lua"
+DEFAULT_HANDLER="hls"
+FORCE_HTTP=false
+FORCE_HTTPS=false
+CRON="0 0 * * *"
+
+if [ -f "$SCRIPT_CONFIG" ]; then
+    #shellcheck disable=SC1090
+    . "$SCRIPT_CONFIG"
+fi
+
+CURL_BINARY="curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
+
+case "$1" in
+    "start")
+		if [ -f "/opt/etc/xupnpd2/xupnpd.cfg" ]; then
+			cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH start"
+
+			HTTP_IP="$(nvram get lan_ipaddr)"
+			HTTP_PORT="$(grep http_port < /opt/etc/xupnpd2/xupnpd.cfg | cut -d '=' -f 2)"
+			MEDIA_ROOT="$(grep media_root < /opt/etc/xupnpd2/xupnpd.cfg | cut -d '=' -f 2)"
+		else
+			logger -st "$SCRIPT_NAME" "Configuration file not found: /opt/etc/xupnpd2/xupnpd.cfg"
+			exit 1
+		fi
+
+		if [ -f "/opt/etc/xupnpd2/playlists.txt" ]; then
+			if [ "$FORCE_HTTP" = "true" ] && [ "$FORCE_HTTPS" = "true" ]; then
+				logger -st "$SCRIPT_NAME" "You can only use either FORCE_HTTP or FORCE_HTTPS"
+				exit 1
+			fi
+
+			[ ! -d "$MEDIA_ROOT" ] && mkdir -vp "$MEDIA_ROOT"
+
+			#shellcheck disable=SC2115
+			rm -fr "$MEDIA_ROOT"/*
+
+			while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
+				PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")" # Remove Windows line endings
+				BASENAME="$(basename "$PLAYLIST")"
+
+				logger -st "$SCRIPT_NAME" "Downloading $PLAYLIST..."
+
+				if curl -fsSL "$PLAYLIST" -o "/tmp/$BASENAME"; then
+					[ "$FORCE_HTTP" = true ] && sed -i 's/https:/http:/' "/tmp/$BASENAME"
+					[ "$FORCE_HTTPS" = true ] && sed -i 's/http:/https:/' "/tmp/$BASENAME"
+
+					if echo "$PLAYLIST" | grep -q "iptv-org.github.io"; then
+						SUBDIR="iptv-org.github.io/$(basename "$(dirname "$PLAYLIST")")"
+
+						[ ! -d "$MEDIA_ROOT/$SUBDIR" ] && mkdir -vp "$MEDIA_ROOT/$SUBDIR"
+						mv -vf "/tmp/$BASENAME" "$MEDIA_ROOT/$SUBDIR/$BASENAME"
+					fi
+				else
+					logger -st "$SCRIPT_NAME" "Failed to download $BASENAME"
+				fi
+			done < "$PLAYLISTS_FILE"
+
+			if [ -f "$EXCLUDE_FILE" ]; then
+				logger -st "$SCRIPT_NAME" "Filtering playlists..."
+
+				find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
+					while IFS="" read -r EXCLUSION || [ -n "$EXCLUSION" ]; do
+						EXCLUSION="$(echo "$EXCLUSION" | sed -e "s/\n|\r//")"
+						PATTERN=$(printf "%s\n" "$EXCLUSION" | sed 's/[]\/$*.^&[]/\\&/g')
+						sed "/$PATTERN/,+1d" -i "$FILE"
+					done < "$EXCLUDE_FILE"
+				done
+			fi
+
+			if [ -f "$HANDLERS_FILE" ]; then
+				logger -st "$SCRIPT_NAME" "Inserting handlers..."
+
+				find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
+					while IFS="" read -r HANDLER || [ -n "$HANDLER" ]; do
+						HANDLER="$(echo "$HANDLER" | sed -e "s/\n|\r//")"
+						PATTERN="$(echo "$HANDLER" | cut -d '|' -f 1)"
+						CONTENT="$(echo "$HANDLER" | cut -d '|' -f 2 | sed 's/[]\/$*.^&[]/\\&/g')"
+
+						sed -E "/EXTINF.*?\-1 tvg/ {N; /$PATTERN/ s/\-1 /\-1 $CONTENT /}" -i "$FILE"
+					done < "$HANDLERS_FILE"
+				done
+			fi
+
+			if [ -n "$DEFAULT_HANDLER" ]; then
+				logger -st "$SCRIPT_NAME" "Setting default handler..."
+
+				find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
+					while IFS="" read -r HANDLER || [ -n "$HANDLER" ]; do
+						HANDLER="$(echo "$HANDLER" | sed -e "s/\n|\r//")"
+						PATTERN="$(echo "$HANDLER" | cut -d '|' -f 1)"
+						CONTENT="$(echo "$HANDLER" | cut -d '|' -f 2 | sed 's/[]\/$*.^&[]/\\&/g')"
+
+						sed "s/\-1 tvg/\-1 handler=$DEFAULT_HANDLER tvg/" -i "$FILE"
+					done < "$HANDLERS_FILE"
+				done
+			fi
+
+			logger -st "$SCRIPT_NAME" "Fixing metadata..."
+
+			find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
+				sed "s/tvg\-//" -i "$FILE"
+			done
+
+			logger -st "$SCRIPT_NAME" "Forcing media rescan..."
+
+			"$CURL_BINARY" -fsL "http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH" > /dev/null
+		else
+			logger -st "$SCRIPT_NAME" "Playlists file not found: $PLAYLISTS_FILE"
+			exit 1
+		fi
+    ;;
+    "stop")
+        cru d "$SCRIPT_NAME"
+	;;
+    "restart")
+        sh "$SCRIPT_PATH" start
+	;;
+esac
