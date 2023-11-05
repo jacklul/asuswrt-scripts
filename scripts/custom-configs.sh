@@ -132,6 +132,17 @@ case "$1" in
             fi
         fi
 
+        if [ -f /etc/hosts ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/hosts; then
+            [ ! -f /etc/hosts.bak ] && cp /etc/hosts /etc/hosts.bak
+
+			modify_config_file /etc/hosts noreplace
+
+            if [ -f /etc/hosts.new ]; then
+                add_modified_mark /etc/hosts.new
+                is_config_file_modified /etc/hosts && commit_new_file /etc/hosts
+            fi
+        fi
+
         if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f /tmp/avahi/avahi-daemon.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /tmp/avahi/avahi-daemon.conf; then
 			modify_config_file /tmp/avahi/avahi-daemon.conf
 			run_postconf_script /tmp/avahi/avahi-daemon.conf.new
@@ -244,6 +255,12 @@ case "$1" in
             cp -f /etc/profile.bak /etc/profile
             rm -f /etc/profile.new
             logger -st "$SCRIPT_TAG" "Restored /etc/profile"
+        fi
+
+        if  [ -f /etc/hosts.bak ] && [ -f /etc/hosts.new ]; then
+            cp -f /etc/hosts.bak /etc/hosts
+            rm -f /etc/hosts.new
+            logger -st "$SCRIPT_TAG" "Restored /etc/hosts"
         fi
 
         if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f /tmp/avahi/avahi-daemon.conf.new ]; then
