@@ -87,6 +87,7 @@ This script implements [Custom config files from Merlin firmware](https://github
 
 **Supported config files:**
 - profile (profile.add only)
+- hosts (hosts.add only)
 - avahi-daemon.conf
 - dnsmasq.conf
 - minidlna.conf
