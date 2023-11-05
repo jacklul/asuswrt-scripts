@@ -50,8 +50,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
+PATH=/opt/bin:/opt/sbin:$PATH
 
 case "$1" in
     "start")
@@ -78,7 +77,7 @@ case "$1" in
             rm -fr "$MEDIA_ROOT"/*
 
             while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
-                PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")" # Remove Windows line endings
+                PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")"
                 BASENAME="$(basename "$PLAYLIST")"
 
                 logger -st "$SCRIPT_NAME" "Downloading $PLAYLIST..."
@@ -146,7 +145,7 @@ case "$1" in
 
             logger -st "$SCRIPT_NAME" "Forcing media rescan..."
 
-            "$CURL_BINARY" -fsL "http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH" > /dev/null
+            curl -fsL "http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH" > /dev/null
         else
             logger -st "$SCRIPT_NAME" "Playlists file not found: $PLAYLISTS_FILE"
             exit 1
