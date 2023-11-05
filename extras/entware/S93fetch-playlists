@@ -41,6 +41,7 @@ EXCLUDE_FILE="/opt/etc/xupnpd2/playlists_exclude.txt"
 HANDLERS_FILE="/opt/etc/xupnpd2/playlists_handlers.txt"
 RESCAN_PATH="scripts/scan.lua"
 DEFAULT_HANDLER="hls"
+CLEANUP=false
 FORCE_HTTP=false
 FORCE_HTTPS=false
 CRON="0 0 * * *"
@@ -74,7 +75,7 @@ case "$1" in
             [ ! -d "$MEDIA_ROOT" ] && mkdir -vp "$MEDIA_ROOT"
 
             #shellcheck disable=SC2115
-            rm -fr "$MEDIA_ROOT"/*
+            [ "$CLEANUP" = true ] && rm -fr "$MEDIA_ROOT"/*
 
             while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
                 PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")"
