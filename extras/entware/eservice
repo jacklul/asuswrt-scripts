@@ -7,28 +7,28 @@ CALLER="$(basename "$0" .sh)"
 [ -z "$ACTION" ] && { echo "Action not specified"; exit 1; }
 
 for FILE in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
-	FILE_CHECK="$(basename "$FILE")"
-	MAX=4
-	while [ "$MAX" -gt "0" ]; do
-	    FILE_CHECK="$(echo "$FILE_CHECK" | cut -c2-)"
+    FILE_CHECK="$(basename "$FILE")"
+    MAX=4
+    while [ "$MAX" -gt "0" ]; do
+        FILE_CHECK="$(echo "$FILE_CHECK" | cut -c2-)"
 
-	    if [ "$FILE_CHECK" = "$SERVICE" ]; then
-			case "$FILE" in
-				S* | *.sh )
-					trap "" INT QUIT TSTP EXIT
-					#shellcheck disable=SC1090,SC2240
-					. "$FILE" "$ACTION" "$CALLER"
-				;;
-				*)
-					"$FILE" "$ACTION" "$CALLER"
-				;;
-			esac
+        if [ "$FILE_CHECK" = "$SERVICE" ]; then
+            case "$FILE" in
+                S* | *.sh )
+                    trap "" INT QUIT TSTP EXIT
+                    #shellcheck disable=SC1090,SC2240
+                    . "$FILE" "$ACTION" "$CALLER"
+                ;;
+                *)
+                    "$FILE" "$ACTION" "$CALLER"
+                ;;
+            esac
 
-			exit
-		fi
+            exit
+        fi
 
-		MAX=$((MAX-1))
-	done
+        MAX=$((MAX-1))
+    done
 done
 
 echo "Service \"$SERVICE\" not found"

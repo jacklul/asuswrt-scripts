@@ -68,12 +68,12 @@ modify_config_file() {
 
     _BASENAME="$(basename "$1")"
 
-	if [ -f "/jffs/configs/$_BASENAME" ] && [ "$2" != "noreplace" ]; then
-		cat "/jffs/configs/$_BASENAME" > "$1.new"
-	elif [ -f "/jffs/configs/$_BASENAME.add" ]; then
-		cp "$1" "$1.new"
-		cat "/jffs/configs/$_BASENAME.add" >> "$1.new"
-	fi
+    if [ -f "/jffs/configs/$_BASENAME" ] && [ "$2" != "noreplace" ]; then
+        cat "/jffs/configs/$_BASENAME" > "$1.new"
+    elif [ -f "/jffs/configs/$_BASENAME.add" ]; then
+        cp "$1" "$1.new"
+        cat "/jffs/configs/$_BASENAME.add" >> "$1.new"
+    fi
 }
 
 run_postconf_script() {
@@ -84,37 +84,37 @@ run_postconf_script() {
     if [ -x "/jffs/scripts/$_BASENAME.postconf" ]; then
         logger -st "$SCRIPT_TAG" "Running /jffs/scripts/$_BASENAME.postconf script..."
 
-		[ ! -f "$1" ] && touch "$1"
+        [ ! -f "$1" ] && touch "$1"
         sh "/jffs/scripts/$_BASENAME.postconf" "$1"
     fi
 }
 
 is_config_file_modified() {
     [ -z "$1" ] && { echo "File name not provided"; exit 1; }
-	[ ! -f "$1" ] && { echo "File $1 does not exist"; return 1; }
-	[ ! -f "$1.new" ] && { echo "File $1.new does not exist"; return 1; }
+    [ ! -f "$1" ] && { echo "File $1 does not exist"; return 1; }
+    [ ! -f "$1.new" ] && { echo "File $1.new does not exist"; return 1; }
 
-	if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
-		return 0
-	fi
+    if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
+        return 0
+    fi
 
-	return 1
+    return 1
 }
 
 add_modified_mark() {
     [ -z "$1" ] && { echo "File name not provided"; exit 1; }
 
-	echo "# Modified by $SCRIPT_NAME" >> "$1"
+    echo "# Modified by $SCRIPT_NAME" >> "$1"
 }
 
 commit_new_file() {
     [ -z "$1" ] && { echo "File name not provided"; exit 1; }
-	[ ! -f "$1" ] && { echo "File $1 does not exist"; exit 1; }
-	[ !  -f "$1.new" ] && { echo "File $1.new does not exist"; exit 1; }
+    [ ! -f "$1" ] && { echo "File $1 does not exist"; exit 1; }
+    [ !  -f "$1.new" ] && { echo "File $1.new does not exist"; exit 1; }
 
-	cp -f "$1.new" "$1"
+    cp -f "$1.new" "$1"
 
-	logger -st "$SCRIPT_TAG" "Modified $1"
+    logger -st "$SCRIPT_TAG" "Modified $1"
 }
 
 case "$1" in
@@ -124,7 +124,7 @@ case "$1" in
         if [ -f /etc/profile ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/profile; then
             [ ! -f /etc/profile.bak ] && cp /etc/profile /etc/profile.bak
 
-			modify_config_file /etc/profile noreplace
+            modify_config_file /etc/profile noreplace
 
             if [ -f /etc/profile.new ]; then
                 add_modified_mark /etc/profile.new
@@ -135,7 +135,7 @@ case "$1" in
         if [ -f /etc/hosts ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/hosts; then
             [ ! -f /etc/hosts.bak ] && cp /etc/hosts /etc/hosts.bak
 
-			modify_config_file /etc/hosts noreplace
+            modify_config_file /etc/hosts noreplace
 
             if [ -f /etc/hosts.new ]; then
                 add_modified_mark /etc/hosts.new
@@ -144,14 +144,14 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "avahi-daemon" && [ -f /tmp/avahi/avahi-daemon.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /tmp/avahi/avahi-daemon.conf; then
-			modify_config_file /tmp/avahi/avahi-daemon.conf
-			run_postconf_script /tmp/avahi/avahi-daemon.conf.new
+            modify_config_file /tmp/avahi/avahi-daemon.conf
+            run_postconf_script /tmp/avahi/avahi-daemon.conf.new
 
             if [ -f /tmp/avahi/avahi-daemon.conf.new ]; then
                 add_modified_mark /tmp/avahi/avahi-daemon.conf.new
 
                 if is_config_file_modified /tmp/avahi/avahi-daemon.conf; then
-					commit_new_file /tmp/avahi/avahi-daemon.conf
+                    commit_new_file /tmp/avahi/avahi-daemon.conf
 
                     /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logger -st "$SCRIPT_TAG" "Restarted process: avahi-daemon"
                 fi
@@ -159,8 +159,8 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "dnsmasq" && [ -f /etc/dnsmasq.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/dnsmasq.conf; then
-			modify_config_file /etc/dnsmasq.conf
-			run_postconf_script /etc/dnsmasq.conf.new
+            modify_config_file /etc/dnsmasq.conf
+            run_postconf_script /etc/dnsmasq.conf.new
 
             if [ -f /etc/dnsmasq.conf.new ]; then
                 add_modified_mark /etc/dnsmasq.conf.new
@@ -176,8 +176,8 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "minidlna" && [ -f /etc/minidlna.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/minidlna.conf; then
-			modify_config_file /etc/minidlna.conf
-			run_postconf_script /etc/minidlna.conf.new
+            modify_config_file /etc/minidlna.conf
+            run_postconf_script /etc/minidlna.conf.new
 
             if [ -f /etc/minidlna.conf.new ]; then
                 add_modified_mark /etc/minidlna.conf.new
@@ -191,8 +191,8 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "mt-daapd" && [ -f /etc/mt-daapd.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/mt-daapd.conf; then
-			modify_config_file /etc/mt-daapd.conf
-			run_postconf_script /etc/mt-daapd.conf.new
+            modify_config_file /etc/mt-daapd.conf
+            run_postconf_script /etc/mt-daapd.conf.new
 
             if [ -f /etc/mt-daapd.conf.new ]; then
                 add_modified_mark /etc/mt-daapd.conf.new
@@ -206,8 +206,8 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "nmbd\|smbd" && [ -f /etc/smb.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/smb.conf; then
-			modify_config_file /etc/smb.conf
-			run_postconf_script /etc/smb.conf.new
+            modify_config_file /etc/smb.conf
+            run_postconf_script /etc/smb.conf.new
 
             if [ -f /etc/smb.conf.new ]; then
                 add_modified_mark /etc/smb.conf.new
@@ -222,7 +222,7 @@ case "$1" in
         fi
 
         if ps | grep -v "grep" | grep -q "vsftpd" && [ -f /etc/vsftpd.conf ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/vsftpd.conf; then
-			modify_config_file /etc/vsftpd.conf
+            modify_config_file /etc/vsftpd.conf
             run_postconf_script /etc/vsftpd.conf.new
 
             if [ -f /etc/vsftpd.conf.new ]; then
@@ -234,11 +234,11 @@ case "$1" in
                     # we need background=YES to correctly restart the process without blocking the script
                     ! grep -q "background=" /etc/vsftpd.conf && sed -i "/listen=/abackground=YES" /etc/vsftpd.conf
 
-					if grep -q "background=YES" /etc/vsftpd.conf; then
-						restart_process vsftpd
-					else
-						logger -st "$SCRIPT_TAG" "Unable to restart vsftpd process - \"background=YES\" not found in the config file"
-					fi
+                    if grep -q "background=YES" /etc/vsftpd.conf; then
+                        restart_process vsftpd
+                    else
+                        logger -st "$SCRIPT_TAG" "Unable to restart vsftpd process - \"background=YES\" not found in the config file"
+                    fi
                 fi
             fi
         fi

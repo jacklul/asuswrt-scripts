@@ -25,24 +25,24 @@ TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www"
 
 # these two sed_* functions are taken/based on https://github.com/RMerl/asuswrt-merlin.ng/blob/master/release/src/router/others/helper.sh
 sed_quote() {
-	printf "%s\n" "$1" | sed 's/[]\/$*.^&[]/\\&/g'
+    printf "%s\n" "$1" | sed 's/[]\/$*.^&[]/\\&/g'
 }
 
 sed_and_check() {
     _MD5SUM="$(md5sum "$4" | awk '{print $1}')"
 
-	PATTERN=$(sed_quote "$2")
-	CONTENT=$(sed_quote "$3")
+    PATTERN=$(sed_quote "$2")
+    CONTENT=$(sed_quote "$3")
 
     case "$1" in
         "replace")
-	        sed -i "s/$PATTERN/$CONTENT/" "$4"
+            sed -i "s/$PATTERN/$CONTENT/" "$4"
         ;;
         "before")
-	        sed -i "/$PATTERN/i$CONTENT" "$4"
+            sed -i "/$PATTERN/i$CONTENT" "$4"
         ;;
         "after")
-	        sed -i "/$PATTERN/a$CONTENT" "$4"
+            sed -i "/$PATTERN/a$CONTENT" "$4"
         ;;
         *)
             echo "Invalid mode: $1"
