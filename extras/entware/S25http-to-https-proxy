@@ -14,6 +14,9 @@ PATH=/opt/sbin:/opt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 readonly SCRIPT_NAME="$(basename "$(readlink -f "$0")" .sh | sed 's/S[0-9]*//')"
 readonly SCRIPT_CONFIG="/opt/etc/http-to-https-proxy.conf"
 
+REPOSITORY="yeokm1/http-to-https-proxy"
+BINARY_MATCH="linux-arm"
+
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
@@ -25,11 +28,11 @@ download_binary() {
     [ "$ENABLED" != "yes" ] && return
 
     if [ ! -f /opt/bin/http-to-https-proxy ]; then
-        API_URL="https://api.github.com/repos/yeokm1/http-to-https-proxy/releases/latest"
+        API_URL="https://api.github.com/repos/$REPOSITORY/releases/latest"
         API_DATA="$(curl -fsL "$API_URL")"
 
         if [ -n "$API_DATA" ]; then
-            DOWNLOAD_URL="$(curl -fsL "$API_URL" | grep "browser_download_url.*arm\"" | cut -d : -f 2,3 | tr -d \" | xargs)"
+            DOWNLOAD_URL="$(curl -fsL "$API_URL" | grep "browser_download_url.*$BINARY_MATCH\"" | cut -d : -f 2,3 | tr -d \" | xargs)"
 
             if [ -n "$DOWNLOAD_URL" ] && echo "$DOWNLOAD_URL" | grep -q "github.com"; then
                 logger -st "$SCRIPT_NAME" "Downloading $DOWNLOAD_URL..."
