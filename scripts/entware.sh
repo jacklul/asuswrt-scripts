@@ -428,8 +428,12 @@ case "$1" in
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
-            curl -fs "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
-            [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
+            if [ -f /jffs/entware/etc/opkg.conf ]; then
+                ln -sv /jffs/entware/etc/opkg.conf /opt/etc/opkg.conf
+            else
+                curl -fs "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
+                [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
+            fi
         fi
 
         echo "Installing core packages..."
@@ -464,7 +468,9 @@ case "$1" in
 
                 find /jffs/entware -type f -exec sh -c '
                     TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
-                    TARGET_DIR="$(dirname "$TARGET_FILE")"
+                    TARGET_FILE_DIR="$(dirname "$TARGET_FILE")"
+
+                    [ "$(readlink -f "$TARGET_FILE")" = "$(readlink -f "$1")" ] && exit
 
                     TEST_DIR="$(dirname "$1")"
                     LIMIT=10
@@ -480,7 +486,7 @@ case "$1" in
                         mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
                     fi
 
-                    [ ! -d "$TARGET_DIR" ] && mkdir -pv "$TARGET_DIR"
+                    [ ! -d "$TARGET_FILE_DIR" ] && mkdir -pv "$TARGET_FILE_DIR"
                     ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
                 ' sh {} \;
 
@@ -489,6 +495,8 @@ case "$1" in
 
                     TARGET_DIR="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
                     TARGET_DIR_DIR="$(dirname "$TARGET_DIR")"
+
+                    [ "$(readlink -f "$TARGET_DIR")" = "$(readlink -f "$1")" ] && exit
 
                     if [ -d "$TARGET_DIR" ]; then
                         echo "Warning: Directory $TARGET_DIR already exists, renaming..."
