@@ -53,6 +53,20 @@ fi
 
 PATH=/opt/bin:/opt/sbin:$PATH
 
+is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
+    _PPID=$PPID
+    while true; do
+        [ -z "$_PPID" ] && break
+        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_PPID/comm" && return 0
+        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
+        [ "$_PPID" -gt "1" ] || break
+    done
+
+    return 1
+} #STARTEDBYSYSTEMFUNC_END#
+
 require_xupnpd2_config() {
     if [ ! -f "/opt/etc/xupnpd2/xupnpd.cfg" ]; then
         logger -st "$SCRIPT_NAME" "Configuration file not found: /opt/etc/xupnpd2/xupnpd.cfg"
@@ -66,7 +80,11 @@ start() {
     if ! cru l | grep -q "#$SCRIPT_NAME#"; then
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH cron"
 
-        sh "$SCRIPT_PATH" cron
+        if is_started_by_system; then
+            sh "$SCRIPT_PATH" cron &
+        else
+            sh "$SCRIPT_PATH" cron
+        fi
     else
         echo "Already started"
     fi
