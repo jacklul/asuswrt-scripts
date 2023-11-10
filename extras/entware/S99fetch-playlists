@@ -40,7 +40,7 @@ PLAYLISTS_FILE="/opt/etc/xupnpd2/playlists.txt"
 EXCLUDE_FILE="/opt/etc/xupnpd2/playlists_exclude.txt"
 HANDLERS_FILE="/opt/etc/xupnpd2/playlists_handlers.txt"
 RESCAN_PATH="scripts/scan.lua"
-DEFAULT_HANDLER="hls"
+DEFAULT_HANDLER=
 CLEANUP=false
 FORCE_HTTP=false
 FORCE_HTTPS=false
@@ -134,10 +134,12 @@ run() {
         done < "$PLAYLISTS_FILE"
 
         if [ -f "$EXCLUDE_FILE" ]; then
-            logger -st "$SCRIPT_NAME" "Filtering playlists..."
+            logger -st "$SCRIPT_NAME" "Removing excluded entries..."
 
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r EXCLUSION || [ -n "$EXCLUSION" ]; do
+                    [ "$(echo "$EXCLUSION" | cut -c1-1)" = "#" ] && continue
+
                     EXCLUSION="$(echo "$EXCLUSION" | sed -e "s/\n|\r//")"
                     PATTERN=$(printf "%s\n" "$EXCLUSION" | sed 's/[]\/$*.^&[]/\\&/g')
                     sed "/$PATTERN/,+1d" -i "$FILE"
@@ -150,6 +152,8 @@ run() {
 
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r HANDLER || [ -n "$HANDLER" ]; do
+                    [ "$(echo "$HANDLER" | cut -c1-1)" = "#" ] && continue
+
                     HANDLER="$(echo "$HANDLER" | sed -e "s/\n|\r//")"
                     PATTERN="$(echo "$HANDLER" | cut -d '|' -f 1)"
                     CONTENT="$(echo "$HANDLER" | cut -d '|' -f 2 | sed 's/[]\/$*.^&[]/\\&/g')"
@@ -172,12 +176,6 @@ run() {
                 done < "$HANDLERS_FILE"
             done
         fi
-
-        logger -st "$SCRIPT_NAME" "Fixing metadata..."
-
-        find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
-            sed "s/tvg\-//" -i "$FILE"
-        done
 
         logger -st "$SCRIPT_NAME" "Forcing media rescan..."
 
