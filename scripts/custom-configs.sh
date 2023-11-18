@@ -36,7 +36,7 @@ restart_process() {
     [ -z "$1" ] && { echo "Process name not provided"; exit 1; }
 
     _STARTED=
-    for PID in $(ps | grep "$1" | grep -v "grep" | awk '{print $1}'); do
+    for PID in $(ps | grep "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
         [ ! -f "/proc/$PID/cmdline" ] && continue
         _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
 
