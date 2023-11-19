@@ -112,11 +112,13 @@ run() {
         #shellcheck disable=SC2115
         [ "$CLEANUP" = true ] && rm -fr "$MEDIA_ROOT"/*
 
+        logger -st "$SCRIPT_NAME" "Downloading playlists..."
+
         while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
             PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")"
             BASENAME="$(basename "$PLAYLIST")"
 
-            logger -st "$SCRIPT_NAME" "Downloading $PLAYLIST..."
+            echo "Downloading $PLAYLIST..."
 
             if curl -fsSL "$PLAYLIST" -o "/tmp/$BASENAME"; then
                 [ "$FORCE_HTTP" = true ] && sed -i 's/https:/http:/' "/tmp/$BASENAME"
@@ -129,7 +131,7 @@ run() {
                     mv -vf "/tmp/$BASENAME" "$MEDIA_ROOT/$SUBDIR/$BASENAME"
                 fi
             else
-                logger -st "$SCRIPT_NAME" "Failed to download $BASENAME"
+                logger -st "$SCRIPT_NAME" "Failed to download $PLAYLIST"
             fi
         done < "$PLAYLISTS_FILE"
 
