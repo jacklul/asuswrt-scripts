@@ -3,8 +3,6 @@
 #
 # Sends update notification
 #
-# Currently only Telegram is supported
-#
 # Based on:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Update-Notification-Example
 #
