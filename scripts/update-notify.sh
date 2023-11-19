@@ -127,15 +127,15 @@ case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
 
-        BUILDNO=$(nvram get buildno)
+        BUILDNO=$(nvram get buildno | sed 's/[-_.]*//g')
         EXTENDNO=$(nvram get extendno)
         WEBS_STATE_INFO=$(nvram get webs_state_info)
 
-        EXTENDNO_VER=$(echo "$EXTENDNO" | awk -F '-' '{print $1}')
-        WEBS_BUILDNO=$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $2}')
-        WEBS_EXTENDNO_VER=$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
+        #EXTENDNO_VER=$(echo "$EXTENDNO" | awk -F '-' '{print $1}')
+        WEBS_BUILDNO=$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
+        #WEBS_EXTENDNO_VER=$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
 
-        if [ -z "$BUILDNO" ] || [ -z "$EXTENDNO" ] || [ -z "$WEBS_STATE_INFO" ] ||  [ "$BUILDNO" -gt "$WEBS_BUILDNO" ] || [ "$EXTENDNO_VER" -gt "$WEBS_EXTENDNO_VER" ]; then
+        if [ -z "$BUILDNO" ] || [ -z "$EXTENDNO" ] || [ -z "$WEBS_STATE_INFO" ] ||  [ "$BUILDNO" -gt "$WEBS_BUILDNO" ]; then
             echo "Could not gather valid values from NVRAM"
             exit
         fi
