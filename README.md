@@ -87,7 +87,7 @@ This script implements [Custom config files from Merlin firmware](https://github
 
 **Supported config files:**
 - profile (profile.add only)
-- hosts (hosts.add only)
+- hosts
 - avahi-daemon.conf
 - dnsmasq.conf
 - minidlna.conf
@@ -96,6 +96,7 @@ This script implements [Custom config files from Merlin firmware](https://github
 - vsftpd.conf
 
 **Supported postconf scripts:**
+- hosts.postconf
 - avahi-daemon.postconf
 - dnsmasq.postconf
 - minidlna.postconf

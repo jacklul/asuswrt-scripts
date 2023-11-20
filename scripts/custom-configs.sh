@@ -135,7 +135,8 @@ case "$1" in
         if [ -f /etc/hosts ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/hosts; then
             [ ! -f /etc/hosts.bak ] && cp /etc/hosts /etc/hosts.bak
 
-            modify_config_file /etc/hosts noreplace
+            modify_config_file /etc/hosts
+            run_postconf_script /etc/hosts.new
 
             if [ -f /etc/hosts.new ]; then
                 add_modified_mark /etc/hosts.new
