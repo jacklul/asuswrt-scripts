@@ -11,14 +11,7 @@
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
-
-if [ -f "$SCRIPT_CONFIG" ]; then
-    #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
-fi
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
