@@ -30,6 +30,7 @@ Install scripts you want to use from [section below](#available-scripts).
 <td>
 <a href="#user-content-conditional-rebootsh">conditional-reboot</a><br>
 <a href="#user-content-custom-configssh">custom-configs</a><br>
+<a href="#user-content-disable-diagsh">disable-diag</a><br>
 <a href="#user-content-disable-wpssh">disable-wps</a><br>
 <a href="#user-content-dynamic-dnssh">dynamic-dns</a><br>
 <a href="#user-content-entwaresh">entware</a><br>
@@ -37,9 +38,9 @@ Install scripts you want to use from [section below](#available-scripts).
 <a href="#user-content-guest-passwordsh">guest-password</a><br>
 <a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
 <a href="#user-content-led-controlsh">led-control</a><br>
-<a href="#user-content-modify-featuressh">modify-features</a><br>
 </td>
 <td>
+<a href="#user-content-modify-featuressh">modify-features</a><br>
 <a href="#user-content-modify-webuish">modify-webui</a><br>
 <a href="#user-content-netboot-downloadsh">netboot-download</a><br>
 <a href="#user-content-process-killersh">process-killer</a><br>
@@ -49,9 +50,9 @@ Install scripts you want to use from [section below](#available-scripts).
 <a href="#user-content-swapsh">swap</a><br>
 <a href="#user-content-temperature-warningsh">temperature-warning</a><br>
 <a href="#user-content-update-notifysh">update-notify</a><br>
-<a href="#user-content-update-scriptssh">update-scripts</a><br>
 </td>
 <td>
+<a href="#user-content-update-scriptssh">update-scripts</a><br>
 <a href="#user-content-usb-mountsh">usb-mount</a><br>
 <a href="#user-content-usb-networksh">usb-network</a><br>
 <a href="#user-content-vpn-killswitchsh">vpn-killswitch</a><br>
@@ -112,6 +113,18 @@ _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`disable-diag.sh`](/scripts/disable-diag.sh)
+
+This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes to hog the CPU.
+
+No idea what `conn_diag` is itself, some kind of diagnostics utility.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-diag.sh" -o /jffs/scripts/disable-diag.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
