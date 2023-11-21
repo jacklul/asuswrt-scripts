@@ -179,13 +179,18 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        else
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        fi
 
         for DEVICE in /dev/sd*; do
             [ -b "$DEVICE" ] && setup_mount add "$(basename "$DEVICE")"
         done
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         for DEVICE in /dev/sd*; do

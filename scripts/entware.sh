@@ -197,7 +197,10 @@ entware_in_ram() {
 
             if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log 2>&1; then
                 logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
+
+                [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
                 cru d "$SCRIPT_NAME"
+
                 return 1
             fi
 
@@ -314,11 +317,18 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -z "$IN_RAM" ] && cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ -z "$IN_RAM" ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
+        fi
 
         sh "$SCRIPT_PATH" run
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         entware stop

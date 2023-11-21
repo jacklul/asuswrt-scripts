@@ -36,7 +36,11 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        if [ -x "$SCRIPT_DIR/cron-queue.sh" ] && [ "$CRON_MINUTE $CRON_HOUR * * *" = "*/1 * * * *" ]; then
+            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        else
+            cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        fi
 
         if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
             { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
@@ -45,6 +49,7 @@ case "$1" in
         fi
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
     ;;
     "restart")

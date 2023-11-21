@@ -371,11 +371,16 @@ case "$1" in
 
         [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
 
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        else
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        fi
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && firewall_rules add
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         FALLBACK_DNS_SERVER="" # prevent changing to fallback instead of removing everything...

@@ -169,11 +169,16 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        if [ -x "$SCRIPT_DIR/cron-queue.sh" ] && [ "$CRON_MINUTE $CRON_HOUR * * *" = "*/1 * * * *" ]; then
+            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        else
+            cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        fi
 
         sh "$SCRIPT_PATH" run &
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
     ;;
     "restart")

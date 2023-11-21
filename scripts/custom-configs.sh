@@ -11,6 +11,7 @@
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 get_binary_location() {
@@ -238,11 +239,16 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        else
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        fi
 
         sh "$SCRIPT_PATH" run
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         if  [ -f /etc/profile.bak ] && [ -f /etc/profile.new ]; then

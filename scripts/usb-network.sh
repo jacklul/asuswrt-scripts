@@ -163,13 +163,18 @@ case "$1" in
     "start")
         [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
 
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        else
+            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        fi
 
         for INTERFACE in /sys/class/net/usb*; do
             [ -d "$INTERFACE" ] && setup_inteface add "$(basename "$INTERFACE")"
         done
     ;;
     "stop")
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         for INTERFACE in /sys/class/net/usb*; do

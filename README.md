@@ -29,6 +29,7 @@ Install scripts you want to use from [section below](#available-scripts).
 <tr>
 <td>
 <a href="#user-content-conditional-rebootsh">conditional-reboot</a><br>
+<a href="#user-content-cron-queuesh">cron-queue</a><br>
 <a href="#user-content-custom-configssh">custom-configs</a><br>
 <a href="#user-content-disable-diagsh">disable-diag</a><br>
 <a href="#user-content-disable-wpssh">disable-wps</a><br>
@@ -36,10 +37,10 @@ Install scripts you want to use from [section below](#available-scripts).
 <a href="#user-content-entwaresh">entware</a><br>
 <a href="#user-content-force-dnssh">force-dns</a><br>
 <a href="#user-content-guest-passwordsh">guest-password</a><br>
-<a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
-<a href="#user-content-led-controlsh">led-control</a><br>
 </td>
 <td>
+<a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
+<a href="#user-content-led-controlsh">led-control</a><br>
 <a href="#user-content-modify-featuressh">modify-features</a><br>
 <a href="#user-content-modify-webuish">modify-webui</a><br>
 <a href="#user-content-netboot-downloadsh">netboot-download</a><br>
@@ -47,11 +48,11 @@ Install scripts you want to use from [section below](#available-scripts).
 <a href="#user-content-rclone-backupsh">rclone-backup</a><br>
 <a href="#user-content-samba-masqueradesh">samba-masquerade</a><br>
 <a href="#user-content-service-eventsh">service-event</a><br>
+</td>
+<td>
 <a href="#user-content-swapsh">swap</a><br>
 <a href="#user-content-temperature-warningsh">temperature-warning</a><br>
 <a href="#user-content-update-notifysh">update-notify</a><br>
-</td>
-<td>
 <a href="#user-content-update-scriptssh">update-scripts</a><br>
 <a href="#user-content-usb-mountsh">usb-mount</a><br>
 <a href="#user-content-usb-networksh">usb-network</a><br>
@@ -78,6 +79,19 @@ By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`cron-queue.sh`](/scripts/cron-queue.sh)
+
+When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and ping spike on some devices).
+This script will run all "every minute" tasks synchronously which will reduce the CPU load in exchange for task execution delays.
+
+All scripts from this repository integrate with this script and will use it instead of `cru` when it's available.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/cron-queue.sh" -o /jffs/scripts/cron-queue.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
