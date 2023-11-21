@@ -16,6 +16,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 BRANCH="master" # which git branch to use
 BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base download url, no ending slash!
 BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
+AUTOUPDATE=true # whenever to auto-update this script or not
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -53,7 +54,7 @@ download_and_check() {
 }
 
 if [ -z "$1" ] || [ "$1" = "run" ]; then
-    if download_and_check "$DOWNLOAD_URL/$(basename "$SCRIPT_PATH")" "$SCRIPT_PATH"; then
+    if [ "$AUTOUPDATE" = true ] && download_and_check "$DOWNLOAD_URL/$(basename "$SCRIPT_PATH")" "$SCRIPT_PATH"; then
         { sleep 1 && cat "/tmp/$SCRIPT_NAME-download" > "$SCRIPT_PATH"; } &
         echo "Script has been updated, please re-run!"
         exit
