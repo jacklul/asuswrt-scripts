@@ -4,6 +4,7 @@
 # Modify features supported by the router (rc_support nvram variable)
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

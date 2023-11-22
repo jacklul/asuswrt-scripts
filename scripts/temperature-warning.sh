@@ -4,6 +4,7 @@
 # Send warning to syslog when temperatures reaches specific threshold
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

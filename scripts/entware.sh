@@ -8,6 +8,7 @@
 #  https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/a46283c8cbf2cdd62d8bda231c7a79f5a2d3b889/release/src/router/others/entware-setup.sh
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155,SC2016
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

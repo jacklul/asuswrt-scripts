@@ -4,6 +4,7 @@
 # Enables VPN clients to access Samba shares in LAN
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

@@ -7,6 +7,7 @@
 #  https://github.com/ZebMcKayhan/WireguardManager/blob/main/wg_manager.sh
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

@@ -6,13 +6,12 @@
 # Prevents conn_diag from starting amas_portstatus
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155,SC2009
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-#readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-#readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 case "$1" in
     "run")
