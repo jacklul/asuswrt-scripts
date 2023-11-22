@@ -19,6 +19,7 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
+ALTERNATIVE=false # Perform alternative install (separated users from the system)
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
@@ -344,8 +345,9 @@ case "$1" in
 
         [ -z "$IN_RAM" ] && echo
 
-        TARGET_PATH="$2"
-        [ -z "$ARCHITECTURE" ] && ARCHITECTURE="$3"
+        [ "$2" != "alt" ] && TARGET_PATH="$2"
+        { [ -z "$ARCHITECTURE" ] && [ "$3" != "alt" ] ; } && ARCHITECTURE="$3"
+        { [ "$2" = "alt" ] || [ "$3" = "alt" ] || [ "$4" = "alt" ]; } && ALTERNATIVE=true
 
         if [ -z "$TARGET_PATH" ]; then
             for DIR in /tmp/mnt/*; do
@@ -410,6 +412,7 @@ case "$1" in
         [ "$USE_HTTPS" = true ] && INSTALL_URL="$(echo "$INSTALL_URL" | sed 's/http:/https:/')"
 
         echo "Will install Entware on $TARGET_PATH from $INSTALL_URL"
+        [ "$ALTERNATIVE" = true ] && echo "Using alternative install (separated users from the system)"
 
         if [ -z "$IN_RAM" ]; then
             #shellcheck disable=SC3045,SC2162
@@ -450,12 +453,13 @@ case "$1" in
         echo "Installing core packages..."
 
         opkg update
+        [ "$ALTERNATIVE" = true ] && opkg install busybox
         opkg install entware-opt
 
         echo "Checking and copying required files..."
 
         for FILE in passwd group shells shadow gshadow; do
-            if [ -f "/etc/$FILE" ]; then
+            if [ "$ALTERNATIVE" != true ] && [ -f "/etc/$FILE" ]; then
                 ln -sfv "/etc/$FILE" "/opt/etc/$FILE"
             else
                 [ -f "/opt/etc/$FILE.1" ] && cp -v "/opt/etc/$FILE.1" "/opt/etc/$FILE"
