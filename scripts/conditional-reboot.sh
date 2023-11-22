@@ -13,8 +13,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
-CRON_MINUTE=0
-CRON_HOUR=5
+CRON="0 5 * * *"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -35,7 +34,7 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
+        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
     ;;
     "stop")
         cru d "$SCRIPT_NAME"

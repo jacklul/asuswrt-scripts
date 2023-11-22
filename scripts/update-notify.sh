@@ -7,6 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Update-Notification-Example
 #
 
+# jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -29,8 +30,7 @@ PUSHOVER_TOKEN=""
 PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
-CRON_MINUTE=0
-CRON_HOUR="*/1"
+CRON="0 */1 * * *"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -169,11 +169,7 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ] && [ "$CRON_MINUTE $CRON_HOUR * * *" = "*/1 * * * *" ]; then
-            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
-        fi
+        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
         sh "$SCRIPT_PATH" run &
     ;;

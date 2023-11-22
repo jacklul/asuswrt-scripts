@@ -15,8 +15,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-CRON_MINUTE=0
-CRON_HOUR=0
+CRON="0 0 * * *"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -36,11 +35,7 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ] && [ "$CRON_MINUTE $CRON_HOUR * * *" = "*/1 * * * *" ]; then
-            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "$CRON_MINUTE $CRON_HOUR * * * $SCRIPT_PATH run"
-        fi
+        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
         if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
             { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
