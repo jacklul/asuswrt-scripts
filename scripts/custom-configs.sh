@@ -114,7 +114,9 @@ commit_new_file() {
 
 case "$1" in
     "run")
-        cru l | grep -q "#$SCRIPT_NAME#" || exit
+        if { [ ! -x "$SCRIPT_DIR/cron-queue.sh" ] || ! "$SCRIPT_DIR/cron-queue.sh" check "$SCRIPT_NAME" ; } && ! cru l | grep -q "#$SCRIPT_NAME#"; then
+            exit
+        fi
 
         if [ -f /etc/profile ] && ! grep -q "# Modified by $SCRIPT_NAME" /etc/profile; then
             [ ! -f /etc/profile.bak ] && cp /etc/profile /etc/profile.bak
