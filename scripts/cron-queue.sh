@@ -80,20 +80,28 @@ case "$1" in
 
         lockfile unlock run 8
     ;;
-    "add"|"remove")
+    "add"|"remove"|"delete")
         [ -z "$2" ] && { echo "Entry ID not set"; exit 1; }
         { [ -z "$3" ] && [ "$1" = "add" ] ; } && { echo "Entry command not set"; exit 1; }
 
         lockfile lockwait
 
         sed "/#$(echo "$2" | sed 's/[]\/$*.^&[]/\\&/g')#$/d" -i "$QUEUE_FILE"
-
-        if [ "$1" = "add" ]; then
-            echo "echo \"Executing \"$3\"...\" #$2#" >> "$QUEUE_FILE"
-            echo "$3 #$2#" >> "$QUEUE_FILE"
-        fi
+        [ "$1" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
 
         lockfile unlock
+    ;;
+    "list")
+        if [ -f "$QUEUE_FILE" ]; then
+            cat "$QUEUE_FILE"
+        else
+            echo "Queue file does not exist"
+        fi
+    ;;
+    "check")
+        [ -z "$2" ] && { echo "Entry ID not provided"; exit 1; }
+
+        grep -q "#$2#" "$QUEUE_FILE" && exit 0 || exit 1
     ;;
     "start")
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
@@ -106,7 +114,7 @@ case "$1" in
         sh "$SCRIPT_PATH" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart|add|remove"
+        echo "Usage: $0 run|start|stop|restart|add|remove|list|check"
         exit 1
     ;;
 esac
