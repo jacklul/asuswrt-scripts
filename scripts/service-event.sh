@@ -29,7 +29,6 @@ CHAINS_FORCEDNS="FORCEDNS"
 CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
 CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
 CHAINS_WGS_LANONLY="WGS_LANONLY"
-CHAINS_TAILSCALE="TAILSCALE"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -204,7 +203,6 @@ case "$1" in
                             iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_FORCEDNS" -t nat > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat > /dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_TAILSCALE" > /dev/null 2>&1;
                         } && [ "$_TIMER" -lt "60" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1
@@ -215,7 +213,6 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && "$SCRIPT_DIR/wgs-lanonly.sh" run &
                     [ -x "$SCRIPT_DIR/force-dns.sh" ] && "$SCRIPT_DIR/force-dns.sh" run &
                     [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && "$SCRIPT_DIR/samba-masquerade.sh" run &
-                    [ -x "$SCRIPT_DIR/tailscale.sh" ] && "$SCRIPT_DIR/tailscale.sh" firewall &
 
                     sh "$SCRIPT_PATH" event restart custom_configs &
                 fi

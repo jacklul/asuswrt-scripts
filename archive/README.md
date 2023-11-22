@@ -10,8 +10,6 @@ This script installs [Tailscale](https://tailscale.com) service on your router, 
 
 You have to download the binaries and place it on the USB drive first.
 
-Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
-
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/archive/tailscale.sh" -o /jffs/scripts/tailscale.sh
 ```
