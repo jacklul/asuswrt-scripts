@@ -28,33 +28,55 @@ fi
 CURL_BINARY="curl"
 [ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
+is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
+    _PPID=$PPID
+    while true; do
+        [ -z "$_PPID" ] && break
+        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_PPID/comm" && return 0
+        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
+        [ "$_PPID" -gt "1" ] || break
+    done
+
+    return 1
+} #STARTEDBYSYSTEMFUNC_END#
+
 case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
-		[ -z "$($CURL_BINARY -fs "https://boot.netboot.xyz")" ] && { echo "Cannot reach boot.netboot.xyz"; exit 1; }
+        [ -z "$($CURL_BINARY -fs "https://boot.netboot.xyz")" ] && { echo "Cannot reach boot.netboot.xyz"; exit 1; }
 
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
 
         DOWNLOADED=""
+        FAILED=""
         for FILE in $FILES; do
             [ -f "$DIRECTORY/$FILE" ] && continue
 
-            if $CURL_BINARY -fsSL "$BASE_URL$FILE" -o "$DIRECTORY/$FILE"; then
+            if $CURL_BINARY -fsSL "$BASE_URL$FILE" -o "$DIRECTORY/$FILE" && [ -f "$DIRECTORY/$FILE" ]; then
                 DOWNLOADED="$DOWNLOADED $FILE"
             else
-                logger -st "$SCRIPT_TAG" "Failed to download: $BASE_URL$FILE"
+                FAILED="$FAILED $FILE"
             fi
         done
 
-        [ -n "$DOWNLOADED" ] && logger -st "$SCRIPT_TAG" "Downloaded files from netboot.xyz: $(echo "$DOWNLOADED" | xargs)"
-        
-        sh "$SCRIPT_PATH" stop
+        [ -n "$DOWNLOADED" ] && logger -st "$SCRIPT_TAG" "Downloaded files from netboot.xyz:$DOWNLOADED"
+        [ -n "$FAILED" ] && logger -st "$SCRIPT_TAG" "Failed to downloaded files from netboot.xyz:$FAILED"
+
+        [ -z "$FAILED" ] && sh "$SCRIPT_PATH" stop
     ;;
     "start")
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
             "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
         else
             cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        fi
+
+        if is_started_by_system; then
+            {
+                sh "$SCRIPT_PATH" run
+            } &
         fi
     ;;
     "stop")
