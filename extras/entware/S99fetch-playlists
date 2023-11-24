@@ -41,7 +41,7 @@
 #
 # Sample playlists_handlers.txt:
 # --------------------------------------
-# \.mpd$|type=mpeg handler=http
+# \.mpd$|type=mp4 handler=http
 # --------------------------------------
 #
 # Use sed extended regex syntax, test your rule with this command:
