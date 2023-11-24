@@ -33,6 +33,8 @@ LAST_ENTWARE_DEVICE=""
 [ -f "$CACHE_FILE" ] && LAST_ENTWARE_DEVICE="$(cat "$CACHE_FILE")"
 CHECK_URL="http://bin.entware.net"
 [ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
+CURL_BINARY="curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
@@ -498,6 +500,7 @@ case "$1" in
 
                     if [ -f "$TARGET_FILE" ]; then
                         echo "Warning: File $TARGET_FILE already exists, renaming..."
+                        [ -x "$TARGET_FILE" ] && chmod -x "$TARGET_FILE"
                         mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
                     fi
 
