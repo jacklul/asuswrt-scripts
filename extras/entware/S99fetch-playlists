@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Fetch playlists before xupnpd2 starts
+# Fetch playlists for use with xupnpd2
 #
 # Supports excluding by text match in EXTINF line and adding handlers
 # by REGEX match (for when the URL doesn't end with supported extension)
@@ -8,43 +8,69 @@
 # For more info about the handlers see:
 #  https://gist.github.com/WolfganP/19da4d736237c86e0c50637b1d124aaa#playlist-structure
 #
+#
+# Configuration directory: /opt/etc/fetch-playlists/
+#
 # Sample playlists.txt:
-# https://iptv-org.github.io/iptv/languages/eng.m3u
+# --------------------------------------
+# https://iptv-org.github.io/iptv/languages/eng.m3u|iptv-org.github.io/languages
+# https://iptv-org.github.io/iptv/languages/pol.m3u|iptv-org.github.io|polish.m3u
+# https://iptv-org.github.io/iptv/languages/deu.m3u
+# https://iptv-org.github.io/iptv/languages/hun.m3u||hungarian.m3u
+# --------------------------------------
+#
+# Use '|' to separate extra options in line
+# The string after first separator is subdirectory to place the playlist in
+# The string after second separator is the target file name to save playlist as
+#
 #
 # Sample playlists_exclude.txt:
-# BabyFirst.us
+# --------------------------------------
+# BabyFirst.us|polish.m3u,eng.m3u
+# AngelTVEurope.in|polish.m3u,eng.m3u
+# CNNInternationalEurope.us|polish.m3u
 # LoveNature.ca
-# AngelTVEurope.in
-# CNNInternationalEurope.us
 # FashionTVEurope.fr
+# --------------------------------------
+#
+# Use '|' to separate extra options in line
+# The string after first separator is the list of the playlists the exclusion should affect
+#
 #
 # One exact text match in EXTINF section per line
 #
-# Sample playlists_handlers.txt :
+# Sample playlists_handlers.txt:
+# --------------------------------------
 # \.mpd$|type=mpeg handler=http
+# --------------------------------------
 #
-# Use sed extended regex syntax, test it with this command:
+# Use sed extended regex syntax, test your rule with this command:
 # sed -E "/EXTINF/ {N; /YOUR_PATTERN_HERE/ s/\-1 /\-1 YOUR_CONTENT_HERE /}" "/tmp/playlist.m3u"
 #
-# You can override the cron schedule in `/opt/etc/xupnpd2/playlists.conf`
+#
+# You can override the cron schedule in `playlists.conf`
 # by setting `CRON` variable to desired schedule string
+#
+# If you wish to use this with something else than xupnpd2
+# then you have to set "MEDIA_ROOT" variable in the configuration
 #
 
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh | sed 's/S[0-9]*//')"
-readonly SCRIPT_CONFIG="/opt/etc/xupnpd2/playlists.conf"
+readonly SCRIPT_CONFIG="/opt/etc/fetch-playlists/playlists.conf"
 
-PLAYLISTS_FILE="/opt/etc/xupnpd2/playlists.txt"
-EXCLUDE_FILE="/opt/etc/xupnpd2/playlists_exclude.txt"
-HANDLERS_FILE="/opt/etc/xupnpd2/playlists_handlers.txt"
+PLAYLISTS_FILE="/opt/etc/fetch-playlists/playlists.txt"
+EXCLUDE_FILE="/opt/etc/fetch-playlists/playlists_exclude.txt"
+HANDLERS_FILE="/opt/etc/fetch-playlists/playlists_handlers.txt"
 RESCAN_PATH="scripts/scan.lua"
+MEDIA_ROOT=
 DEFAULT_HANDLER=
 CLEANUP=false
 FORCE_HTTP=false
 FORCE_HTTPS=false
-CRON="0 0 * * *"
+CRON="0 6,18 * * *"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -67,16 +93,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     return 1
 } #STARTEDBYSYSTEMFUNC_END#
 
-require_xupnpd2_config() {
-    if [ ! -f "/opt/etc/xupnpd2/xupnpd.cfg" ]; then
-        logger -st "$SCRIPT_NAME" "Configuration file not found: /opt/etc/xupnpd2/xupnpd.cfg"
-        exit 1
-    fi
-}
-
 start() {
-    require_xupnpd2_config
-
     if ! cru l | grep -q "#$SCRIPT_NAME#"; then
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH cron"
 
@@ -95,13 +112,15 @@ stop() {
 }
 
 run() {
-    require_xupnpd2_config
+    if [ -f "/opt/etc/xupnpd2/xupnpd.cfg" ]; then
+        HTTP_IP="$(nvram get lan_ipaddr)"
+        HTTP_PORT="$(grep http_port < /opt/etc/xupnpd2/xupnpd.cfg | cut -d '=' -f 2)"
+        MEDIA_ROOT="$(grep media_root < /opt/etc/xupnpd2/xupnpd.cfg | cut -d '=' -f 2)"
+    fi
 
-    HTTP_IP="$(nvram get lan_ipaddr)"
-    HTTP_PORT="$(grep http_port < /opt/etc/xupnpd2/xupnpd.cfg | cut -d '=' -f 2)"
-    MEDIA_ROOT="$(grep media_root < /opt/etc/xupnpd2/xupnpd.cfg | cut -d '=' -f 2)"
+    [ -z "$MEDIA_ROOT" ] && { logger -st "$SCRIPT_NAME" "Media root directory is not set"; exit 1; }
 
-    if [ -f "/opt/etc/xupnpd2/playlists.txt" ]; then
+    if [ -f "$PLAYLISTS_FILE" ]; then
         if [ "$FORCE_HTTP" = "true" ] && [ "$FORCE_HTTPS" = "true" ]; then
             logger -st "$SCRIPT_NAME" "You can only use either FORCE_HTTP or FORCE_HTTPS"
             exit 1
@@ -115,23 +134,39 @@ run() {
         logger -st "$SCRIPT_NAME" "Downloading playlists..."
 
         while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
-            PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")"
-            BASENAME="$(basename "$PLAYLIST")"
+            SUBDIR=""
+            FILENAME=""
 
-            echo "Downloading $PLAYLIST..."
+            if echo "$PLAYLIST" | grep -q "|"; then
+                SUBDIR="$(echo "$PLAYLIST" | cut -d '|' -f 2)"
+                FILENAME="$(echo "$PLAYLIST" | cut -d '|' -f 3)"
+                PLAYLIST="$(echo "$PLAYLIST" | cut -d '|' -f 1)"
+            fi
+
+            PLAYLIST="$(echo "$PLAYLIST" | sed -e "s/\n|\r//")"
+
+            if [ -n "$FILENAME" ]; then
+                BASENAME="$FILENAME"
+            else
+                BASENAME="$(basename "$PLAYLIST")"
+            fi
+
+            echo "Downloading: $PLAYLIST"
 
             if curl -fsSL "$PLAYLIST" -o "/tmp/$BASENAME"; then
                 [ "$FORCE_HTTP" = true ] && sed -i 's/https:/http:/' "/tmp/$BASENAME"
                 [ "$FORCE_HTTPS" = true ] && sed -i 's/http:/https:/' "/tmp/$BASENAME"
 
-                if echo "$PLAYLIST" | grep -q "iptv-org.github.io"; then
-                    SUBDIR="iptv-org.github.io/$(basename "$(dirname "$PLAYLIST")")"
+                DESTINATION="$MEDIA_ROOT/$BASENAME"
 
+                if [ -n "$SUBDIR" ]; then
                     [ ! -d "$MEDIA_ROOT/$SUBDIR" ] && mkdir -vp "$MEDIA_ROOT/$SUBDIR"
-                    mv -vf "/tmp/$BASENAME" "$MEDIA_ROOT/$SUBDIR/$BASENAME"
+                    DESTINATION="$MEDIA_ROOT/$SUBDIR/$BASENAME"
                 fi
+
+                mv -vf "/tmp/$BASENAME" "$DESTINATION"
             else
-                logger -st "$SCRIPT_NAME" "Failed to download $PLAYLIST"
+                logger -st "$SCRIPT_NAME" "Failed to download: $PLAYLIST"
             fi
         done < "$PLAYLISTS_FILE"
 
@@ -141,6 +176,13 @@ run() {
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r EXCLUSION || [ -n "$EXCLUSION" ]; do
                     [ "$(echo "$EXCLUSION" | cut -c1-1)" = "#" ] && continue
+
+                    if echo "$EXCLUSION" | grep -q "|"; then
+                        FILES="$(echo "$EXCLUSION" | cut -d '|' -f 2)"
+                        ! echo "$FILES" | grep -q "$(basename "$FILE")" && continue
+
+                        EXCLUSION="$(echo "$EXCLUSION" | cut -d '|' -f 1)"
+                    fi
 
                     EXCLUSION="$(echo "$EXCLUSION" | sed -e "s/\n|\r//")"
                     PATTERN=$(printf "%s\n" "$EXCLUSION" | sed 's/[]\/$*.^&[]/\\&/g')
@@ -179,9 +221,11 @@ run() {
             done
         fi
 
-        logger -st "$SCRIPT_NAME" "Forcing media rescan..."
+        if [ -n "$HTTP_IP" ] && [ -n "$HTTP_PORT" ] && [ -n "$RESCAN_PATH" ]; then
+            logger -st "$SCRIPT_NAME" "Forcing media rescan..."
 
-        curl -fsL "http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH" > /dev/null
+            curl -fsL "http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH" > /dev/null
+        fi
     else
         logger -st "$SCRIPT_NAME" "Playlists file not found: $PLAYLISTS_FILE"
         exit 1
