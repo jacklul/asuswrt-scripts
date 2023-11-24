@@ -64,9 +64,10 @@ readonly SCRIPT_CONFIG="/opt/etc/fetch-playlists/playlists.conf"
 PLAYLISTS_FILE="/opt/etc/fetch-playlists/playlists.txt"
 EXCLUDE_FILE="/opt/etc/fetch-playlists/playlists_exclude.txt"
 HANDLERS_FILE="/opt/etc/fetch-playlists/playlists_handlers.txt"
-RESCAN_PATH="scripts/scan.lua"
+RESCAN_URL=
 MEDIA_ROOT=
 DEFAULT_HANDLER=
+RESCAN_PATH="scripts/scan.lua"
 CLEANUP=false
 FORCE_HTTP=false
 FORCE_HTTPS=false
@@ -221,10 +222,14 @@ run() {
             done
         fi
 
-        if [ -n "$HTTP_IP" ] && [ -n "$HTTP_PORT" ] && [ -n "$RESCAN_PATH" ]; then
+        if [ -z "$RESCAN_URL" ] && [ -n "$HTTP_IP" ] && [ -n "$HTTP_PORT" ] && [ -n "$RESCAN_PATH" ]; then
+            RESCAN_URL="http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH"
+        fi
+
+        if [ -n "$RESCAN_URL" ]; then
             logger -st "$SCRIPT_NAME" "Forcing media rescan..."
 
-            curl -fsL "http://$HTTP_IP:$HTTP_PORT/$RESCAN_PATH" > /dev/null
+            curl -fsL "$RESCAN_URL" > /dev/null
         fi
     else
         logger -st "$SCRIPT_NAME" "Playlists file not found: $PLAYLISTS_FILE"
