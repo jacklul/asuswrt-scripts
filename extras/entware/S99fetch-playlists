@@ -48,6 +48,8 @@
 # sed -E "/EXTINF/ {N; /YOUR_PATTERN_HERE/ s/\-1 /\-1 YOUR_CONTENT_HERE /}" "/tmp/playlist.m3u"
 #
 #
+# You can also use comments in those .txt files (startin with #)
+#
 # You can override the cron schedule in `playlists.conf`
 # by setting `CRON` variable to desired schedule string
 #
@@ -135,6 +137,9 @@ run() {
         logger -st "$SCRIPT_NAME" "Downloading playlists..."
 
         while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
+            [ "$(echo "$PLAYLIST" | cut -c1-1)" = "#" ] && continue
+            [ -z "$PLAYLIST" ] && continue
+
             SUBDIR=""
             FILENAME=""
 
@@ -177,6 +182,7 @@ run() {
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r EXCLUSION || [ -n "$EXCLUSION" ]; do
                     [ "$(echo "$EXCLUSION" | cut -c1-1)" = "#" ] && continue
+                    [ -z "$EXCLUSION" ] && continue
 
                     if echo "$EXCLUSION" | grep -q "|"; then
                         FILES="$(echo "$EXCLUSION" | cut -d '|' -f 2)"
@@ -198,6 +204,7 @@ run() {
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r HANDLER || [ -n "$HANDLER" ]; do
                     [ "$(echo "$HANDLER" | cut -c1-1)" = "#" ] && continue
+                    [ -z "$HANDLER" ] && continue
 
                     HANDLER="$(echo "$HANDLER" | sed -e "s/\n|\r//")"
                     PATTERN="$(echo "$HANDLER" | cut -d '|' -f 1)"
