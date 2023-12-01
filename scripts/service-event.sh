@@ -195,15 +195,14 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] ||
                     [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] ||
                     [ -x "$SCRIPT_DIR/force-dns.sh" ] ||
-                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] ||
-                    [ -x "$SCRIPT_DIR/tailscale.sh" ]
+                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ]
                 then
                     if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
                             iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_FORCEDNS" -t nat > /dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat > /dev/null 2>&1 ||
+                            iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat > /dev/null 2>&1
                         } && [ "$_TIMER" -lt "60" ]; do
                             _TIMER=$((_TIMER+1))
                             sleep 1
