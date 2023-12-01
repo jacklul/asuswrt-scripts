@@ -181,6 +181,8 @@ run() {
 
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r EXCLUSION || [ -n "$EXCLUSION" ]; do
+					EXCLUSION="$(echo "$EXCLUSION" | awk '{$1=$1};1')"
+
                     [ "$(echo "$EXCLUSION" | cut -c1-1)" = "#" ] && continue
                     [ -z "$EXCLUSION" ] && continue
 
@@ -203,6 +205,8 @@ run() {
 
             find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
                 while IFS="" read -r HANDLER || [ -n "$HANDLER" ]; do
+					HANDLER="$(echo "$HANDLER" | awk '{$1=$1};1')"
+
                     [ "$(echo "$HANDLER" | cut -c1-1)" = "#" ] && continue
                     [ -z "$HANDLER" ] && continue
 
