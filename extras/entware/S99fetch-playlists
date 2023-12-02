@@ -73,6 +73,7 @@ RESCAN_PATH="scripts/scan.lua"
 CLEANUP=false
 FORCE_HTTP=false
 FORCE_HTTPS=false
+CACHE_FILE="/tmp/fetch_playlists_run"
 CRON="0 6,18 * * *"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -100,10 +101,12 @@ start() {
     if ! cru l | grep -q "#$SCRIPT_NAME#"; then
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH cron"
 
-        if is_started_by_system; then
-            sh "$SCRIPT_PATH" cron &
-        else
-            sh "$SCRIPT_PATH" cron
+        if [ ! -f "$CACHE_FILE" ]; then
+            if is_started_by_system; then
+                sh "$SCRIPT_PATH" cron &
+            else
+                sh "$SCRIPT_PATH" cron
+            fi
         fi
     else
         echo "Already started"
@@ -242,6 +245,8 @@ run() {
 
             curl -fsL "$RESCAN_URL" > /dev/null
         fi
+
+        [ ! -f "$CACHE_FILE" ] && touch "$CACHE_FILE"
     else
         logger -st "$SCRIPT_NAME" "Playlists file not found: $PLAYLISTS_FILE"
         exit 1
