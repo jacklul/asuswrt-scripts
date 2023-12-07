@@ -71,6 +71,7 @@ MEDIA_ROOT=
 DEFAULT_HANDLER=
 RESCAN_PATH="scripts/scan.lua"
 CLEANUP=false
+REMOVE_USELESS=true
 FORCE_HTTP=false
 FORCE_HTTPS=false
 CACHE_FILE="/tmp/fetch_playlists_run"
@@ -178,6 +179,14 @@ run() {
                 logger -st "$SCRIPT_NAME" "Failed to download: $PLAYLIST"
             fi
         done < "$PLAYLISTS_FILE"
+
+        if [ "$REMOVE_USELESS" = true ]; then
+            logger -st "$SCRIPT_NAME" "Removing useless lines..."
+
+            find "$MEDIA_ROOT" -type f -name "*.m3u" -o -name "*.m3u8" | while read -r FILE; do
+                sed '/^#EXTVLCOPT/d' -i "$FILE"
+            done
+        fi
 
         if [ -f "$EXCLUDE_FILE" ]; then
             logger -st "$SCRIPT_NAME" "Removing excluded entries..."
