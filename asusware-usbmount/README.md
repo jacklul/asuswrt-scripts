@@ -13,6 +13,8 @@ Known supported architecture values are `arm, mipsbig, mipsel`.
 
 _Looking at the firmware source code it looks like for `mipsel` the directory has to be called just **asusware**._
 
+**If you installed `scripts-startup.sh` script in a custom path (`/jffs/scripts-startup.sh` is the default) you will have to correct the value of `TARGET_SCRIPT` variable in `asusware.arm/etc/init.d/S50usb-mount-script` file!**
+
 ### Sometimes this workaround does not work straight away - in that case do the following:
 
 - grab another USB stick (or reformat current one)

@@ -1,18 +1,30 @@
 #!/bin/sh
 
+TARGET_SCRIPT="/jffs/scripts-startup.sh"
+
 case "$1" in
     "start")
-        SCRIPT="$(nvram get script_usbmount)"
-        if [ -n "$SCRIPT" ]; then
+        NVRAM_SCRIPT="$(nvram get script_usbmount)"
+
+        if [ -n "$NVRAM_SCRIPT" ]; then
             logger -t "$(basename "$0")" "Executing command in \"script_usbmount\"..."
-            eval "$SCRIPT"
+            eval "$NVRAM_SCRIPT"
+		else
+			if [ -x "$TARGET_SCRIPT" ]; then
+				/bin/sh "$TARGET_SCRIPT" start
+			fi
         fi
     ;;
     "stop")
-        SCRIPT="$(nvram get script_usbumount)"
-        if [ -n "$SCRIPT" ]; then
+        NVRAM_SCRIPT="$(nvram get script_usbumount)"
+
+        if [ -n "$NVRAM_SCRIPT" ]; then
             logger -t "$(basename "$0")" "Executing command in \"script_usbumount\"..."
-            eval "$SCRIPT"
+            eval "$NVRAM_SCRIPT"
+		else
+			if [ -x "$TARGET_SCRIPT" ]; then
+				/bin/sh "$TARGET_SCRIPT" stop
+			fi
         fi
     ;;
 esac
