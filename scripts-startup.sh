@@ -76,6 +76,16 @@ case "$1" in
             nvram commit
 
             echo "Set nvram variable \"script_usbmount\" to \"$NVRAM_SCRIPT\""
+
+            echo "Verifying that firmware does not unset the variable... (waiting 15 seconds before checking)"
+            sleep 15
+
+            if [ "$(nvram get script_usbmount)" = "$NVRAM_SCRIPT" ]; then
+                echo "Everything looks good!"
+            else
+                echo "Failure - firmware erased the value!"
+                echo "You will have to use a workaround - https://github.com/jacklul/asuswrt-scripts/master/asusware-usbmount"
+            fi
         fi
     ;;
     *)
