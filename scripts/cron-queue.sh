@@ -86,7 +86,7 @@ case "$1" in
 
         lockfile lockwait
 
-        sed "/#$(echo "$2" | sed 's/[]\/$*.^&[]/\\&/g')#$/d" -i "$QUEUE_FILE"
+        [ -f "$QUEUE_FILE" ] && sed "/#$(echo "$2" | sed 's/[]\/$*.^&[]/\\&/g')#$/d" -i "$QUEUE_FILE"
         [ "$1" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
 
         lockfile unlock
@@ -100,12 +100,12 @@ case "$1" in
     ;;
     "check")
         [ -z "$2" ] && { echo "Entry ID not provided"; exit 1; }
-		
-		if [ -f "$QUEUE_FILE" ]; then
-			grep -q "#$2#" "$QUEUE_FILE" && exit 0
-		fi
-		
-		exit 1
+
+        if [ -f "$QUEUE_FILE" ]; then
+            grep -q "#$2#" "$QUEUE_FILE" && exit 0
+        fi
+
+        exit 1
     ;;
     "start")
         cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
