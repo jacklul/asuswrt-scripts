@@ -19,7 +19,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 /bin/sh /jffs/scripts-startup.sh install
 ```
 
-_If you would like for it to be called differently you can rename it before running it._
+_If you would like for it to be called differently you can rename it (you can also place it different path if you wish)._
 
 Install scripts you want to use from [section below](#available-scripts).
 
