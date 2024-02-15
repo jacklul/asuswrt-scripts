@@ -9,10 +9,10 @@ case "$1" in
         if [ -n "$NVRAM_SCRIPT" ]; then
             logger -t "$(basename "$0")" "Executing command in \"script_usbmount\"..."
             eval "$NVRAM_SCRIPT"
-		else
-			if [ -x "$TARGET_SCRIPT" ]; then
-				/bin/sh "$TARGET_SCRIPT" start
-			fi
+        else
+            if [ -x "$TARGET_SCRIPT" ]; then
+                /bin/sh "$TARGET_SCRIPT" start
+            fi
         fi
     ;;
     "stop")
@@ -21,10 +21,10 @@ case "$1" in
         if [ -n "$NVRAM_SCRIPT" ]; then
             logger -t "$(basename "$0")" "Executing command in \"script_usbumount\"..."
             eval "$NVRAM_SCRIPT"
-		else
-			if [ -x "$TARGET_SCRIPT" ]; then
-				/bin/sh "$TARGET_SCRIPT" stop
-			fi
+        else
+            if [ -x "$TARGET_SCRIPT" ]; then
+                /bin/sh "$TARGET_SCRIPT" stop
+            fi
         fi
     ;;
 esac
