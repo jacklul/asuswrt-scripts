@@ -233,8 +233,12 @@ entware() {
         "stop")
             services stop
 
-            if is_entware_mounted && ! umount /opt; then
-                logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
+            if is_entware_mounted; then
+                if umount /opt; then
+                    logger -st "$SCRIPT_TAG" "Unmounted /opt"
+                else
+                    logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
+                fi
             fi
 
             echo "" > "$CACHE_FILE"
