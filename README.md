@@ -100,24 +100,45 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script implements [Custom config files from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to use custom config files for certain services.
 
-**Supported config files:**
+
+<details>
+<summary>Supported config files</summary>
+
 - profile (profile.add only)
 - hosts
 - avahi-daemon.conf
 - dnsmasq.conf
+- igmpproxy.conf
 - minidlna.conf
 - mt-daapd.conf
+- pptpd.conf
 - smb.conf
+- snmpd.conf
+- stubby.yml (stubby.yml.add only)
 - vsftpd.conf
+- upnp config
 
-**Supported postconf scripts:**
+</details>
+
+<details>
+<summary>Supported postconf scripts</summary>
+
 - hosts.postconf
 - avahi-daemon.postconf
 - dnsmasq.postconf
+- igmpproxy.postconf
 - minidlna.postconf
 - mt-daapd.postconf
+- pptpd.postconf
 - smb.postconf
+- snmpd.postconf
+- stubby.postconf
 - vsftpd.postconf
+- upnp.postconf
+
+</details>
+
+<br>
 
 **Keep in mind that for **postconf scripts** you have to reference `.new` in the file name instead (for example `/etc/smb.conf.new`), the correct file path will be passed as an argument to the script.**
 
