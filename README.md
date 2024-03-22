@@ -266,6 +266,8 @@ This script modifies some web UI elements.
 - show connect QR code on guest network edit screen and hide the passwords on the main screen
 - add `notrendmicro` rc_support option that hides all Trend Micro services, **Speed Test** will be moved to **Network Tools** menu (to be used with [`modify-features.sh`](#user-content-modify-featuressh))
 
+**Tested only with English language!**
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
 ```
