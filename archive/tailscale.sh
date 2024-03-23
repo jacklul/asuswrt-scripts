@@ -37,7 +37,7 @@ FOR_IPTABLES="iptables"
 
 [ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
 
-lockfile() { #LOCKFUNC_START#
+lockfile() {
     _LOCKFILE="/tmp/$SCRIPT_NAME.lock"
 
     case "$1" in
@@ -76,11 +76,11 @@ lockfile() { #LOCKFUNC_START#
 
                 rm -f "$_LOCKFILE"
             fi
-            
+
             trap - EXIT
         ;;
     esac
-} #LOCKFUNC_END#
+}
 
 firewall_rules() {
     [ -z "$INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Tailscale interface is not set"; exit 1; }

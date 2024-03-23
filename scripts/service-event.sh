@@ -38,10 +38,13 @@ fi
 
 [ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
 
+LOCK_FD=506
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
     _FD=9
+
+    [ -n "$LOCK_FD" ] && _FD=$LOCK_FD
 
     if [ -n "$2" ]; then
         _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
@@ -310,7 +313,7 @@ EOT
             else
                 cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
             fi
-            
+
             echo "Will launch in the next minute by cron..."
         fi
     ;;
