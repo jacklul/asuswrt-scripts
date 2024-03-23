@@ -273,7 +273,7 @@ case "$1" in
                         fi
                     fi
 
-                    "$SCRIPT_DIR/modify-features.sh" run &
+                    sh "$SCRIPT_DIR/modify-features.sh" run &
                 fi
             ;;
             "usb_idle")
