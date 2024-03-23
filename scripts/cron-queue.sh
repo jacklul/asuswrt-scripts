@@ -23,7 +23,7 @@ LOCK_FD=501 # and 601
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=9
+    _FD=100
 
     [ -n "$LOCK_FD" ] && _FD=$LOCK_FD
 
