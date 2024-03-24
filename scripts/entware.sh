@@ -258,7 +258,7 @@ case "$1" in
 
                 nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
             else
-                lockfile lockfail "inram" 101 || { echo "Already running! ($_LOCKPID)"; exit 1; }
+                lockfile lockfail inram 101 || { echo "Already running! ($_LOCKPID)"; exit 1; }
 
                 LIMIT="$WAIT_LIMIT"
                 while true; do
@@ -272,7 +272,7 @@ case "$1" in
                 done
                 [ "$LIMIT" -le "0" ] && logger -st "$SCRIPT_TAG" "Failed to start Entware installation (tried for $WAIT_LIMIT minutes) - network connection could not be established"
 
-                lockfile unlock "inram" 101
+                lockfile unlock inram 101
             fi
 
             exit
@@ -341,7 +341,7 @@ case "$1" in
         cru d "$SCRIPT_NAME"
 
         entware stop
-        lockfile kill "inram" 101
+        lockfile kill inram 101
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
