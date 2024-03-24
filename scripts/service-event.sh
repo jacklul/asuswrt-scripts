@@ -209,10 +209,10 @@ case "$1" in
                         done
                     fi
 
-                    [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] && "$SCRIPT_DIR/vpn-killswitch.sh" run &
-                    [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && "$SCRIPT_DIR/wgs-lanonly.sh" run &
-                    [ -x "$SCRIPT_DIR/force-dns.sh" ] && "$SCRIPT_DIR/force-dns.sh" run &
-                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && "$SCRIPT_DIR/samba-masquerade.sh" run &
+                    [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] && sh "$SCRIPT_DIR/vpn-killswitch.sh" run &
+                    [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && sh "$SCRIPT_DIR/wgs-lanonly.sh" run &
+                    [ -x "$SCRIPT_DIR/force-dns.sh" ] && sh "$SCRIPT_DIR/force-dns.sh" run &
+                    [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && sh "$SCRIPT_DIR/samba-masquerade.sh" run &
 
                     sh "$SCRIPT_PATH" event restart custom_configs &
                 fi
@@ -240,8 +240,8 @@ case "$1" in
                         done
                     fi
 
-                    [ -x "$SCRIPT_DIR/usb-network.sh" ] && "$SCRIPT_DIR/usb-network.sh" run &
-                    [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && "$SCRIPT_DIR/dynamic-dns.sh" run &
+                    [ -x "$SCRIPT_DIR/usb-network.sh" ] && sh "$SCRIPT_DIR/usb-network.sh" run &
+                    [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && sh "$SCRIPT_DIR/dynamic-dns.sh" run &
                 fi
 
                 # most of these also restart firewall so execute that too just in case
@@ -253,7 +253,7 @@ case "$1" in
             ;;
             "wireless")
                 # probably a good idea to run this just in case
-                [ -x "$SCRIPT_DIR/disable-wps.sh" ] && "$SCRIPT_DIR/disable-wps.sh" run &
+                [ -x "$SCRIPT_DIR/disable-wps.sh" ] && sh "$SCRIPT_DIR/disable-wps.sh" run &
 
                 # this service event recreates rc_support so we have to re-run this script
                 if [ -x "$SCRIPT_DIR/modify-features.sh" ]; then
@@ -275,10 +275,10 @@ case "$1" in
             ;;
             "usb_idle")
                 # re-run in case script exited due to USB idle being set and now it has been disabled
-                [ -x "$SCRIPT_DIR/swap.sh" ] && "$SCRIPT_DIR/swap.sh" run &
+                [ -x "$SCRIPT_DIR/swap.sh" ] && sh "$SCRIPT_DIR/swap.sh" run &
             ;;
             "custom_configs"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd")
-                [ -x "$SCRIPT_DIR/custom-configs.sh" ] && { sleep 1 && "$SCRIPT_DIR/custom-configs.sh" run; } &
+                [ -x "$SCRIPT_DIR/custom-configs.sh" ] && { sleep 1 && sh "$SCRIPT_DIR/custom-configs.sh" run; } &
             ;;
         esac
 
