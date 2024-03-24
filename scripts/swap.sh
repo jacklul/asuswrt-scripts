@@ -92,7 +92,7 @@ case "$1" in
         if [ "$(nvram get usb_idle_enable)" != "0" ]; then
             logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
 
-            [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
+            [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
             cru d "$SCRIPT_NAME"
         else
             if ! grep -q "file" /proc/swaps; then
@@ -131,7 +131,7 @@ case "$1" in
     ;;
     "start")
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
         else
             cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
         fi
@@ -139,7 +139,7 @@ case "$1" in
         sh "$SCRIPT_PATH" run
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         if [ -n "$SWAP_FILE" ]; then

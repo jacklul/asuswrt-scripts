@@ -45,7 +45,7 @@ case "$1" in
         fi
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
     ;;
     "restart")

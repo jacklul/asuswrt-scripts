@@ -14,12 +14,12 @@ if [ ! -f "/usr/sbin/helper.sh" ]; then
             [ -n "$(nvram get wan0_pppoe_ifname)" ] && WAN_INTERFACE="$(nvram get wan0_pppoe_ifname)"
 
             # emulate firewall-start and nat-start
-            [ -x "/jffs/scripts/firewall-start" ] && /jffs/scripts/firewall-start "$WAN_INTERFACE" &
-            [ -x "/jffs/scripts/nat-start" ] && /jffs/scripts/nat-start "$WAN_INTERFACE" &
+            [ -x "/jffs/scripts/firewall-start" ] && sh /jffs/scripts/firewall-start "$WAN_INTERFACE" &
+            [ -x "/jffs/scripts/nat-start" ] && sh /jffs/scripts/nat-start "$WAN_INTERFACE" &
         ;;
     esac
 
     # emulate service-event and service-event-end
-    [ -x "/jffs/scripts/service-event" ] && /jffs/scripts/service-event "$1" "$2" &
-    [ -x "/jffs/scripts/service-event-end" ] && /jffs/scripts/service-event-end "$1" "$2" &
+    [ -x "/jffs/scripts/service-event" ] && sh /jffs/scripts/service-event "$1" "$2" &
+    [ -x "/jffs/scripts/service-event-end" ] && sh /jffs/scripts/service-event-end "$1" "$2" &
 fi

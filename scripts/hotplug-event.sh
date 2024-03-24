@@ -136,11 +136,11 @@ case "$1" in
         # $2 = subsystem, $3 = action
         case "$2" in
             "block")
-                [ -x "$SCRIPT_DIR/usb-mount.sh" ] && "$SCRIPT_DIR/usb-mount.sh" hotplug
-                [ -x "$SCRIPT_DIR/entware.sh" ] && "$SCRIPT_DIR/entware.sh" hotplug
+                [ -x "$SCRIPT_DIR/usb-mount.sh" ] && sh "$SCRIPT_DIR/usb-mount.sh" hotplug
+                [ -x "$SCRIPT_DIR/entware.sh" ] && sh "$SCRIPT_DIR/entware.sh" hotplug
             ;;
             "net")
-                [ -x "$SCRIPT_DIR/usb-network.sh" ] && "$SCRIPT_DIR/usb-network.sh" hotplug
+                [ -x "$SCRIPT_DIR/usb-network.sh" ] && sh"$SCRIPT_DIR/usb-network.sh" hotplug
             ;;
             "misc")
                 # empty for now
@@ -151,7 +151,7 @@ case "$1" in
     ;;
     "start")
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
         else
             cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
         fi
@@ -159,7 +159,7 @@ case "$1" in
         hotplug_config modify
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
+        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         hotplug_config restore
