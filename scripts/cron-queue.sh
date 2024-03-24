@@ -76,7 +76,7 @@ case "$1" in
         lockfile lockwait run 101
 
         #shellcheck disable=SC1090
-        . "$QUEUE_FILE"
+        sh "$QUEUE_FILE"
 
         lockfile unlock run 101
     ;;
