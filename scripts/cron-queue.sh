@@ -19,13 +19,10 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-LOCK_FD=501 # and 601
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
     _FD=100
-
-    [ -n "$LOCK_FD" ] && _FD=$LOCK_FD
 
     if [ -n "$2" ]; then
         _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
@@ -76,12 +73,12 @@ lockfile() { #LOCKFILE_START#
 
 case "$1" in
     "run")
-        lockfile lockwait run 601
+        lockfile lockwait run 101
 
         #shellcheck disable=SC1090
         . "$QUEUE_FILE"
 
-        lockfile unlock run 601
+        lockfile unlock run 101
     ;;
     "add"|"remove"|"delete")
         [ -z "$2" ] && { echo "Entry ID not set"; exit 1; }

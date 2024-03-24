@@ -37,13 +37,10 @@ CURL_BINARY="curl"
 [ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
 
-LOCK_FD=502 # and 602
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
     _FD=100
-
-    [ -n "$LOCK_FD" ] && _FD=$LOCK_FD
 
     if [ -n "$2" ]; then
         _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
@@ -261,7 +258,7 @@ case "$1" in
 
                 nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
             else
-                lockfile lockfail "inram" 602 || { echo "Already running! ($_LOCKPID)"; exit 1; }
+                lockfile lockfail "inram" 101 || { echo "Already running! ($_LOCKPID)"; exit 1; }
 
                 LIMIT="$WAIT_LIMIT"
                 while true; do
@@ -275,7 +272,7 @@ case "$1" in
                 done
                 [ "$LIMIT" -le "0" ] && logger -st "$SCRIPT_TAG" "Failed to start Entware installation (tried for $WAIT_LIMIT minutes) - network connection could not be established"
 
-                lockfile unlock "inram" 602
+                lockfile unlock "inram" 101
             fi
 
             exit
@@ -344,7 +341,7 @@ case "$1" in
         cru d "$SCRIPT_NAME"
 
         entware stop
-        lockfile kill "inram" 602
+        lockfile kill "inram" 101
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
