@@ -84,7 +84,7 @@ case "$1" in
                 echo "Everything looks good!"
             else
                 echo "Failure - firmware erased the value!"
-                echo "You will have to use a workaround - https://github.com/jacklul/asuswrt-scripts/master/asusware-usbmount"
+                echo "You will have to use a workaround - https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount"
             fi
         fi
     ;;
