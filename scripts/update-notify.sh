@@ -55,7 +55,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     done
 
     return 1
-} #STARTEDBYSYSTEMFUNC_END#
+} #ISSTARTEDBYSYSTEM_END#
 
 send_email_message() {
     cat <<EOT > /tmp/mail.eml

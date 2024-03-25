@@ -101,7 +101,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     done
 
     return 1
-} #STARTEDBYSYSTEMFUNC_END#
+} #ISSTARTEDBYSYSTEM_END#
 
 is_entware_mounted() {
     if mount | grep -q "on /opt "; then

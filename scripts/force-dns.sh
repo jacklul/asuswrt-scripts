@@ -67,7 +67,6 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
     fi
 fi
 
-
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"

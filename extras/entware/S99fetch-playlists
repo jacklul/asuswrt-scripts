@@ -96,7 +96,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     done
 
     return 1
-} #STARTEDBYSYSTEMFUNC_END#
+} #ISSTARTEDBYSYSTEM_END#
 
 start() {
     if ! cru l | grep -q "#$SCRIPT_NAME#"; then

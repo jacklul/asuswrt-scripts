@@ -19,7 +19,7 @@ _Looking at the firmware source code it looks like for `mipsel` the directory ha
 
 - grab another USB stick (or reformat current one)
 - plug it into the router (it has to be the only one plugged in)
-- install Download Master 
+- install Download Master
 - unplug it and plug back the "workaround" one - everything should be working now
 
 I'm yet to discover how to avoid this, perhaps it has something to do with `apps_` variables.

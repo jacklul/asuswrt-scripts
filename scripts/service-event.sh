@@ -102,7 +102,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     done
 
     return 1
-} #STARTEDBYSYSTEMFUNC_END#
+} #ISSTARTEDBYSYSTEM_END#
 
 service_monitor() {
     lockfile lockfail || { echo "Already running! ($_LOCKPID)"; exit 1; }

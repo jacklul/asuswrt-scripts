@@ -40,7 +40,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     done
 
     return 1
-} #STARTEDBYSYSTEMFUNC_END#
+} #ISSTARTEDBYSYSTEM_END#
 
 case "$1" in
     "run")
