@@ -42,19 +42,22 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
+            if [ -f "/proc/$$/fd/$_FD" ]; then
+                echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
+                exit 1
+            fi
+
             eval exec "$_FD>$_LOCKFILE"
 
             case "$1" in
-                "lockwait"|"lock")
+                "lockwait")
                     flock -x "$_FD"
                 ;;
                 "lockfail")
-                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 1
-                    flock -x "$_FD"
+                    flock -nx "$_FD" || return 1
                 ;;
                 "lockexit")
-                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && exit 1
-                    flock -x "$_FD"
+                    flock -nx "$_FD" || exit 1
                 ;;
             esac
 
