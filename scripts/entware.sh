@@ -36,7 +36,6 @@ CHECK_URL="http://bin.entware.net"
 CURL_BINARY="curl"
 [ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
 
-
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
     _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
