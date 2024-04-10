@@ -34,6 +34,8 @@ FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIR
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
+VERIFY_DNS=false # verify that the DNS server is working before applying
+VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -295,26 +297,32 @@ firewall_rules() {
         "add")
             if ! rules_exist "$DNS_SERVER"; then
                 iptables_chains remove
-                iptables_chains add
-                iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
 
-                _DNS_SERVER="$DNS_SERVER"
-                [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
+                if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$DNS_SERVER" >/dev/null 2>&1; then
+                    iptables_chains add
+                    iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
 
-                logger -st "$SCRIPT_TAG" "Forcing DNS server(s): ${_DNS_SERVER}"
+                    _DNS_SERVER="$DNS_SERVER"
+                    [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
+
+                    logger -st "$SCRIPT_TAG" "Forcing DNS server(s): ${_DNS_SERVER}"
+                fi
             fi
         ;;
         "remove")
             if [ -n "$FALLBACK_DNS_SERVER" ]; then
                 if ! rules_exist "$FALLBACK_DNS_SERVER"; then
                     iptables_chains remove
-                    iptables_chains add
-                    iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
 
-                    _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
-                    [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
+                    if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" >/dev/null 2>&1; then
+                        iptables_chains add
+                        iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
 
-                    logger -st "$SCRIPT_TAG" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                        _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
+                        [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
+
+                        logger -st "$SCRIPT_TAG" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                    fi
                 fi
             else
                 iptables_chains remove
