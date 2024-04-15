@@ -75,16 +75,16 @@ foreach ($FILES as $FILE) {
     echo 'Processing ' . $FILE . '...';
 
     $FILE_CONTENTS = file_get_contents($FILE);
-    $NEW_FILE_CONTENTS = '';
+    $NEW_FILE_CONTENTS = $FILE_CONTENTS;
 
     foreach ($IDENTIFIERS as $IDENTIFIER) {
         if (strpos($FILE_CONTENTS, '#' . $IDENTIFIER . '_START#') == false)
             continue;
 
-        $NEW_FILE_CONTENTS = replace_between($FILE_CONTENTS, '#' . $IDENTIFIER . '_START#', '#' . $IDENTIFIER . '_END#', $SOURCES[$IDENTIFIER]);
+        $NEW_FILE_CONTENTS = replace_between($NEW_FILE_CONTENTS, '#' . $IDENTIFIER . '_START#', '#' . $IDENTIFIER . '_END#', $SOURCES[$IDENTIFIER]);
     }
 
-    if (strlen($NEW_FILE_CONTENTS) > 0 && $NEW_FILE_CONTENTS != $FILE_CONTENTS) {
+    if ($NEW_FILE_CONTENTS != $FILE_CONTENTS) {
         echo ' modified!' . PHP_EOL;
         file_put_contents($FILE, $NEW_FILE_CONTENTS);
     } else {

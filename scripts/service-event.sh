@@ -50,24 +50,32 @@ lockfile() { #LOCKFILE_START#
 
     [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3"
 
+    [ ! -d /var/lock ] && mkdir -p /var/lock
+    [ ! -d /var/run ] && mkdir -p /var/run
+
     _LOCKPID=
     [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
+            while [ -f "/proc/$$/fd/$_FD" ]; do
+                echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
+                _FD=$((_FD+1))
+
+                [ "$_FD" -gt "200" ] && exit 1
+            done
+
             eval exec "$_FD>$_LOCKFILE"
 
             case "$1" in
-                "lockwait"|"lock")
+                "lockwait")
                     flock -x "$_FD"
                 ;;
                 "lockfail")
-                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 1
-                    flock -x "$_FD"
+                    flock -nx "$_FD" || return 1
                 ;;
                 "lockexit")
-                    [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && exit 1
-                    flock -x "$_FD"
+                    flock -nx "$_FD" || exit 1
                 ;;
             esac
 
