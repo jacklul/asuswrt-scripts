@@ -2,11 +2,12 @@
 
 This uses known `script_usbmount` NVRAM variable to run "startup" script on USB mount event that starts things out.
 
-Obviously this requires some kind of USB storage plugged into the router for this to work, you don't need it on Asuswrt-Merlin though - just start the scripts from [services-start script](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start).
+Obviously this requires some kind of USB storage plugged into the router for this to work but you don't need it on Asuswrt-Merlin though - just start the scripts directly from [services-start script](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start).
 
 **If your router is not executing commands from `script_usbmount` NVRAM variable on USB mount - [look here](/asusware-usbmount) for a workaround.**
 
-Everything here was tested on **RT-AX58U v2** on official **388.2** firmware (**3.0.0.4.388.22525** to be precise), there is no guarantee that everything will work on non-AX routers and on lower firmware ones. Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
+Everything here was tested on **RT-AX58U v2** on official **388.2** firmware - there is no guarantee that everything will work on non-AX routers and on lower firmware.  
+Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
 
 **A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki), big thanks to everyone who made those contributions to the community.**
 
@@ -62,7 +63,8 @@ Install scripts you want to use from [section below](#available-scripts).
 </tr>
 </table>
 
-You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `conditional-reboot.conf`).
+You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `conditional-reboot.conf`).  
+**Configuration variables are defined on top of each script.**
 
 Remember to mark the scripts as executable after installing, you can do it in one command like this:
 ```sh
@@ -85,7 +87,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`cron-queue.sh`](/scripts/cron-queue.sh)
 
-When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and ping spike on some devices).
+When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).
 This script will run all "every minute" tasks synchronously which will reduce the CPU load in exchange for task execution delays.
 
 All scripts from this repository integrate with this script and will use it instead of `cru` when it's available.
@@ -154,9 +156,11 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`disable-diag.sh`](/scripts/disable-diag.sh)
 
-This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes to hog the CPU.
+This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes to hog the CPU sometimes.
 
-No idea what `conn_diag` is itself, some kind of diagnostics utility.
+No idea what `conn_diag` is itself, some kind of diagnostics utility...?
+
+**Do not install this script if you don't have mentioned CPU usage issue.**
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-diag.sh" -o /jffs/scripts/disable-diag.sh
@@ -168,7 +172,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script does exactly what you would expect - makes sure WPS stays disabled.
 
-By default, runs check <ins>at boot and at 00:00</ins>, when `service-event.sh` is used also <ins>runs every time wireless is restarted</ins>.
+By default, runs check <ins>at boot and at 00:00</ins>, and when `service-event.sh` is used it also <ins>runs every time wireless is restarted</ins>.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
