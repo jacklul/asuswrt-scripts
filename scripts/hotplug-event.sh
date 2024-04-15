@@ -143,7 +143,7 @@ case "$1" in
                 [ -x "$SCRIPT_DIR/entware.sh" ] && sh "$SCRIPT_DIR/entware.sh" hotplug
             ;;
             "net")
-                [ -x "$SCRIPT_DIR/usb-network.sh" ] && sh"$SCRIPT_DIR/usb-network.sh" hotplug
+                [ -x "$SCRIPT_DIR/usb-network.sh" ] && sh "$SCRIPT_DIR/usb-network.sh" hotplug
             ;;
             "misc")
                 # empty for now
