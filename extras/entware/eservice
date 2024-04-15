@@ -1,4 +1,8 @@
 #!/bin/sh
+# /opt/bin/eservice
+# This is a small helper script that makes
+# executing Entware's init.d scripts easier
+# Example: eservice dnsmasq restart
 
 SERVICE="$1"
 ACTION="$2"
@@ -9,7 +13,7 @@ CALLER="$(basename "$0" .sh)"
 for FILE in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
     FILE_CHECK="$(basename "$FILE")"
     MAX=4
-    while [ "$MAX" -gt "0" ]; do
+    while [ "$MAX" -gt 0 ]; do
         FILE_CHECK="$(echo "$FILE_CHECK" | cut -c2-)"
 
         if [ "$FILE_CHECK" = "$SERVICE" ]; then
