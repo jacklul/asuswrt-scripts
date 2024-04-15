@@ -207,7 +207,9 @@ entware_in_ram() {
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
             logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
 
-            if ! sh "$SCRIPT_PATH" install /tmp > /tmp/entware-install.log 2>&1; then
+            echo "---------- Installation started at $(date) ----------" >> /tmp/entware-install.log
+            
+            if ! sh "$SCRIPT_PATH" install /tmp >> /tmp/entware-install.log 2>&1; then
                 logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
 
                 [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
@@ -260,7 +262,7 @@ entware() {
 case "$1" in
     "run")
         if [ -n "$IN_RAM" ]; then
-            if is_started_by_system && [ "$2" != "nohup" ]; then
+            if is_started_by_system && [ "$2" != "nohup" ]; then # run in background when started by system (to no block scripts-startup.sh for example)
                 lockfile check && exit
 
                 nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
