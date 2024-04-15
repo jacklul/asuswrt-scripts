@@ -269,7 +269,7 @@ case "$1" in
 
                     sleep 60
                 done
-                [ "$LIMIT" -le "0" ] && logger -st "$SCRIPT_TAG" "Failed to start Entware installation (tried for $WAIT_LIMIT minutes) - network connection could not be established"
+                [ "$LIMIT" -le "0" ] && [ "$WAIT_LIMIT" != "0" ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
 
                 lockfile unlock inram 101
             fi
@@ -381,7 +381,7 @@ case "$1" in
                 "armv7l")
                     ARCHITECTURE="armv7sf-k2.6"
 
-                    if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt 2 ]; then
+                    if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt "2" ]; then
                         ARCHITECTURE="armv7sf-k3.2"
                     fi
                 ;;
