@@ -87,7 +87,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`cron-queue.sh`](/scripts/cron-queue.sh)
 
-When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).
+When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).  
 This script will run all "every minute" tasks synchronously which will reduce the CPU load in exchange for task execution delays.
 
 All scripts from this repository integrate with this script and will use it instead of `cru` when it's available.
@@ -357,7 +357,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
-This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event. [Example custom script](/extras/service-script.sh) that can be used with this script.
+This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.  
+[Example custom script](/extras/service-script.sh) that can be used with this script.
 
 By default, integrates with all scripts (when required) present in this repository.
 
