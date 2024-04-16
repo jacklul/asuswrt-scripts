@@ -315,13 +315,11 @@ EOT
                 echo "$SCRIPT_PATH event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
             fi
         else
-            #if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            #    sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-            #else
-            #    cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
-            #fi
-
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
 
             echo "Will launch in the next minute by cron..."
         fi
