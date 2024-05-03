@@ -106,37 +106,45 @@ This script implements [Custom config files from Merlin firmware](https://github
 <details>
 <summary>Supported config files</summary>
 
-- profile (profile.add only)
-- hosts
 - avahi-daemon.conf
 - dnsmasq.conf
+- hosts
 - igmpproxy.conf
+- mcpd.conf
 - minidlna.conf
 - mt-daapd.conf
 - pptpd.conf
+- profile (profile.add only)
+- ripd.conf
 - smb.conf
 - snmpd.conf
 - stubby.yml (stubby.yml.add only)
+- torrc
 - vsftpd.conf
-- upnp config
+- upnp
+- zebra.conf
 
 </details>
 
 <details>
 <summary>Supported postconf scripts</summary>
 
-- hosts.postconf
 - avahi-daemon.postconf
 - dnsmasq.postconf
+- hosts.postconf
 - igmpproxy.postconf
+- mcpd.postconf
 - minidlna.postconf
 - mt-daapd.postconf
 - pptpd.postconf
+- ripd.postconf
 - smb.postconf
 - snmpd.postconf
 - stubby.postconf
+- torrc.postconf
 - vsftpd.postconf
 - upnp.postconf
+- zebra.postconf
 
 </details>
 
