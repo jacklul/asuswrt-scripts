@@ -1,28 +1,29 @@
 # Custom scripts for AsusWRT
 
-This uses known `script_usbmount` NVRAM variable to run "startup" script on USB mount event that starts things out.
+This is a collection of custom scripts for AsusWRT firmware that can be used to enhance your router's functionality.
 
-Obviously this requires some kind of USB storage plugged into the router for this to work but you don't need it on Asuswrt-Merlin though - just start the scripts directly from [services-start script](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start).
+Most of the scripts were tested on **RT-AX58U v2** running official **388.2** firmware - there is no guarantee that everything will work on non-AX routers and on lower versions of the firmware.
 
-**If your router is not executing commands from `script_usbmount` NVRAM variable on USB mount - [look here](/asusware-usbmount) for a workaround.**
+Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
 
-Everything here was tested on **RT-AX58U v2** on official **388.2** firmware - there is no guarantee that everything will work on non-AX routers and on lower firmware.  
-Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources.
-
-**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki), big thanks to everyone who made those contributions to the community.**
+**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki), big thanks to everyone who made contributions to the community.**
 
 ## Installation
 
-Install startup script:
+**You need a router with USB port when using official firmware to be able to start the scripts, use [services-start](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start) on Asuswrt-Merlin.**
+
+Before proceeding, you should check if your router is executing commands from `script_usbmount` NVRAM variable on USB mount events.  
+You can do this by running `set script_usbmount="/bin/touch /tmp/yesitworks" && nvram commit` and then plugging in any USB storage.  
+If you can't see `/tmp/yesitworks` file then you will have to use a workaround - [look here](/asusware-usbmount).
+
+### Install startup script using these commands:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts-startup.sh" -o /jffs/scripts-startup.sh
 /bin/sh /jffs/scripts-startup.sh install
 ```
 
-_If you would like for it to be called differently you can rename it (you can also place it different path if you wish)._
-
-Install scripts you want to use from [section below](#available-scripts).
+**Then you can proceed to install scripts that you want to use from the [section below](#available-scripts).**
 
 # Available scripts
 
@@ -64,12 +65,9 @@ Install scripts you want to use from [section below](#available-scripts).
 </table>
 
 You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `conditional-reboot.conf`).  
-**Configuration variables are defined on top of each script.**
+**Configuration variables are defined on top of each script - peak into the script to see what's available to change.**
 
-Remember to mark the scripts as executable after installing, you can do it in one command like this:
-```sh
-chmod +x /jffs/scripts/*.sh
-```
+Remember to mark the scripts as executable after installing, you can use `chmod +x /jffs/scripts/*.sh` to do it in one go.
 
 ---
 
@@ -165,8 +163,6 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`disable-diag.sh`](/scripts/disable-diag.sh)
 
 This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes to hog the CPU sometimes.
-
-No idea what `conn_diag` is itself, some kind of diagnostics utility...?
 
 **Do not install this script if you don't have mentioned CPU usage issue.**
 
@@ -264,7 +260,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`led-control.sh`](/scripts/led-control.sh)
 
-**Warning: this script is not complete and will probably not work on stock firmware (should work on Merlin), see note in the script.**
+**Warning: this script is not complete and will probably not work on the official firmware (should work on Merlin), see note in the script.**
 
 This script implements [scheduled LED control from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control).
 
@@ -323,7 +319,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`process-killer.sh`](/scripts/process-killer.sh)
 
-This script can kill processes by their names, unfortunately on stock most of them will restart, there is an attempt to prevent that in that script but it is not guaranteed to work.
+This script can kill processes by their names, unfortunately on the official firmware most of them will restart, there is an attempt to prevent that in that script but it is not guaranteed to work.
 
 **Use this script at your own risk.**
 
@@ -460,7 +456,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script will prevent your LAN from accessing the internet through the WAN interface.
 
-There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avoid this on stock firmware.
+There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avoid this on the official firmware.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -479,3 +475,5 @@ _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/wgs-lanonly.sh" -o /jffs/scripts/wgs-lanonly.sh
 ```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
