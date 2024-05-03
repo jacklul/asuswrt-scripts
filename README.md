@@ -309,6 +309,25 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 
 This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
 
+<details>
+<summary>Example dnsmasq.conf.add</summary>
+
+```
+dhcp-option=66,192.168.1.1
+enable-tftp
+tftp-no-fail
+tftp-root=/tmp/netboot.xyz
+dhcp-match=set:bios,option:client-arch,0
+dhcp-boot=tag:bios,netboot.xyz.kpxe,,192.168.1.1
+dhcp-boot=tag:!bios,netboot.xyz.efi,,192.168.1.1
+```
+
+Replace `192.168.1.1` with your router's IP address.
+
+</details>
+
+<br>
+
 **You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
 
 ```sh
