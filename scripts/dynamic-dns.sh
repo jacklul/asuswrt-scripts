@@ -7,7 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services
 #
 
-# jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

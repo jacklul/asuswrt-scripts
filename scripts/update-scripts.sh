@@ -6,7 +6,7 @@
 # For security and reliability reasons this cannot be run at boot
 #
 
-# jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -68,8 +68,7 @@ if [ -z "$1" ] || [ "$1" = "run" ]; then
         BASENAME="$(basename "$ENTRY")"
 
         [ "$ENTRY" = "$SCRIPT_PATH" ] && continue
-        ! grep -q "\$SCRIPT_DIR/\$SCRIPT_NAME\|jacklul-asuswrt-scripts-update" "$ENTRY" && continue
-        grep -q "SCRIPT[_]ARCHIVED=true" "$ENTRY" && continue
+        ! grep -q "jacklul-asuswrt-scripts-update" "$ENTRY" && continue
 
         echo "Processing '$ENTRY'..."
 

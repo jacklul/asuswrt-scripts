@@ -10,7 +10,7 @@
 # This script will probably not fully work on stock as each device controls LED differently - would require to reverse engineer Merlin's compiled binaries!
 #
 
-# jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
