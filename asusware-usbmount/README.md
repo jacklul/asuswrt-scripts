@@ -2,17 +2,19 @@
 
 Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
 
-If your router's architecture is not ARM you will have to replace it with the correct one in these files:
-- **asusware.arm/lib/ipkg/status**
-- **asusware.arm/lib/info/usb-mount-script.control**
-- **asusware.arm/lib/lists/optware.asus**
+> [!IMPORTANT]
+> If your router's architecture is not ARM you will have to replace it with the > correct one in these files:
+> - **asusware.arm/lib/ipkg/status**
+> - **asusware.arm/lib/info/usb-mount-script.control**
+> - **asusware.arm/lib/lists/optware.asus**
+> 
+> You will also need to rename **asusware.arm** directory to contain the new > architecture suffix.
+> 
+> Known supported architecture values are `arm, mipsbig, mipsel`.  
+> For `mipsel` the directory has to be called just **asusware**.
 
-You will also need to rename **asusware.arm** directory to contain the new architecture suffix.
-
-Known supported architecture values are `arm, mipsbig, mipsel`.  
-For `mipsel` the directory has to be called just **asusware**.
-
-**If you installed `scripts-startup.sh` script in a custom path (`/jffs/scripts-startup.sh` is the default) you will have to correct the value of `TARGET_SCRIPT` variable in `asusware.arm/etc/init.d/S50usb-mount-script` file!**
+> [!WARNING]
+> If you installed `scripts-startup.sh` script in a custom path (`/jffs/scripts-startup.sh` is the default) you will have to correct the value of `TARGET_SCRIPT` variable in `asusware.arm/etc/init.d/S50usb-mount-script` file!
 
 ### Sometimes this workaround does not work straight away - in that case do the following:
 

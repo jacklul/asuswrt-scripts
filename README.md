@@ -10,20 +10,31 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** s
 
 ## Installation
 
-**You need a router with USB port when using official firmware to be able to start the scripts, use [services-start](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start) on Asuswrt-Merlin.**
+> [!IMPORTANT]
+> You need a router with USB port when using official firmware to be able to start the scripts.
+> This is not required on Asuswrt-Merlin as you can use [services-start](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start) script.
 
-Before proceeding, you should check if your router is executing commands from `script_usbmount` NVRAM variable on USB mount events.  
-You can do this by running `set script_usbmount="/bin/touch /tmp/yesitworks" && nvram commit` and then plugging in any USB storage.  
-If you can't see `/tmp/yesitworks` file then you will have to use a workaround - [look here](/asusware-usbmount).
+> [!WARNING]
+> Newer versions of the official firmware have blocked the ability to run scripts using `script_usbmount` NVRAM variable and require a workaround - [look here](/asusware-usbmount).
+> 
+> You can check if your router is affected by doing the following: 
+> - SSH into the router
+> - Run `set script_usbmount="/bin/touch /tmp/yesitworks" && nvram commit`
+> - Wait around 15 seconds then execute `nvram get script_usbmount` - **if there is > no output then your router is affected**
+> - Plugin in any USB storage - make sure the router mounts it as storage (needs > supported filesystem)
+> - Run `cat /tmp/yesitworks` - **if you see `No such file or directory` message > then your router is affected**
+> 
+> If your router is affected then [apply this workaround](/asusware-usbmount) first.
 
-### Install startup script using these commands:
+### Run these commands to install the startup script:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts-startup.sh" -o /jffs/scripts-startup.sh
-/bin/sh /jffs/scripts-startup.sh install
+chmod +x /jffs/scripts-startup.sh
+sh /jffs/scripts-startup.sh install
 ```
 
-**Then you can proceed to install scripts that you want to use from the [section below](#available-scripts).**
+Then you can proceed to install scripts that you want to use from the [section below](#available-scripts).
 
 # Available scripts
 
@@ -64,8 +75,11 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 </tr>
 </table>
 
-You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `conditional-reboot.conf`).  
-**Configuration variables are defined on top of each script - peak into the script to see what's available to change.**
+<br>
+
+> [!NOTE]
+> You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `/jffs/scripts/conditional-reboot.conf`).  
+> Configuration variables are defined on top of each script - peek into the script to see what's available to change.
 
 Remember to mark the scripts as executable after installing, you can use `chmod +x /jffs/scripts/*.sh` to do it in one go.
 
@@ -100,9 +114,10 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script implements [Custom config files from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to use custom config files for certain services.
 
-
 <details>
 <summary>Supported config files</summary>
+
+<br>
 
 - avahi-daemon.conf
 - dnsmasq.conf
@@ -127,6 +142,8 @@ This script implements [Custom config files from Merlin firmware](https://github
 <details>
 <summary>Supported postconf scripts</summary>
 
+<br>
+
 - avahi-daemon.postconf
 - dnsmasq.postconf
 - hosts.postconf
@@ -146,11 +163,8 @@ This script implements [Custom config files from Merlin firmware](https://github
 
 </details>
 
-<br>
-
-**Keep in mind that for **postconf scripts** you have to reference `.new` in the file name instead (for example `/etc/smb.conf.new`), the correct file path will be passed as an argument to the script.**
-
-_NOTE: Usage of Samba, FTP and Media services without any USB storage requires `nvram set usb_debug=1`._
+> [!IMPORTANT]
+> In **postconf scripts** you have to reference `.new` in the file name instead (for example `/etc/smb.conf.new`), the correct file path will be passed as an argument to the script (just like on Asuswrt-Merlin).
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -164,7 +178,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes to hog the CPU sometimes.
 
-**Do not install this script if you don't have mentioned CPU usage issue.**
+> [!CAUTION]
+> Do not install this script if you don't have mentioned CPU usage issue.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-diag.sh" -o /jffs/scripts/disable-diag.sh
@@ -190,11 +205,13 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script implements [custom DDNS feature from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services#using-one-of-the-services-supported-by-in-a-dyn-but-not-by-the-asuswrt-merlin-webui) that allows you to use custom [Inadyn](https://github.com/troglobit/inadyn) config file.
 
-Checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`. You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
+Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`. You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
-On Merlin firmware you should call this script from `ddns-start` with `force` argument instead of `start`.
+> [!TIP]
+> On Asuswrt-Merlin you should call this script from `/jffs/scripts/ddns-start` with `force` argument instead of `start`.
 
-**You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
+> [!IMPORTANT]
+> You might have to install Entware's `curl` to bypass the security limitations of the firmware one.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -210,7 +227,8 @@ This script installs and enables [Entware](https://github.com/Entware/Entware), 
 
 When installing to `/tmp` it will automatically install specified packages and symlink files from `/jffs/entware` to `/opt`. If you want to symlink whole directory then create `.symlinkthisdir` file in its root, be careful to not nest those and not symlink important directories like `/opt/etc`.
 
-**If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates`.**
+> [!IMPORTANT]
+> If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates`.
 
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
@@ -225,6 +243,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 This script will force specified DNS server to be used by LAN and Guest WiFi, can also prevent clients from querying the router's DNS server.
 
 This script can be very useful when running [Pi-hole](https://pi-hole.net) in your LAN.
+
+> [!TIP]
+> On Asuswrt-Merlin you should use **DNS Director** instead.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -260,7 +281,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`led-control.sh`](/scripts/led-control.sh)
 
-**Warning: this script is not complete and will probably not work on the official firmware (should work on Merlin), see note in the script.**
+> [!CAUTION]
+> This script is not complete and will probably not work on the official firmware (should work on Merlin), see note in the script.
 
 This script implements [scheduled LED control from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control).
 
@@ -295,7 +317,8 @@ This script modifies some web UI elements.
 - show connect QR code on guest network edit screen and hide the passwords on the main screen
 - add `notrendmicro` rc_support option that hides all Trend Micro services, **Speed Test** will be moved to **Network Tools** menu (to be used with [`modify-features.sh`](#user-content-modify-featuressh))
 
-**Tested only with English language!**
+> [!NOTE]
+> Tested only with English language!
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
@@ -307,28 +330,28 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 Automatically download specified bootloader files from [netboot.xyz](https://netboot.xyz).
 
-This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
+> [!TIP]
+> This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
+> 
+> <details>
+> <summary>Example dnsmasq.conf.add</summary>
+> 
+> ```
+> dhcp-option=66,192.168.1.1
+> enable-tftp
+> tftp-no-fail
+> tftp-root=/tmp/netboot.xyz
+> dhcp-match=set:bios,option:client-arch,0
+> dhcp-boot=tag:bios,netboot.xyz.kpxe,,192.168.1.1
+> dhcp-boot=tag:!bios,netboot.xyz.efi,,192.168.1.1
+> ```
+> 
+> Replace `192.168.1.1` with your router's IP address.
+> 
+> </details>
 
-<details>
-<summary>Example dnsmasq.conf.add</summary>
-
-```
-dhcp-option=66,192.168.1.1
-enable-tftp
-tftp-no-fail
-tftp-root=/tmp/netboot.xyz
-dhcp-match=set:bios,option:client-arch,0
-dhcp-boot=tag:bios,netboot.xyz.kpxe,,192.168.1.1
-dhcp-boot=tag:!bios,netboot.xyz.efi,,192.168.1.1
-```
-
-Replace `192.168.1.1` with your router's IP address.
-
-</details>
-
-<br>
-
-**You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
+> [!IMPORTANT]
+> You might have to install Entware's `curl` to bypass the security limitations of the firmware one.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
@@ -340,7 +363,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script can kill processes by their names, unfortunately on the official firmware most of them will restart, there is an attempt to prevent that in that script but it is not guaranteed to work.
 
-**Use this script at your own risk.**
+> [!CAUTION]
+> Use this script at your own risk.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-killer.sh" -o /jffs/scripts/process-killer.sh
@@ -354,9 +378,10 @@ This script can backup all NVRAM variables and selected `/jffs` contents to clou
 
 You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation (then remove it after the job is done - this feature is targeted for installation in `/tmp`).
 
-**If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) to bypass the limitations of the firmware one.**
-
 [Example backup list](/extras/rclone.list) that can be used with this script.
+
+> [!IMPORTANT]
+> If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) to bypass the security limitations of the firmware one.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
@@ -380,8 +405,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
-This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.  
-[Example custom script](/extras/service-script.sh) that can be used with this script.
+This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.
 
 By default, integrates with all scripts (when required) present in this repository.
 
@@ -423,9 +447,11 @@ This script will send you a notification when new router firmware is available.
 - [Pushover](https://pushover.net)
 - [Pushbullet](https://www.pushbullet.com)
 
-**You might have to install Entware's `curl` to bypass the limitations of the firmware one.**
+> [!TIP]
+> You can test the notifications by using `update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands.
 
-_You can test the notifications by using `update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands._
+> [!IMPORTANT]
+> You might have to install Entware's `curl` to bypass the security limitations of the firmware one.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
@@ -437,7 +463,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script updates all `*.sh` scripts present in the `/jffs/scripts` folder.
 
-This is on-demand script that must be ran manually.
+**This is on-demand script that must be ran manually.**
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
@@ -476,6 +502,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 This script will prevent your LAN from accessing the internet through the WAN interface.
 
 There might be a small window after router boots and before this script runs when you can connect through the WAN interface but there is no way to avoid this on the official firmware.
+
+> [!TIP]
+> On Asuswrt-Merlin you should use build-in VPN killswitch function instead.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
