@@ -21,7 +21,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-[ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
+[ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
 
 # these two sed_* functions are taken/based on https://github.com/RMerl/asuswrt-merlin.ng/blob/master/release/src/router/others/helper.sh
 sed_quote() {

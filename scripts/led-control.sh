@@ -30,7 +30,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-[ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
+[ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
 
 PERSISTENT_STATE="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
 

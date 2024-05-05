@@ -36,7 +36,7 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
-[ "$(uname -o)" = "ASUSWRT-Merlin" ] && MERLIN="1"
+[ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
 
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
@@ -186,7 +186,7 @@ service_monitor() {
 
 case "$1" in
     "run")
-        [ -n "$MERLIN" ] && exit
+        [ -n "$MERLIN" ] && exit # Do not run as background process on Merlin firmware
         [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
         if is_started_by_system && [ "$2" != "nohup" ]; then
@@ -200,14 +200,14 @@ case "$1" in
     "event")
         # $2 = event, $3 = target
         case "$3" in
-            "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
+            "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 if
                     [ -x "$SCRIPT_DIR/vpn-killswitch.sh" ] ||
                     [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] ||
                     [ -x "$SCRIPT_DIR/force-dns.sh" ] ||
                     [ -x "$SCRIPT_DIR/samba-masquerade.sh" ]
                 then
-                    if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
                             iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
@@ -223,16 +223,16 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/wgs-lanonly.sh" ] && sh "$SCRIPT_DIR/wgs-lanonly.sh" run &
                     [ -x "$SCRIPT_DIR/force-dns.sh" ] && sh "$SCRIPT_DIR/force-dns.sh" run &
                     [ -x "$SCRIPT_DIR/samba-masquerade.sh" ] && sh "$SCRIPT_DIR/samba-masquerade.sh" run &
-
-                    sh "$SCRIPT_PATH" event restart custom_configs &
                 fi
+
+                sh "$SCRIPT_PATH" event restart custom_configs &
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if
                     [ -x "$SCRIPT_DIR/usb-network.sh" ] ||
                     [ -x "$SCRIPT_DIR/dynamic-dns.sh" ]
                 then
-                    if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Merlin firmware
                         _TIMER=0; while { # wait until wan goes down
                             { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ]; } &&
                             { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ]; };
@@ -254,12 +254,10 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && sh "$SCRIPT_DIR/dynamic-dns.sh" run &
                 fi
 
-                # most of these also restart firewall so execute that too just in case
-                sh "$SCRIPT_PATH" event restart firewall &
-                # some of these also restart wireless so execute that too just in case
+                # most services here also restart firewall and/or wireless and/or recreate configs so execute these too
                 sh "$SCRIPT_PATH" event restart wireless &
-                # some of these also recreate configs so execute that too just in case
-                sh "$SCRIPT_PATH" event restart custom_configs &
+                sh "$SCRIPT_PATH" event restart firewall &
+                #sh "$SCRIPT_PATH" event restart custom_configs & # this is already executed by 'restart firewall' event
             ;;
             "wireless")
                 # probably a good idea to run this just in case
@@ -270,7 +268,7 @@ case "$1" in
                     if [ -f /tmp/rc_support.last ]; then
                         RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
 
-                        if [ "$4" != "merlin" ]; then # do not perform sleep-checks on Merlin firmware
+                        if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Merlin firmware
                             _TIMER=0; while { # wait till rc_support is modified
                                 [ "$(nvram get rc_support)" = "$RC_SUPPORT_LAST" ]
                             } && [ "$_TIMER" -lt "60" ]; do
@@ -287,8 +285,10 @@ case "$1" in
                 # re-run in case script exited due to USB idle being set and now it has been disabled
                 [ -x "$SCRIPT_DIR/swap.sh" ] && sh "$SCRIPT_DIR/swap.sh" run &
             ;;
-            "custom_configs"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd")
-                [ -x "$SCRIPT_DIR/custom-configs.sh" ] && { sleep 1 && sh "$SCRIPT_DIR/custom-configs.sh" run; } &
+            "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
+                if [ -x "$SCRIPT_DIR/custom-configs.sh" ] && [ -z "$MERLIN" ]; then # Do not run custom-configs on Merlin firmware as that functionality is already built-in
+                    { sleep 5 && sh "$SCRIPT_DIR/custom-configs.sh" run; } &
+                fi
             ;;
         esac
 
@@ -312,7 +312,7 @@ EOT
             fi
 
             if ! grep -q "$SCRIPT_PATH" /jffs/scripts/service-event-end; then
-                echo "$SCRIPT_PATH event \"\$1\" \"\$2\" merlin &" >> /jffs/scripts/service-event-end
+                echo "$SCRIPT_PATH event \"\$1\" \"\$2\" & # jacklul/asuswrt-scripts" >> /jffs/scripts/service-event-end
             fi
         else
             if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then

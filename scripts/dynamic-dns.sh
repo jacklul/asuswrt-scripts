@@ -66,7 +66,7 @@ case "$1" in
         run_ddns_update
     ;;
     "start")
-        [ "$(uname -o)" = "ASUSWRT-Merlin" ] && logger -st "$SCRIPT_TAG" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
+        [ -f "/usr/sbin/helper.sh" ] && logger -st "$SCRIPT_TAG" "Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
 
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config file ($CONFIG_FILE) not found"; exit 1; }
         inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config is not valid"; exit 1; }

@@ -2,6 +2,7 @@
 # Made by Jack'lul <jacklul.github.io>
 #
 # This script starts all other scripts
+# Only scripts containing case "start" will be started
 #
 
 #shellcheck disable=SC2155
@@ -62,29 +63,38 @@ case "$1" in
         scripts stop
     ;;
     "install")
-        if [ -f "/usr/sbin/helper.sh" ]; then
-            logger -s -t "$SCRIPT_TAG" "Merlin firmware not supported, use /jffs/scripts/services-start script instead!"
-            exit 1
-        fi
+        if [ -f "/usr/sbin/helper.sh" ]; then # could also be [ "$(uname -o)" = "ASUSWRT-Merlin" ] ?
+            echo "Merlin firmware detected!"
 
-        [ ! -x "$SCRIPT_PATH" ] && chmod +x "$SCRIPT_PATH"
+            if [ ! -f /jffs/scripts/services-start ]; then
+                echo "Creating /jffs/scripts/services-start"
 
-        NVRAM_SCRIPT="/bin/sh $SCRIPT_PATH start"
+                cat <<EOT > /jffs/scripts/services-start
+#!/bin/sh
 
-        if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
-            nvram set script_usbmount="$NVRAM_SCRIPT"
-            nvram commit
+EOT
+                chmod 0755 /jffs/scripts/services-start
+            fi
 
-            echo "Set nvram variable \"script_usbmount\" to \"$NVRAM_SCRIPT\""
+            if ! grep -q "$SCRIPT_PATH" /jffs/scripts/services-start; then
+                echo "Adding script to /jffs/scripts/services-start"
 
-            echo "Verifying that firmware does not unset the variable... (waiting 15 seconds before checking)"
-            sleep 15
-
-            if [ "$(nvram get script_usbmount)" = "$NVRAM_SCRIPT" ]; then
-                echo "Everything looks good!"
+                echo "$SCRIPT_PATH start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
             else
-                echo "Failure - firmware erased the value!"
-                echo "You will have to use a workaround - https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount"
+                echo "Script line already exists in /jffs/scripts/services-start"
+            fi
+        else
+            echo "Official firmware detected!"
+
+            NVRAM_SCRIPT="/bin/sh $SCRIPT_PATH start"
+
+            if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
+                echo "Setting NVRAM variable \"script_usbmount\" to \"$NVRAM_SCRIPT\""
+
+                nvram set script_usbmount="$NVRAM_SCRIPT"
+                nvram commit
+            else
+                echo "NVRAM variable \"script_usbmount\" is already set to \"$NVRAM_SCRIPT\""
             fi
         fi
     ;;
