@@ -210,7 +210,7 @@ entware_in_ram() {
             logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
 
             echo "---------- Installation started at $(date) ----------" >> /tmp/entware-install.log
-            
+
             if ! sh "$SCRIPT_PATH" install /tmp >> /tmp/entware-install.log 2>&1; then
                 logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
 
@@ -500,6 +500,8 @@ case "$1" in
                 echo "Symlinking data from /jffs/entware..."
 
                 find /jffs/entware -type f -exec sh -c '
+                    echo "$1" | grep -q "\.copythisfile$" && exit
+
                     TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
                     TARGET_FILE_DIR="$(dirname "$TARGET_FILE")"
 
@@ -521,11 +523,16 @@ case "$1" in
                     fi
 
                     [ ! -d "$TARGET_FILE_DIR" ] && mkdir -pv "$TARGET_FILE_DIR"
-                    ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
+
+                    if [ -f "$1.copythisfile" ]; then
+                        cp -v "$1" "$TARGET_FILE" || echo "Failed to copy a file: $TARGET_FILE => $1"
+                    else
+                        ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
+                    fi
                 ' sh {} \;
 
                 find /jffs/entware -type d -exec sh -c '
-                    [ ! -f "$1/.symlinkthisdir" ] && exit
+                    [ ! -f "$1/.symlinkthisdir" ] && [ ! -f "$1/.copythisdir" ] && exit
 
                     TARGET_DIR="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
                     TARGET_DIR_DIR="$(dirname "$TARGET_DIR")"
@@ -538,7 +545,12 @@ case "$1" in
                     fi
 
                     [ ! -d "$TARGET_DIR_DIR" ] && mkdir -pv "$TARGET_DIR_DIR"
-                    ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
+
+                    if [ -f "$1.copythisdir" ]; then
+                        cp -rv "$1" "$TARGET_DIR" || echo "Failed to copy a directory: $TARGET_DIR => $1"
+                    else
+                        ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
+                    fi
                 ' sh {} \;
             fi
         fi

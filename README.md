@@ -225,7 +225,10 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script installs and enables [Entware](https://github.com/Entware/Entware), even in RAM (`/tmp`).
 
-When installing to `/tmp` it will automatically install specified packages and symlink files from `/jffs/entware` to `/opt`. If you want to symlink whole directory then create `.symlinkthisdir` file in its root, be careful to not nest those and not symlink important directories like `/opt/etc`.
+> [!TIP]
+> When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.  
+> Create `.symlinkthisdir` file in directory's root to symlink it directly or `.copythisdir` to copy it instead.  
+> If you want a single file to be copied then create a file with the same name and `.copythisfile` extension, e.g. `file.txt.copythisfile`. 
 
 > [!IMPORTANT]
 > If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates`.
