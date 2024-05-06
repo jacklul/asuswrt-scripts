@@ -205,13 +205,14 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script implements [custom DDNS feature from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services#using-one-of-the-services-supported-by-in-a-dyn-but-not-by-the-asuswrt-merlin-webui) that allows you to use custom [Inadyn](https://github.com/troglobit/inadyn) config file.
 
-Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`. You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
+Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`.  
+You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
 > [!TIP]
 > On Asuswrt-Merlin you should call this script from `/jffs/scripts/ddns-start` with `force` argument instead of `start`.
 
 > [!IMPORTANT]
-> You might have to install Entware's `curl` to bypass the security limitations of the firmware one.
+> You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the firmware.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -231,7 +232,7 @@ This script installs and enables [Entware](https://github.com/Entware/Entware), 
 > If you want a single file to be copied then create a file with the same name and `.copythisfile` extension, e.g. `file.txt.copythisfile`. 
 
 > [!IMPORTANT]
-> If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-certificates`.
+> If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-bundle`.
 
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
@@ -354,7 +355,7 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 > </details>
 
 > [!IMPORTANT]
-> You might have to install Entware's `curl` to bypass the security limitations of the firmware one.
+> You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the firmware.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
@@ -379,7 +380,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script can backup all NVRAM variables and selected `/jffs` contents to cloud service using [Rclone](https://github.com/rclone/rclone).
 
-You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation (then remove it after the job is done - this feature is targeted for installation in `/tmp`).
+You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation (then remove it after the job is done - this feature is targeted for Entware installation in RAM).
 
 [Example backup list](/extras/rclone.list) that can be used with this script.
 
@@ -454,7 +455,7 @@ This script will send you a notification when new router firmware is available.
 > You can test the notifications by using `update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands.
 
 > [!IMPORTANT]
-> You might have to install Entware's `curl` to bypass the security limitations of the firmware one.
+> You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the firmware.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
