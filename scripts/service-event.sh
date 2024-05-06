@@ -321,7 +321,11 @@ EOT
                 cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
             fi
 
-            echo "Will launch in the next minute by cron..."
+            if is_started_by_system; then
+                sh "$SCRIPT_PATH" run
+            else
+                echo "Will launch in the next minute by cron..."
+            fi
         fi
     ;;
     "stop")
