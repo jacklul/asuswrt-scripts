@@ -64,7 +64,7 @@ is_file_replace_supported() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
 
     for _FILE in $NOREPLACE_FILES; do
-        [ "$_FILE" = "$1" ] && return 1
+        [ "$_FILE" = "$(echo "$1" | sed 's/\.new$//')" ] && return 1
     done
 
     return 0
@@ -103,8 +103,12 @@ modify_config_file() {
     fi
 
     if [ -f "/jffs/configs/$_BASENAME" ] && is_file_replace_supported "$1"; then
+        logger -st "$SCRIPT_TAG" "Replacing $1 with /jffs/configs/$_BASENAME..."
+
         cat "/jffs/configs/$_BASENAME" > "$1.new"
     elif [ -f "/jffs/configs/$_BASENAME.add" ]; then
+        logger -st "$SCRIPT_TAG" "Appending /jffs/configs/$_BASENAME.add to $1..."
+
         cp "$1" "$1.new"
         cat "/jffs/configs/$_BASENAME.add" >> "$1.new"
     fi
@@ -122,8 +126,8 @@ run_postconf_script() {
     if [ -x "/jffs/scripts/$_BASENAME.postconf" ]; then
         logger -st "$SCRIPT_TAG" "Running /jffs/scripts/$_BASENAME.postconf script..."
 
-        [ ! -f "$1" ] && touch "$1"
-        sh "/jffs/scripts/$_BASENAME.postconf" "$1"
+        [ ! -f "$1.new" ] && cp "$1" "$1.new"
+        sh "/jffs/scripts/$_BASENAME.postconf" "$1.new"
     fi
 }
 
@@ -148,8 +152,6 @@ commit_new_file() {
     [ !  -f "$1.new" ] && { echo "File $1.new does not exist"; exit 1; }
 
     cp -f "$1.new" "$1"
-
-    logger -st "$SCRIPT_TAG" "Modified $1"
 }
 
 modify_service_config_file() {
@@ -165,9 +167,9 @@ modify_service_config_file() {
             modify_config_file "$1"
         fi
 
-        run_postconf_script "$1.new"
+        run_postconf_script "$1"
 
-        if [ -f "$1.new" ]; then
+        if [ -f "$1.new" ] && [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
             add_modified_mark "$1.new"
 
             if is_config_file_modified "$1"; then
