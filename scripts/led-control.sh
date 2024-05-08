@@ -7,7 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/led_control.mod
 #
-# This script will probably not fully work on stock as each device controls LED differently - would require to reverse engineer Merlin's compiled binaries!
+# This script will probably not fully work on stock as each device controls LED differently - would require to reverse engineer Asuswrt-Merlin's compiled binaries!
 #
 
 #jacklul-asuswrt-scripts-update
@@ -36,7 +36,7 @@ PERSISTENT_STATE="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
 
 if [ -n "$PERSISTENT_STATE" ] && [ -n "$MERLIN" ]; then
     PERSISTENT_STATE=""
-    logger -st "$SCRIPT_TAG" "Persistent LED state is only supported on Merlin firmware"
+    logger -st "$SCRIPT_TAG" "Persistent LED state is only supported on Asuswrt-Merlin firmware"
 fi
 
 set_wl_leds() {

@@ -3,7 +3,7 @@
 #
 # Modify configuration files of some services
 #
-# Implements Custom config files feature from AsusWRT-Merlin:
+# Implements Custom config files feature from Asuswrt-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files
 #
 

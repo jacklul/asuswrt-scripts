@@ -3,7 +3,7 @@
 #
 # Forces LAN to use specified DNS server
 #
-# Implements DNS Director feature from AsusWRT-Merlin:
+# Implements DNS Director feature from Asuswrt-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/DNS-Director
 #
 # Can set rules depending on whenever specific interface is available and define a fallback DNS server when it is not.
@@ -384,7 +384,7 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && logger -st "$SCRIPT_TAG" "Merlin firmware detected, you should probably use DNS Director instead!"
+        [ -f "/usr/sbin/helper.sh" ] && logger -st "$SCRIPT_TAG" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
 
         [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
 

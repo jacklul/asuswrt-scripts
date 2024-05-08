@@ -3,7 +3,7 @@
 #
 # Execute commands when specific service events occurs
 #
-# Implements basic service-event script handler from AsusWRT-Merlin:
+# Implements basic service-event script handler from Asuswrt-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts
 #
 # There is no blocking so there is no guarantee that this script will run before the event happens.
@@ -186,7 +186,7 @@ service_monitor() {
 
 case "$1" in
     "run")
-        [ -n "$MERLIN" ] && exit # Do not run as background process on Merlin firmware
+        [ -n "$MERLIN" ] && exit # Do not run as background process on Asuswrt-Merlin firmware
         [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
         if is_started_by_system && [ "$2" != "nohup" ]; then
@@ -207,7 +207,7 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/force-dns.sh" ] ||
                     [ -x "$SCRIPT_DIR/samba-masquerade.sh" ]
                 then
-                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Merlin firmware
+                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
                         _TIMER=0; while { # wait till our chains disappear
                             iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
@@ -232,7 +232,7 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/usb-network.sh" ] ||
                     [ -x "$SCRIPT_DIR/dynamic-dns.sh" ]
                 then
-                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Merlin firmware
+                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
                         _TIMER=0; while { # wait until wan goes down
                             { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ]; } &&
                             { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ]; };
@@ -268,7 +268,7 @@ case "$1" in
                     if [ -f /tmp/rc_support.last ]; then
                         RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
 
-                        if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Merlin firmware
+                        if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
                             _TIMER=0; while { # wait till rc_support is modified
                                 [ "$(nvram get rc_support)" = "$RC_SUPPORT_LAST" ]
                             } && [ "$_TIMER" -lt "60" ]; do
@@ -286,7 +286,7 @@ case "$1" in
                 [ -x "$SCRIPT_DIR/swap.sh" ] && sh "$SCRIPT_DIR/swap.sh" run &
             ;;
             "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
-                if [ -x "$SCRIPT_DIR/custom-configs.sh" ] && [ -z "$MERLIN" ]; then # Do not run custom-configs on Merlin firmware as that functionality is already built-in
+                if [ -x "$SCRIPT_DIR/custom-configs.sh" ] && [ -z "$MERLIN" ]; then # Do not run custom-configs on Asuswrt-Merlin firmware as that functionality is already built-in
                     { sleep 5 && sh "$SCRIPT_DIR/custom-configs.sh" run; } &
                 fi
             ;;
@@ -302,7 +302,7 @@ case "$1" in
         exit
     ;;
     "start")
-        if [ -n "$MERLIN" ]; then # use service-event-end on Merlin firmware
+        if [ -n "$MERLIN" ]; then # use service-event-end on Asuswrt-Merlin firmware
             if [ ! -f /jffs/scripts/service-event-end ]; then
                 cat <<EOT > /jffs/scripts/service-event-end
 #!/bin/sh
