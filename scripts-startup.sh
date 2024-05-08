@@ -2,7 +2,7 @@
 # Made by Jack'lul <jacklul.github.io>
 #
 # This script starts all other scripts
-# Only scripts containing case "start" will be started
+# Only scripts containing "start" case will be started
 #
 
 #shellcheck disable=SC2155
@@ -64,28 +64,39 @@ case "$1" in
     ;;
     "install")
         if [ -f "/usr/sbin/helper.sh" ]; then # could also be [ "$(uname -o)" = "ASUSWRT-Merlin" ] ?
-            echo "Merlin firmware detected!"
+            cat << EOF
+You should not be using this script on Asuswrt-Merlin!
+Please start individual scripts from /jffs/scripts/services-start instead!
 
-            if [ ! -f /jffs/scripts/services-start ]; then
-                echo "Creating /jffs/scripts/services-start"
+If you continue an entry to start this script will be added to /jffs/scripts/services-start.
+EOF
 
-                cat <<EOT > /jffs/scripts/services-start
+            #shellcheck disable=SC3045,SC2162
+            read -p "Continue ? [y/N] : " -n1 REPLY
+            echo
+
+            case $REPLY in
+                [Yy]*)
+                    if [ ! -f /jffs/scripts/services-start ]; then
+                    echo "Creating /jffs/scripts/services-start"
+
+                    cat <<EOT > /jffs/scripts/services-start
 #!/bin/sh
 
 EOT
-                chmod 0755 /jffs/scripts/services-start
-            fi
+                    chmod 0755 /jffs/scripts/services-start
+                fi
 
-            if ! grep -q "$SCRIPT_PATH" /jffs/scripts/services-start; then
-                echo "Adding script to /jffs/scripts/services-start"
+                if ! grep -q "$SCRIPT_PATH" /jffs/scripts/services-start; then
+                    echo "Adding script to /jffs/scripts/services-start"
 
-                echo "$SCRIPT_PATH start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
-            else
-                echo "Script line already exists in /jffs/scripts/services-start"
-            fi
+                    echo "$SCRIPT_PATH start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
+                else
+                    echo "Script line already exists in /jffs/scripts/services-start"
+                fi
+                ;;
+            esac
         else
-            echo "Official firmware detected!"
-
             NVRAM_SCRIPT="/bin/sh $SCRIPT_PATH start"
 
             if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
