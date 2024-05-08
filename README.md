@@ -112,7 +112,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`custom-configs.sh`](/scripts/custom-configs.sh)
 
-This script implements [Custom config files from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to use custom config files for certain services.
+This script implements [Custom config files from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to use custom config files for certain services.
 
 <details>
 <summary>Supported config files</summary>
@@ -203,7 +203,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`dynamic-dns.sh`](/scripts/dynamic-dns.sh)
 
-This script implements [custom DDNS feature from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services#using-one-of-the-services-supported-by-in-a-dyn-but-not-by-the-asuswrt-merlin-webui) that allows you to use custom [Inadyn](https://github.com/troglobit/inadyn) config file.
+This script implements [custom DDNS feature from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services#using-one-of-the-services-supported-by-in-a-dyn-but-not-by-the-asuswrt-merlin-webui) that allows you to use custom [Inadyn](https://github.com/troglobit/inadyn) config file.
 
 Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`.  
 You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
@@ -286,9 +286,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`led-control.sh`](/scripts/led-control.sh)
 
 > [!CAUTION]
-> This script is not complete and will probably not work on the official firmware (should work on Merlin), see note in the script.
+> This script is not complete and will probably not work on the official firmware (should work on Asuswrt-Merlin), see note in the script.
 
-This script implements [scheduled LED control from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control).
+This script implements [scheduled LED control from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control).
 
 By default, LEDs shutdown at <ins>00:00 and turn on at 06:00</ins>.
 
@@ -412,7 +412,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
-This script tries to emulate [service-event script from Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.
+This script tries to emulate [service-event script from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.
 
 By default, integrates with all scripts (when required) present in this repository.
 
