@@ -21,6 +21,7 @@ IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
 ALTERNATIVE=false # Perform alternative install (separated users from the system)
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
+BASE_URL="bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no http/https prefix!)
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
@@ -29,9 +30,10 @@ if [ -f "$SCRIPT_CONFIG" ]; then
     . "$SCRIPT_CONFIG"
 fi
 
+DEFAULT_BASE_URL="bin.entware.net" # hardcoded in opkg.conf
 LAST_ENTWARE_DEVICE=""
 [ -f "$CACHE_FILE" ] && LAST_ENTWARE_DEVICE="$(cat "$CACHE_FILE")"
-CHECK_URL="http://bin.entware.net"
+CHECK_URL="http://$BASE_URL"
 [ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
 CURL_BINARY="curl"
 [ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
@@ -361,11 +363,18 @@ case "$1" in
     "install")
         is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing"; exit 1; }
 
-        [ -z "$IN_RAM" ] && echo
+        for ARG in "$@"; do
+            [ "$ARG" = "install" ] && continue
+            ARG_FIRST="$(echo "$ARG" | cut -c1)"
 
-        [ "$2" != "alt" ] && TARGET_PATH="$2"
-        { [ -z "$ARCHITECTURE" ] && [ "$3" != "alt" ] ; } && ARCHITECTURE="$3"
-        { [ "$2" = "alt" ] || [ "$3" = "alt" ] || [ "$4" = "alt" ]; } && ALTERNATIVE=true
+            if [ "$ARG" = "alt" ]; then
+                ALTERNATIVE=true
+            elif [ "$ARG_FIRST" = "/" ] || [ "$ARG_FIRST" = "." ]; then
+                TARGET_PATH="$ARG"
+            else
+                ARCHITECTURE=$ARG
+            fi
+        done
 
         if [ -z "$TARGET_PATH" ]; then
             for DIR in /tmp/mnt/*; do
@@ -378,8 +387,6 @@ case "$1" in
             [ -z "$TARGET_PATH" ] && { echo "Target path not provided"; exit 1; }
 
             echo "Detected mounted storage: $TARGET_PATH"
-            echo "You can override it by providing it as the second argument."
-            echo
         fi
 
         [ ! -d "$TARGET_PATH" ] && { echo "Target path does not exist: $TARGET_PATH"; exit 1; }
@@ -390,6 +397,12 @@ case "$1" in
             KERNEL=$(uname -r)
 
             case $PLATFORM in
+                "aarch64")
+                    ARCHITECTURE="aarch64-k3.10"
+                ;;
+                "armv5l")
+                    ARCHITECTURE="armv5sf-k3.2"
+                ;;
                 "armv7l")
                     ARCHITECTURE="armv7sf-k2.6"
 
@@ -397,30 +410,37 @@ case "$1" in
                         ARCHITECTURE="armv7sf-k3.2"
                     fi
                 ;;
-                "aarch64")
-                    ARCHITECTURE="aarch64-k3.10"
+                "mipsel")
+                    ARCHITECTURE="mipselsf-k3.4"
+                ;;
+                "mips")
+                    ARCHITECTURE="mipssf-k3.4"
+                ;;
+                "x86_64"|"x64")
+                    ARCHITECTURE="x64-k3.2"
+                ;;
+                "i386"|"i686"|"x86")
+                    ARCHITECTURE="x86-k2.6"
                 ;;
                 *)
-                    echo "Unsupported platform or failed to detect - provide supported architecture as the third argument."
-                    echo "Check https://bin.entware.net or https://pkg.entware.net/binaries/ for supported ones."
+                    echo "Unsupported platform or failed to detect - provide supported architecture as an argument."
                     exit 1
                 ;;
             esac
 
-            if [ -z "$IN_RAM" ]; then
-                echo "Detected architecture: $ARCHITECTURE"
-                echo "You can override it by providing it as the third argument."
-                echo
-            fi
+            echo "Detected architecture: $ARCHITECTURE"
         fi
 
         case "$ARCHITECTURE" in
             "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
-                INSTALL_URL="http://bin.entware.net/$ARCHITECTURE/installer"
+                INSTALL_URL="http://$BASE_URL/$ARCHITECTURE/installer"
             ;;
-            "mips"|"mipsel"|"armv5"|"armv7"|"x86-32"|"x86-64")
-                INSTALL_URL="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
-            ;;
+            #"mipsel"|"armv5"|"armv7"|"x86-32"|"x86-64")
+            #    INSTALL_URL="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
+            #;;
+            #"mips")
+            #    INSTALL_URL="http://pkg.entware.net/binaries/mipsel/installer"
+            #;;
             *)
                 echo "Unsupported architecture: $ARCHITECTURE";
                 exit 1;
@@ -429,12 +449,17 @@ case "$1" in
 
         [ "$USE_HTTPS" = true ] && INSTALL_URL="$(echo "$INSTALL_URL" | sed 's/http:/https:/')"
 
-        echo "Will install Entware on $TARGET_PATH from $INSTALL_URL"
+        echo
+        echo "Will install Entware to $TARGET_PATH from $INSTALL_URL"
         [ "$ALTERNATIVE" = true ] && echo "Using alternative install (separated users from the system)"
 
-        if [ -z "$IN_RAM" ]; then
+        if [ -z "$IN_RAM" ] && [ "$(readlink -f /proc/$$/fd/0 2> /dev/null)" != "/dev/null" ]; then
+            echo "You can override target path and architecture by providing them as arguments."
+
+            echo
             #shellcheck disable=SC3045,SC2162
-            read -p "Press any key to continue or CTRL-C to cancel... "
+            read -p "Press any key to continue or CTRL-C to cancel... " -n1
+            echo
         fi
 
         set -e
@@ -464,6 +489,8 @@ case "$1" in
                 ln -sv /jffs/entware/etc/opkg.conf /opt/etc/opkg.conf
             else
                 curl -fs "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
+
+                [ "$BASE_URL" != "$DEFAULT_BASE_URL" ] && sed -i "s#$DEFAULT_BASE_URL:#$BASE_URL:#g" /opt/etc/opkg.conf
                 [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
             fi
         fi
@@ -485,10 +512,6 @@ case "$1" in
         done
 
         [ -f /etc/localtime ] && ln -sfv /etc/localtime /opt/etc/localtime
-
-        echo "Modifying /opt/etc/init.d/rc.* scripts..."
-        ! grep -q "CALLER=unknown" /opt/etc/init.d/rc.func && sed -i '/CALLER=$2/a[ -z "$CALLER" ] && CALLER=unknown' /opt/etc/init.d/rc.func
-        ! grep -q "CALLER=unknown" /opt/etc/init.d/rc.unslung && sed -i '/CALLER=$2/a[ -z "$CALLER" ] && CALLER=unknown' /opt/etc/init.d/rc.unslung
 
         if [ -n "$IN_RAM" ]; then
             echo "Installing selected packages..."
