@@ -7,7 +7,8 @@ case "$1" in
         NVRAM_SCRIPT="$(nvram get script_usbmount)"
 
         if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$(basename "$0")" "Executing command in \"script_usbmount\"..."
+            logger -t "$(basename "$0")" "Executing command in \"script_usbmount\" NVRAM variable: $NVRAM_SCRIPT"
+
             eval "$NVRAM_SCRIPT"
         else
             if [ -x "$TARGET_SCRIPT" ]; then
@@ -19,7 +20,8 @@ case "$1" in
         NVRAM_SCRIPT="$(nvram get script_usbumount)"
 
         if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$(basename "$0")" "Executing command in \"script_usbumount\"..."
+            logger -t "$(basename "$0")" "Executing command in \"script_usbumount\" NVRAM variable: $NVRAM_SCRIPT"
+
             eval "$NVRAM_SCRIPT"
         else
             if [ -x "$TARGET_SCRIPT" ]; then
