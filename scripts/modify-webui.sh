@@ -13,7 +13,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support" # list of tweaks to apply
+TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443" # list of tweaks to apply
 TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www"
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -118,8 +118,6 @@ guest_wifi_qr_code() {
                 umount /www/Guest_network.asp
                 rm -f "$TMP_WWW_PATH/Guest_network.asp"
             fi
-
-            rm -fr "$TMP_WWW_PATH"
         ;;
     esac
 }
@@ -169,8 +167,26 @@ notrendmicro_support() {
                 umount /www/require/modules/menuTree.js
                 rm -f "$TMP_WWW_PATH/require/modules/menuTree.js"
             fi
+        ;;
+    esac
+}
 
-            rm -fr "$TMP_WWW_PATH"
+https_lanport_allow_443() {
+    case "$1" in
+        "set")
+            if ! mount | grep -q /www/Advanced_System_Content.asp; then
+                [ ! -f "$TMP_WWW_PATH/Advanced_System_Content.asp" ] && cp -f /www/Advanced_System_Content.asp "$TMP_WWW_PATH/Advanced_System_Content.asp"
+
+                sed_and_check replace '&& !validator.range(document.form.https_lanport, 1024, 65535) &&' "&& (document.form.https_lanport.value != 443 && !validator.range(document.form.https_lanport, 1024, 65535)) &&" "$TMP_WWW_PATH/Advanced_System_Content.asp"
+
+                mount --bind "$TMP_WWW_PATH/Advanced_System_Content.asp" /www/Advanced_System_Content.asp
+            fi
+        ;;
+        "unset")
+            if mount | grep -q /www/Advanced_System_Content.asp; then
+                umount /www/Advanced_System_Content.asp
+                rm -f "$TMP_WWW_PATH/Advanced_System_Content.asp"
+            fi
         ;;
     esac
 }
@@ -192,6 +208,7 @@ www_override() {
             cpu_temperature unset
             guest_wifi_qr_code unset
             notrendmicro_support unset
+            https_lanport_allow_443 unset
 
             rm -fr "$TMP_WWW_PATH"
         ;;
