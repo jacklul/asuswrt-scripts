@@ -24,6 +24,8 @@ fi
 scripts() {
     readonly _ACTION="$1"
 
+    [ ! -d "$SCRIPTS_DIR" ] && return
+
     for ENTRY in "$SCRIPTS_DIR"/*.sh; do
         [ "$(basename "$ENTRY" .sh)" = "$SCRIPT_NAME" ] && continue
         ! grep -q "\"start\")" "$ENTRY" && continue
@@ -63,6 +65,8 @@ case "$1" in
         scripts stop
     ;;
     "install")
+        mkdir -pv "$SCRIPTS_DIR"
+
         if [ -f "/usr/sbin/helper.sh" ]; then # could also be [ "$(uname -o)" = "ASUSWRT-Merlin" ] ?
             cat << EOF
 You should not be using this script on Asuswrt-Merlin!
