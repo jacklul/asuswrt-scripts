@@ -33,7 +33,7 @@ restart_process() {
     [ -z "$1" ] && { echo "Process name not provided"; exit 1; }
 
     _STARTED=
-    for PID in $(ps | grep "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
+    for PID in $(/bin/ps | grep "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
         [ ! -f "/proc/$PID/cmdline" ] && continue
         _CMDLINE="$(tr "\0" " " < "/proc/$PID/cmdline")"
 
@@ -160,7 +160,7 @@ modify_service_config_file() {
     [ -z "$3" ] && { echo "Process binary name not provided"; exit 1; }
     # $4 = custom /jffs/configs/[NAME.conf]
 
-    if ps | grep -v "grep" | grep -q "$2" && [ -f "$1" ] && ! grep -q "Modified by $SCRIPT_NAME" "$1"; then
+    if /bin/ps | grep -v "grep" | grep -q "$2" && [ -f "$1" ] && ! grep -q "Modified by $SCRIPT_NAME" "$1"; then
         if [ -n "$4" ]; then
             modify_config_file "$1" "$4"
         else
@@ -204,7 +204,7 @@ restore_service_config_file() {
     [ -z "$2" ] && { echo "Process match expression not provided"; exit 1; }
     [ -z "$3" ] && { echo "Service name not provided"; exit 1; }
 
-    if ps | grep -v "grep" | grep -q "$2" && [ -f "$1.new" ]; then
+    if /bin/ps | grep -v "grep" | grep -q "$2" && [ -f "$1.new" ]; then
         case "$3" in
             "ipsec")
                 service "ipsec_restart" > /dev/null
