@@ -165,6 +165,66 @@ backup_initd_scripts() {
     done
 }
 
+symlink_data() {
+    if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
+        echo "Symlinking data from /jffs/entware..."
+
+        find /jffs/entware -type f -exec sh -c '
+            echo "$1" | grep -q "\.copythisfile$" && exit
+
+            TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
+            TARGET_FILE_DIR="$(dirname "$TARGET_FILE")"
+
+            [ "$(readlink -f "$TARGET_FILE")" = "$(readlink -f "$1")" ] && exit
+
+            TEST_DIR="$(dirname "$1")"
+            LIMIT=10
+            while [ "$LIMIT" -gt "0" ]; do
+                [ -f "$TEST_DIR/.symlinkthisdir" ] && exit
+                TEST_DIR="$(dirname "$TEST_DIR")"
+                [ "$TEST_DIR" = "/jffs/entware" ] && break
+                LIMIT=$((LIMIT-1))
+            done
+
+            if [ -f "$TARGET_FILE" ]; then
+                echo "Warning: File $TARGET_FILE already exists, renaming..."
+                [ -x "$TARGET_FILE" ] && chmod -x "$TARGET_FILE"
+                mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
+            fi
+
+            [ ! -d "$TARGET_FILE_DIR" ] && mkdir -pv "$TARGET_FILE_DIR"
+
+            if [ -f "$1.copythisfile" ]; then
+                cp -v "$1" "$TARGET_FILE" || echo "Failed to copy a file: $TARGET_FILE => $1"
+            else
+                ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
+            fi
+        ' sh {} \;
+
+        find /jffs/entware -type d -exec sh -c '
+            [ ! -f "$1/.symlinkthisdir" ] && [ ! -f "$1/.copythisdir" ] && exit
+
+            TARGET_DIR="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
+            TARGET_DIR_DIR="$(dirname "$TARGET_DIR")"
+
+            [ "$(readlink -f "$TARGET_DIR")" = "$(readlink -f "$1")" ] && exit
+
+            if [ -d "$TARGET_DIR" ]; then
+                echo "Warning: Directory $TARGET_DIR already exists, renaming..."
+                mv -v "$TARGET_DIR" "$TARGET_DIR.bak_$(date +%s)"
+            fi
+
+            [ ! -d "$TARGET_DIR_DIR" ] && mkdir -pv "$TARGET_DIR_DIR"
+
+            if [ -f "$1.copythisdir" ]; then
+                cp -rv "$1" "$TARGET_DIR" || echo "Failed to copy a directory: $TARGET_DIR => $1"
+            else
+                ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
+            fi
+        ' sh {} \;
+    fi
+}
+
 services() {
     case "$1" in
         "start")
@@ -519,69 +579,20 @@ case "$1" in
             #shellcheck disable=SC2086
             opkg install $IN_RAM
 
-            if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
-                echo "Symlinking data from /jffs/entware..."
-
-                find /jffs/entware -type f -exec sh -c '
-                    echo "$1" | grep -q "\.copythisfile$" && exit
-
-                    TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
-                    TARGET_FILE_DIR="$(dirname "$TARGET_FILE")"
-
-                    [ "$(readlink -f "$TARGET_FILE")" = "$(readlink -f "$1")" ] && exit
-
-                    TEST_DIR="$(dirname "$1")"
-                    LIMIT=10
-                    while [ "$LIMIT" -gt "0" ]; do
-                        [ -f "$TEST_DIR/.symlinkthisdir" ] && exit
-                        TEST_DIR="$(dirname "$TEST_DIR")"
-                        [ "$TEST_DIR" = "/jffs/entware" ] && break
-                        LIMIT=$((LIMIT-1))
-                    done
-
-                    if [ -f "$TARGET_FILE" ]; then
-                        echo "Warning: File $TARGET_FILE already exists, renaming..."
-                        [ -x "$TARGET_FILE" ] && chmod -x "$TARGET_FILE"
-                        mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
-                    fi
-
-                    [ ! -d "$TARGET_FILE_DIR" ] && mkdir -pv "$TARGET_FILE_DIR"
-
-                    if [ -f "$1.copythisfile" ]; then
-                        cp -v "$1" "$TARGET_FILE" || echo "Failed to copy a file: $TARGET_FILE => $1"
-                    else
-                        ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
-                    fi
-                ' sh {} \;
-
-                find /jffs/entware -type d -exec sh -c '
-                    [ ! -f "$1/.symlinkthisdir" ] && [ ! -f "$1/.copythisdir" ] && exit
-
-                    TARGET_DIR="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
-                    TARGET_DIR_DIR="$(dirname "$TARGET_DIR")"
-
-                    [ "$(readlink -f "$TARGET_DIR")" = "$(readlink -f "$1")" ] && exit
-
-                    if [ -d "$TARGET_DIR" ]; then
-                        echo "Warning: Directory $TARGET_DIR already exists, renaming..."
-                        mv -v "$TARGET_DIR" "$TARGET_DIR.bak_$(date +%s)"
-                    fi
-
-                    [ ! -d "$TARGET_DIR_DIR" ] && mkdir -pv "$TARGET_DIR_DIR"
-
-                    if [ -f "$1.copythisdir" ]; then
-                        cp -rv "$1" "$TARGET_DIR" || echo "Failed to copy a directory: $TARGET_DIR => $1"
-                    else
-                        ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
-                    fi
-                ' sh {} \;
-            fi
+            symlink_data
         fi
 
         echo "Installation complete!"
     ;;
+    "symlinks")
+        if [ -n "$IN_RAM" ]; then
+            symlink_data
+        else
+            echo "This function is only supported when installing Entware in RAM."
+        fi
+    ;;
     *)
-        echo "Usage: $0 run|start|stop|restart|install"
+        echo "Usage: $0 run|start|stop|restart|install|symlinks"
         exit 1
     ;;
 esac
