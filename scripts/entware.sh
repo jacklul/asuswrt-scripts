@@ -535,7 +535,6 @@ case "$1" in
             fi
         done
 
-        chmod 777 /opt/tmp
         PATH=/opt/bin:/opt/sbin:$PATH
 
         echo "Installing package manager..."
@@ -560,6 +559,9 @@ case "$1" in
         opkg update
         [ "$ALTERNATIVE" = true ] && opkg install busybox
         opkg install entware-opt
+
+        # Fix /opt/tmp permissions because entware-opt sets them to 755
+        chmod 777 /opt/tmp
 
         echo "Checking and copying required files..."
 
