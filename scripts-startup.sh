@@ -68,12 +68,12 @@ case "$1" in
         mkdir -pv "$SCRIPTS_DIR"
 
         if [ -f "/usr/sbin/helper.sh" ]; then # could also be [ "$(uname -o)" = "ASUSWRT-Merlin" ] ?
-            cat << EOF
+            cat <<EOT
 You should not be using this script on Asuswrt-Merlin!
 Please start individual scripts from /jffs/scripts/services-start instead!
 
 If you continue an entry to start this script will be added to /jffs/scripts/services-start.
-EOF
+EOT
 
             #shellcheck disable=SC3045,SC2162
             read -p "Continue ? [y/N] : " -n1 REPLY
