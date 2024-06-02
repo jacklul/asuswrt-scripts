@@ -16,14 +16,14 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** s
 
 > [!WARNING]
 > Newer versions of the official firmware have blocked the ability to run scripts using `script_usbmount` NVRAM variable and require a workaround - [look here](/asusware-usbmount).
-> 
-> You can check if your router is affected by doing the following: 
+>
+> You can check if your router is affected by doing the following:
 > - SSH into the router
 > - Run `set script_usbmount="/bin/touch /tmp/yesitworks" && nvram commit`
-> - Wait around 15 seconds then execute `nvram get script_usbmount` - **if there is > no output then your router is affected**
-> - Plugin in any USB storage - make sure the router mounts it as storage (needs > supported filesystem)
-> - Run `cat /tmp/yesitworks` - **if you see `No such file or directory` message > then your router is affected**
-> 
+> - Wait around 15 seconds then execute `nvram get script_usbmount` - **if there is no output then your router is affected**
+> - Plugin in any USB storage - make sure the router mounts it as storage (needs supported filesystem)
+> - Run `cat /tmp/yesitworks` - **if you see `No such file or directory` message then your router is affected**
+>
 > If your router is affected then [apply this workaround](/asusware-usbmount) first.
 
 ### Run these commands to install the startup script:
@@ -123,6 +123,7 @@ This script implements [Custom config files from Asuswrt-Merlin firmware](https:
 - dnsmasq.conf
 - hosts
 - igmpproxy.conf
+- ipsec.conf
 - mcpd.conf
 - minidlna.conf
 - mt-daapd.conf
@@ -148,6 +149,7 @@ This script implements [Custom config files from Asuswrt-Merlin firmware](https:
 - dnsmasq.postconf
 - hosts.postconf
 - igmpproxy.postconf
+- ipsec.postconf
 - mcpd.postconf
 - minidlna.postconf
 - mt-daapd.postconf
