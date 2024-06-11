@@ -16,7 +16,9 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-BRIDGE_INTERFACE="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge)
+# `nvram get apg_ifnames` command will list you the current bridge interfaces excluding br0 in case you need to
+# selectively pick one or more of the bridge interfaces, separated by spaces
+BRIDGE_INTERFACES="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge)
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -106,36 +108,48 @@ get_wan_interface() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Bridge interfaces is not set"; exit 1; }
+    if echo "$BRIDGE_INTERFACES" | grep -q "br+"; then
+        logger -st "$SCRIPT_TAG" "Applying firewall rules to all bridge interfaces [br+]"
+        BRIDGE_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
+    else
+        for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
+            if ! ip link show | grep ": $_BRIDGE_INTERFACE" | grep -q "mtu"; then
+                logger -st "$SCRIPT_TAG" "Warning: Couldn't find matching bridge interface for [$_BRIDGE_INTERFACE]"
+                exit 0
+            fi
+        done
+    fi
 
     _WAN_INTERFACE="$(get_wan_interface)"
     [ -z "$_WAN_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Couldn't get WAN interface name"; exit 1; }
 
     lockfile lockwait
 
-    _RULES_ADDED=0
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
                 if ! $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
-                    _RULES_ADDED=1
-
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I "$CHAIN" -j REJECT
-                    $_IPTABLES -I FORWARD -i "$BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
+                    for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
+                        $_IPTABLES -I FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
+                        logger -st "$SCRIPT_TAG" "Enabled VPN Kill-switch on bridge interface: [$_BRIDGE_INTERFACE]"
+                    done
                 fi
             ;;
             "remove")
                 if $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
-                    $_IPTABLES -D FORWARD -i "$BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
+                    for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
+                        $_IPTABLES -D FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
+                        logger -st "$SCRIPT_TAG" "Disabled VPN Kill-switch on bridge interface: [$_BRIDGE_INTERFACE]"
+                    done
                     $_IPTABLES -F "$CHAIN"
                     $_IPTABLES -X "$CHAIN"
                 fi
             ;;
         esac
     done
-
-    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Enabled VPN Kill-switch"
 
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
 
