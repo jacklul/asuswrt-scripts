@@ -108,14 +108,15 @@ get_wan_interface() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Bridge interfaces is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Bridge interfaces are not set"; exit 1; }
+
     if echo "$BRIDGE_INTERFACES" | grep -q "br+"; then
         logger -st "$SCRIPT_TAG" "Applying firewall rules to all bridge interfaces [br+]"
         BRIDGE_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
     else
         for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
             if ! ip link show | grep ": $_BRIDGE_INTERFACE" | grep -q "mtu"; then
-                logger -st "$SCRIPT_TAG" "Warning: Couldn't find matching bridge interface for [$_BRIDGE_INTERFACE]"
+                logger -st "$SCRIPT_TAG" "Warning: Couldn't find matching bridge interface for $_BRIDGE_INTERFACE"
                 exit 0
             fi
         done
@@ -132,9 +133,11 @@ firewall_rules() {
                 if ! $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I "$CHAIN" -j REJECT
+
                     for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
                         $_IPTABLES -I FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
-                        logger -st "$SCRIPT_TAG" "Enabled VPN Kill-switch on bridge interface: [$_BRIDGE_INTERFACE]"
+
+                        logger -st "$SCRIPT_TAG" "Enabled VPN Kill-switch on bridge interface: $_BRIDGE_INTERFACE"
                     done
                 fi
             ;;
@@ -142,8 +145,10 @@ firewall_rules() {
                 if $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
                     for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
                         $_IPTABLES -D FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
-                        logger -st "$SCRIPT_TAG" "Disabled VPN Kill-switch on bridge interface: [$_BRIDGE_INTERFACE]"
+
+                        logger -st "$SCRIPT_TAG" "Disabled VPN Kill-switch on bridge interface: $_BRIDGE_INTERFACE"
                     done
+
                     $_IPTABLES -F "$CHAIN"
                     $_IPTABLES -X "$CHAIN"
                 fi
