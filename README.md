@@ -288,7 +288,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`led-control.sh`](/scripts/led-control.sh)
 
 > [!CAUTION]
-> This script is not complete and will probably not work on the official firmware (should work on Asuswrt-Merlin), see note in the script.
+> This script might not work on every device with the official firmware, it should work fine on Asuswrt-Merlin.
 
 This script implements [scheduled LED control from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control).
 

@@ -7,8 +7,6 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/led_control.mod
 #
-# This script will probably not fully work on stock as each device controls LED differently - would require to reverse engineer Asuswrt-Merlin's compiled binaries!
-#
 
 #jacklul-asuswrt-scripts-update
 #shellcheck disable=SC2155
@@ -71,8 +69,10 @@ switch_leds() {
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
             else
-                loop_led_ctrl on
-                set_wl_leds on
+                #loop_led_ctrl on
+                #set_wl_leds on
+                nvram set led_val=1
+                service ctrl_led
             fi
 
             logger -st "$SCRIPT_TAG" "LEDs are now ON$PERSISTENT_STATE"
@@ -83,8 +83,10 @@ switch_leds() {
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
             else
-                loop_led_ctrl off
-                set_wl_leds off
+                #loop_led_ctrl off
+                #set_wl_leds off
+                nvram set led_val=0
+                service ctrl_led
             fi
 
             logger -st "$SCRIPT_TAG" "LEDs are now OFF$PERSISTENT_STATE"
