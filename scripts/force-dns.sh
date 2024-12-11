@@ -35,6 +35,7 @@ FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined i
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 VERIFY_DNS=false # verify that the DNS server is working before applying
+VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applying (fallback only)
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -321,7 +322,7 @@ firewall_rules() {
                 if ! rules_exist "$FALLBACK_DNS_SERVER"; then
                     iptables_chains remove
 
-                    if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" >/dev/null 2>&1; then
+                    if [ "$VERIFY_DNS_FALLBACK" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" >/dev/null 2>&1; then
                         iptables_chains add
                         iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
 
