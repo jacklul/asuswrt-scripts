@@ -263,7 +263,7 @@ iptables_rules() {
 
                 $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -m mac --mac-source "$MAC" -j RETURN
                 $_IPTABLES "$_ACTION" "$CHAIN_DOT" -m mac --mac-source "$MAC" -j RETURN
-                $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m mac --mac-source "$MAC" -j RETURN
+                [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m mac --mac-source "$MAC" -j RETURN
             done
         fi
 
@@ -274,17 +274,17 @@ iptables_rules() {
                 if [ "${IP#*"-"}" != "$IP" ]; then # IP range entry
                     $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -m iprange --src-range "$IP" -j RETURN
                     $_IPTABLES "$_ACTION" "$CHAIN_DOT" -m iprange --src-range "$IP" -j RETURN
-                    $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m iprange --src-range "$IP" -j RETURN
+                    [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m iprange --src-range "$IP" -j RETURN
                 else # single IP entry
                     $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -s "$IP" -j RETURN
                     $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$IP" -j RETURN
-                    $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$IP" -j RETURN
+                    [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$IP" -j RETURN
                 fi
             done
         else # no IP ranges found, conveniently iptables accept IPs separated by commas
             $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -s "$_PERMIT_IP" -j RETURN
             $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$_PERMIT_IP" -j RETURN
-            $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$_PERMIT_IP" -j RETURN
+            [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$_PERMIT_IP" -j RETURN
         fi
 
         [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -d "$_ROUTER_IP" -j RETURN
