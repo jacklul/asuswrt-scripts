@@ -230,6 +230,7 @@ case "$1" in
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if
                     [ -x "$SCRIPT_DIR/usb-network.sh" ] ||
+                    [ -x "$SCRIPT_DIR/extra-ip.sh" ] ||
                     [ -x "$SCRIPT_DIR/dynamic-dns.sh" ]
                 then
                     if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
@@ -251,6 +252,7 @@ case "$1" in
                     fi
 
                     [ -x "$SCRIPT_DIR/usb-network.sh" ] && sh "$SCRIPT_DIR/usb-network.sh" run &
+                    [ -x "$SCRIPT_DIR/extra-ip.sh" ] && sh "$SCRIPT_DIR/extra-ip.sh" run &
                     [ -x "$SCRIPT_DIR/dynamic-dns.sh" ] && sh "$SCRIPT_DIR/dynamic-dns.sh" run &
                 fi
 

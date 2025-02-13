@@ -49,10 +49,11 @@ Then you can proceed to install scripts that you want to use from the [section b
 <a href="#user-content-disable-wpssh">disable-wps</a><br>
 <a href="#user-content-dynamic-dnssh">dynamic-dns</a><br>
 <a href="#user-content-entwaresh">entware</a><br>
+<a href="#user-content-extra-ipsh">extra-ip</a><br>
 <a href="#user-content-force-dnssh">force-dns</a><br>
-<a href="#user-content-guest-passwordsh">guest-password</a><br>
 </td>
 <td>
+<a href="#user-content-guest-passwordsh">guest-password</a><br>
 <a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
 <a href="#user-content-led-controlsh">led-control</a><br>
 <a href="#user-content-modify-featuressh">modify-features</a><br>
@@ -61,9 +62,9 @@ Then you can proceed to install scripts that you want to use from the [section b
 <a href="#user-content-process-killersh">process-killer</a><br>
 <a href="#user-content-rclone-backupsh">rclone-backup</a><br>
 <a href="#user-content-samba-masqueradesh">samba-masquerade</a><br>
-<a href="#user-content-service-eventsh">service-event</a><br>
 </td>
 <td>
+<a href="#user-content-service-eventsh">service-event</a><br>
 <a href="#user-content-swapsh">swap</a><br>
 <a href="#user-content-temperature-warningsh">temperature-warning</a><br>
 <a href="#user-content-update-notifysh">update-notify</a><br>
@@ -241,6 +242,20 @@ _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/entware.sh" -o /jffs/scripts/entware.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`extra-ip.sh`](/scripts/extra-ip.sh)
+
+This script allows you to add extra IP address to specific interface (usually `br0` bridge).
+
+This is mainly for running services on ports normally taken by the firmware (like webserver).
+
+_Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/extra-ip.sh" -o /jffs/scripts/extra-ip.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
