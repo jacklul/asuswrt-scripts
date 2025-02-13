@@ -143,7 +143,7 @@ add_modified_mark() {
         ;;
     esac
 
-    echo "$_COMMENT Modified by $SCRIPT_NAME" >> "$1"
+    echo "$_COMMENT Modified by $SCRIPT_NAME script" >> "$1"
 }
 
 commit_new_file() {
@@ -160,7 +160,7 @@ modify_service_config_file() {
     [ -z "$3" ] && { echo "Process binary name not provided"; exit 1; }
     # $4 = custom /jffs/configs/[NAME.conf]
 
-    if /bin/ps | grep -v "grep" | grep -q "$2" && [ -f "$1" ] && ! grep -q "Modified by $SCRIPT_NAME" "$1"; then
+    if /bin/ps | grep -v "grep" | grep -q "$2" && [ -f "$1" ] && ! grep -q "Modified by $SCRIPT_NAME script" "$1"; then
         if [ -n "$4" ]; then
             modify_config_file "$1" "$4"
         else
@@ -222,7 +222,7 @@ restore_service_config_file() {
 
 modify_etc_files() {
     for FILE in $ETC_FILES; do
-        if [ -f "/etc/$FILE" ] && ! grep -q "# Modified by $SCRIPT_NAME" "/etc/$FILE"; then
+        if [ -f "/etc/$FILE" ] && ! grep -q "Modified by $SCRIPT_NAME script" "/etc/$FILE"; then
             [ ! -f "/etc/$FILE.bak" ] && cp "/etc/$FILE" "/etc/$FILE.bak"
 
             modify_config_file "/etc/$FILE"
