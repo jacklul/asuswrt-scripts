@@ -278,7 +278,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script handles hotplug events.
 
-By default, integrates with all scripts present in this repository.
+By default, integrates with all scripts present in this repository (where applicable).
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/hotplug-event.sh" -o /jffs/scripts/hotplug-event.sh
@@ -417,7 +417,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script tries to emulate [service-event script from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.
 
-By default, integrates with all scripts (when required) present in this repository.
+By default, integrates with all scripts present in this repository (where applicable).
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
