@@ -282,11 +282,13 @@ entware_in_ram() {
                 return 1
             fi
 
+            echo "---------- Installation finished at $(date) ----------" >> /tmp/entware-install.log
+
             logger -st "$SCRIPT_TAG" "Installation successful"
         fi
 
         ! is_entware_mounted && init_opt /tmp/entware
-        services start
+        services start >> /tmp/entware-install.log
     fi
 
     lockfile unlock
