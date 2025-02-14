@@ -43,6 +43,7 @@ Then you can proceed to install scripts that you want to use from the [section b
 <tr>
 <td>
 <a href="#user-content-conditional-rebootsh">conditional-reboot</a><br>
+<a href="#user-content-cron-affinitysh">cron-affinity</a><br>
 <a href="#user-content-cron-queuesh">cron-queue</a><br>
 <a href="#user-content-custom-configssh">custom-configs</a><br>
 <a href="#user-content-disable-diagsh">disable-diag</a><br>
@@ -95,6 +96,18 @@ By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`cron-affinity.sh`](/scripts/cron-affinity.sh)
+
+This script allows setting custom CPU affinity mask on firmware's `crond` process.
+
+By default, it takes the affinity mask of `init` process and decreases it by one, preventing the process from running on the first CPU core.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/cron-affinity.sh" -o /jffs/scripts/cron-affinity.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
