@@ -41,6 +41,11 @@ set_affinity() {
 			*)
 				PID_AFFINITY="$(taskset -p "$PID" | sed 's/.*: //')"
 
+				if ! echo "$PID_AFFINITY" | grep -Eq '^[0-9]+$'; then
+					logger -st "$SCRIPT_TAG" "Failed to get CPU affinity mask of crond (PID $PID)"
+					continue
+				fi
+
 				if [ "$1" = "unset" ] && [ -n "$INIT_AFFINITY" ]; then
 					CUSTOM_AFFINITY=$INIT_AFFINITY
 				fi
