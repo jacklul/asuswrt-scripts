@@ -42,10 +42,10 @@ lockfile() { #LOCKFILE_START#
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
             while [ -f "/proc/$$/fd/$_FD" ]; do
-                echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
+                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
                 _FD=$((_FD+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && exit 1
+                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
             eval exec "$_FD>$_LOCKFILE"
