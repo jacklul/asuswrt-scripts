@@ -338,6 +338,7 @@ This script modifies some web UI elements.
 - display CPU temperature on the system status screen (with realtime updates)
 - show connect QR code on guest network edit screen and hide the passwords on the main screen
 - add `notrendmicro` rc_support option (to be used with [`modify-features.sh`](#user-content-modify-featuressh)) that hides all Trend Micro services, **Speed Test** will be moved to **Network Tools** menu
+- allow use of port 443 for HTTPS LAN port in system settings
 
 > [!NOTE]
 > Tested only with English language!
