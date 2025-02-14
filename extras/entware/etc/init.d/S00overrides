@@ -1,0 +1,20 @@
+#!/bin/sh
+# /opt/etc/init.d/S00overrides
+# This script allows you to override the default startup scripts in /opt/etc/init.d
+# by creating a script with the name prefixed with "override-" in the same directory.
+
+case $1 in
+    start|restart)
+        for i in $(/opt/bin/find /opt/etc/init.d/ \( -name 'S*' -o -name 'rc.*' \)); do
+            if [ -f "$i" ]; then
+                b="$(basename "$i")"
+
+                if [ -x "/opt/etc/init.d/override-$b" ] && [ ! -L "$i" ]; then
+                    mv -fv "$i" "$i.old"
+                    chmod -x "$i.old"
+                    ln -sv "override-$b" "$i"
+                fi
+            fi
+        done
+    ;;
+esac

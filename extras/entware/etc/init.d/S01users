@@ -1,0 +1,37 @@
+#!/bin/sh
+# /opt/etc/init.d/S01users
+# This script allows easy creation of users for services that require them
+
+USERS="pihole unbound"
+MIN_UID=1000
+
+is_uid_in_use() {
+    for test_uid in $2; do
+        if [ "$test_uid" -eq "$1" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+case $1 in
+    start|restart)
+        for USER in $USERS; do
+            if ! grep -q "$USER:" /opt/etc/passwd; then
+                USED_UIDS=$(cut -d: -f3 /opt/etc/passwd)
+                NEXT_UID=$MIN_UID
+
+                while is_uid_in_use "$NEXT_UID" "$USED_UIDS"; do
+                    NEXT_UID=$((NEXT_UID + 1))
+                done
+
+                echo "Adding user $USER with UID $NEXT_UID..."
+
+                echo "$USER:x:$NEXT_UID:$NEXT_UID::/dev/null:/dev/null" >> /opt/etc/passwd
+                echo "$USER:x:$NEXT_UID:" >> /opt/etc/group
+                echo "$USER:*:0:0:99999:7:::" >> /opt/etc/shadow
+                echo "$USER:*::" >> /opt/etc/gshadow
+            fi
+        done
+    ;;
+esac
