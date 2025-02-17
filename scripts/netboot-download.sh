@@ -77,6 +77,8 @@ case "$1" in
             {
                 sh "$SCRIPT_PATH" run
             } &
+        else
+            sh "$SCRIPT_PATH" run
         fi
     ;;
     "stop")
