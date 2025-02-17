@@ -35,3 +35,26 @@ case $1 in
         done
     ;;
 esac
+
+# Some firmware events can rewrite these files so in order to fix that:
+# - install service-event.sh script
+# - set EXECUTE_COMMAND="/jffs/scripts/service-script.sh" in the service-event.conf
+# - create the following executable script (/jffs/scripts/service-script.sh):
+#
+#  #!/bin/sh
+#  # $1 = event, $2 = target
+#  
+#  [ -z "$2" ] && exit
+#  
+#  case "$1" in
+#      "start"|"restart")
+#          case "$2" in
+#              "allnet"|"net"|"net_and_phy"|"ftpsamba"|"pms_account"|"chilli"|"CP"|"wlcmode"|"chpass"|"nasapps")
+#                  if [ -f /opt/etc/init.d/S01users ]; then
+#                      { sleep 5; /opt/etc/init.d/S01users restart; } &
+#                  fi
+#              ;;
+#          esac
+#      ;;
+#  esac
+#

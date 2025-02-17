@@ -18,3 +18,6 @@ case $1 in
         done
     ;;
 esac
+
+# Please note that if you update or install packages through opkg then their initd script will be overwritten
+# You will have to run /opt/etc/init.d/S00overrides restart to reapply the changes
