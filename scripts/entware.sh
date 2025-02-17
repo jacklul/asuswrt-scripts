@@ -288,7 +288,7 @@ entware_in_ram() {
         fi
 
         ! is_entware_mounted && init_opt /tmp/entware
-        services start >> /tmp/entware-install.log
+        services start >> /tmp/entware-install.log 2>&1
     fi
 
     lockfile unlock
