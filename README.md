@@ -356,9 +356,6 @@ This script modifies some web UI elements.
 > [!NOTE]
 > Tested only with English language!
 
-> [!IMPORTANT]
-> The `notrendmicro` tweak is not available when using Asuswrt-Merlin firmware as it modifies `menuTree.js` and stores it in a different path.
-
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
 ```
