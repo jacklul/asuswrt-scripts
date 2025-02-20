@@ -43,7 +43,6 @@ Then you can proceed to install scripts that you want to use from the [section b
 <tr>
 <td>
 <a href="#user-content-conditional-rebootsh">conditional-reboot</a><br>
-<a href="#user-content-cron-affinitysh">cron-affinity</a><br>
 <a href="#user-content-cron-queuesh">cron-queue</a><br>
 <a href="#user-content-custom-configssh">custom-configs</a><br>
 <a href="#user-content-disable-diagsh">disable-diag</a><br>
@@ -52,14 +51,15 @@ Then you can proceed to install scripts that you want to use from the [section b
 <a href="#user-content-entwaresh">entware</a><br>
 <a href="#user-content-extra-ipsh">extra-ip</a><br>
 <a href="#user-content-force-dnssh">force-dns</a><br>
+<a href="#user-content-guest-passwordsh">guest-password</a><br>
 </td>
 <td>
-<a href="#user-content-guest-passwordsh">guest-password</a><br>
 <a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
 <a href="#user-content-led-controlsh">led-control</a><br>
 <a href="#user-content-modify-featuressh">modify-features</a><br>
 <a href="#user-content-modify-webuish">modify-webui</a><br>
 <a href="#user-content-netboot-downloadsh">netboot-download</a><br>
+<a href="#user-content-process-affinitysh">process-affinity</a><br>
 <a href="#user-content-process-killersh">process-killer</a><br>
 <a href="#user-content-rclone-backupsh">rclone-backup</a><br>
 <a href="#user-content-samba-masqueradesh">samba-masquerade</a><br>
@@ -96,18 +96,6 @@ By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
-```
-
-<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
-
-## [`cron-affinity.sh`](/scripts/cron-affinity.sh)
-
-This script allows setting custom CPU affinity mask on firmware's `crond` process.
-
-By default, it takes the affinity mask of `init` process and decreases it by one, preventing the process from running on the first CPU core.
-
-```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/cron-affinity.sh" -o /jffs/scripts/cron-affinity.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -391,6 +379,18 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`process-affinity.sh`](/scripts/process-affinity.sh)
+
+This script allows setting custom CPU affinity masks on processes.
+
+If no mask is specified, it takes the affinity mask of `init` process and decreases its value by one, thus preventing the process from running on the first CPU core.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-affinity.sh" -o /jffs/scripts/process-affinity.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
