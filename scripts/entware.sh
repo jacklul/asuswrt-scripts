@@ -22,7 +22,6 @@ ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) 
 ALTERNATIVE=false # Perform alternative install (separated users from the system)
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 BASE_URL="bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no http/https prefix!)
-WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 
 if [ -f "$SCRIPT_CONFIG" ]; then
@@ -122,6 +121,29 @@ is_entware_mounted() {
     fi
 }
 
+retry_command() {
+    _COMMAND="$1"
+    _RETRIES="$2"
+    _COUNT=1
+    [ -z "$_RETRIES" ] && _RETRIES=3
+
+    while [ "$_COUNT" -le "$_RETRIES" ]; do
+        if [ "$_COUNT" -gt 1 ]; then
+            echo "Command failed, retrying in 5 seconds..."
+            sleep 5
+        fi
+
+        if $_COMMAND; then
+            return 0
+        else
+            _COUNT=$((_COUNT + 1))
+        fi
+    done
+
+    echo "Command failed after $_RETRIES attempts"
+    return 1
+}
+
 init_opt() {
     [ -z "$1" ] && { echo "Target path not provided"; exit 1; }
 
@@ -155,13 +177,24 @@ backup_initd_scripts() {
         mkdir -p "/tmp/$SCRIPT_NAME-init.d-backup"
     fi
 
+    # Copy rc.func, no modifications needed
     cp -f /opt/etc/init.d/rc.func "/tmp/$SCRIPT_NAME-init.d-backup"
+
+    # Copy and modify rc.unslung
+    cp -f /opt/bin/find "/tmp/$SCRIPT_NAME-init.d-backup"
+    cp -f /opt/etc/init.d/rc.unslung "/tmp/$SCRIPT_NAME-init.d-backup"
+    sed "s#/opt/etc/init.d/#/tmp/$SCRIPT_NAME-init.d-backup/#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/rc.unslung"
+    sed "s#/opt/bin/find#/tmp/$SCRIPT_NAME-init.d-backup/find#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/rc.unslung"
 
     for FILE in /opt/etc/init.d/*; do
         [ ! -x "$FILE" ] && continue
-        [ "$(basename "$FILE")" = "rc.unslung" ] && continue
-        cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
-        sed "s#/opt/etc/init.d/rc.func#/tmp/$SCRIPT_NAME-init.d-backup/rc.func#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
+
+        case "$FILE" in
+            S*)
+                cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
+                sed "s#/opt/etc/init.d/rc.func#/tmp/$SCRIPT_NAME-init.d-backup/rc.func#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
+            ;;
+        esac
     done
 }
 
@@ -236,10 +269,10 @@ services() {
 
                     [ -z "$IN_RAM" ] && backup_initd_scripts
                 else
-                    logger -st "$SCRIPT_TAG" "Entware is not installed"
+                    logger -st "$SCRIPT_TAG" "Unable to start services - Entware is not installed"
                 fi
             else
-                logger -st "$SCRIPT_TAG" "Entware is not mounted"
+                logger -st "$SCRIPT_TAG" "Unable to start services - Entware is not mounted"
             fi
         ;;
         "stop")
@@ -250,12 +283,9 @@ services() {
             elif [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
                 logger -st "$SCRIPT_TAG" "Killing services..."
 
-                for FILE in "/tmp/$SCRIPT_NAME-init.d-backup/"*; do
-                    [ ! -x "$FILE" ] && continue
-                    eval "$FILE kill"
-                done
-
-                rm -rf "/tmp/$SCRIPT_NAME-init.d-backup"
+                if "/tmp/$SCRIPT_NAME-init.d-backup/rc.unslung" kill "$SCRIPT_PATH"; then
+                    rm -rf "/tmp/$SCRIPT_NAME-init.d-backup"
+                fi
             fi
         ;;
     esac
@@ -276,6 +306,7 @@ entware_in_ram() {
             if ! sh "$SCRIPT_PATH" install /tmp >> /tmp/entware-install.log 2>&1; then
                 logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
 
+                # Prevent cron job from retrying failed install
                 [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
                 cru d "$SCRIPT_NAME"
 
@@ -287,8 +318,16 @@ entware_in_ram() {
             logger -st "$SCRIPT_TAG" "Installation successful"
         fi
 
+        # This should be already done but leave it just in case
         ! is_entware_mounted && init_opt /tmp/entware
-        services start >> /tmp/entware-install.log 2>&1
+
+        logger -st "$SCRIPT_TAG" "Starting services..."
+
+        if ! /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH" >> /tmp/entware-install.log 2>&1; then
+            logger -st "$SCRIPT_TAG" "Failed to start services, check /tmp/entware-install.log for details"
+        fi
+
+        echo "---------- Services started at $(date) ----------" >> /tmp/entware-install.log
     fi
 
     lockfile unlock
@@ -332,21 +371,9 @@ case "$1" in
                 lockfile check && exit
 
                 nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
-            else
+            elif [ ! -f /opt/etc/init.d/rc.unslung ]; then
                 lockfile lockfail inram || { echo "Already running! ($_LOCKPID)"; exit 1; }
-
-                LIMIT="$WAIT_LIMIT"
-                while true; do
-                    [ -f /opt/etc/init.d/rc.unslung ] && break
-                    entware_in_ram && break
-
-                    LIMIT=$((LIMIT-1))
-                    [ "$LIMIT" -le "0" ] && break
-
-                    sleep 60
-                done
-                [ "$LIMIT" -le "0" ] && [ "$WAIT_LIMIT" != "0" ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
-
+                entware_in_ram
                 lockfile unlock inram
             fi
 
@@ -537,7 +564,7 @@ case "$1" in
             fi
         done
 
-        PATH=/opt/bin:/opt/sbin:$PATH
+        PATH=/opt/bin:/opt/sbin:/opt/usr/bin:$PATH
 
         echo "Installing package manager..."
 
@@ -556,11 +583,13 @@ case "$1" in
             fi
         fi
 
+        echo "Updating package lists..."
+        retry_command "opkg update"
+
         echo "Installing core packages..."
 
-        opkg update
-        [ "$ALTERNATIVE" = true ] && opkg install busybox
-        opkg install entware-opt
+        [ "$ALTERNATIVE" = true ] && retry_command "opkg install busybox"
+        retry_command "opkg install entware-opt"
 
         # Fix /opt/tmp permissions because entware-opt sets them to 755
         chmod 777 /opt/tmp
@@ -581,7 +610,7 @@ case "$1" in
             echo "Installing selected packages..."
 
             #shellcheck disable=SC2086
-            opkg install $IN_RAM
+            retry_command "opkg install $IN_RAM"
 
             symlink_data
         fi
