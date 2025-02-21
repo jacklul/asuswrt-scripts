@@ -4,7 +4,7 @@
 # Modifies CPU affinity mask of defined processes
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=process-affinity.sh
 #shellcheck disable=SC2155,SC2009
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

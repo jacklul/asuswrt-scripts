@@ -4,7 +4,7 @@
 # Runs "every minute" jobs one after another
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=cron-queue.sh
 #shellcheck disable=SC2155,SC2009
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

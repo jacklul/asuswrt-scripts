@@ -4,7 +4,7 @@
 # Automatically mounts any USB storage
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=usb-mount.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

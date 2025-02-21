@@ -7,7 +7,7 @@
 #  https://www.snbforums.com/threads/asus-rt-ac87u-stepped-into-the-382-branch-d.44227/#post-376642
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=disable-wps.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

@@ -6,7 +6,7 @@
 # For security and reliability reasons this cannot be run at boot
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=update-scripts.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
@@ -17,7 +17,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 BRANCH="master" # which git branch to use
 BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base download url, no ending slash!
 BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
-AUTOUPDATE=true # whenever to auto-update this script or not
+AUTOUPDATE=true # whenever to auto-update this script first or not
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -47,7 +47,7 @@ download_and_check() {
                 return 0
             fi
         else
-            echo "Failed to download from url '$1'"
+            echo "Failed to download from url '$1'!"
         fi
     fi
 
@@ -55,10 +55,17 @@ download_and_check() {
 }
 
 if [ -z "$1" ] || [ "$1" = "run" ]; then
-    if [ "$AUTOUPDATE" = true ] && download_and_check "$DOWNLOAD_URL/$(basename "$SCRIPT_PATH")" "$SCRIPT_PATH"; then
-        { sleep 1 && cat "/tmp/$SCRIPT_NAME-download" > "$SCRIPT_PATH"; } &
-        echo "Script has been updated, please re-run!"
-        exit
+    if [ "$AUTOUPDATE" = true ]; then
+        BASENAME="$(basename "$SCRIPT_PATH")"
+
+        TARGET_BASENAME="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$SCRIPT_PATH" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
+        [ -n "$TARGET_BASENAME" ] && BASENAME=$TARGET_BASENAME
+
+        if download_and_check "$DOWNLOAD_URL/$BASENAME" "$SCRIPT_PATH"; then
+            { sleep 1 && cat "/tmp/$SCRIPT_NAME-download" > "$SCRIPT_PATH"; } &
+            echo "Script has been updated, please re-run!"
+            exit 0
+        fi
     fi
 
     trap 'rm -f "/tmp/$SCRIPT_NAME-download"; exit $?' EXIT
@@ -70,11 +77,18 @@ if [ -z "$1" ] || [ "$1" = "run" ]; then
         [ "$ENTRY" = "$SCRIPT_PATH" ] && continue
         ! grep -q "jacklul-asuswrt-scripts-update" "$ENTRY" && continue
 
-        echo "Processing '$ENTRY'..."
+        TARGET_BASENAME="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$ENTRY" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
+        [ -n "$TARGET_BASENAME" ] && BASENAME=$TARGET_BASENAME
+
+        if [ -n "$TARGET_BASENAME" ]; then
+            echo "Processing '$ENTRY' ('$BASENAME')..."
+        else
+            echo "Processing '$ENTRY'..."
+        fi
 
         if download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"; then
-            echo "Updating '$ENTRY'..."
             cat "/tmp/$SCRIPT_NAME-download" > "$ENTRY"
+            echo "Updated '$ENTRY'!"
         fi
     done
 fi

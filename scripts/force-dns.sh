@@ -14,7 +14,7 @@
 #  iptables -I "FORCEDNS_DOT" -m mac --mac-source "d9:32:cb:d0:fe:fe" ! -d "1.1.1.1" -j REJECT
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=force-dns.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

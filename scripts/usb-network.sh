@@ -8,7 +8,7 @@
 # See https://github.com/jacklul/asuswrt-usb-raspberry-pi
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=usb-network.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

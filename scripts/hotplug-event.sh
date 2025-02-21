@@ -4,7 +4,7 @@
 # Handle hotplug events
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=hotplug-event.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

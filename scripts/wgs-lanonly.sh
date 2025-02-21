@@ -4,7 +4,7 @@
 # Prevent WireGuard server clients from accessing internet through the router
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=wgs-lanonly.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

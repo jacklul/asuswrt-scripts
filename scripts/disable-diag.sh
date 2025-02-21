@@ -6,7 +6,7 @@
 # Prevents conn_diag from starting amas_portstatus
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=disable-diag.sh
 #shellcheck disable=SC2155,SC2009
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

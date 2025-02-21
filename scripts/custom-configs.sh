@@ -7,7 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=custom-configs.sh
 #shellcheck disable=SC2155,SC2009
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

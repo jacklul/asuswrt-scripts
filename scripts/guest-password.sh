@@ -7,7 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Guest-WIFI-QR-code-generator-for-display-on-local-network-webpage-(visible-from-TV,-smartphones...)-and-random-password-rotation
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=guest-password.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

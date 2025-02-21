@@ -7,7 +7,7 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Enable-PXE-booting-into-netboot.xyz
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=netboot-download.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

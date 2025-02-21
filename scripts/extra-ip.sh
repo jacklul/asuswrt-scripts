@@ -4,7 +4,7 @@
 # Assign extra IP to specified interface
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=extra-ip.sh
 #shellcheck disable=SC2155,SC2009
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

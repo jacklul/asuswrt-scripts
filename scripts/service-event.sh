@@ -11,7 +11,7 @@
 # Scripts from this repository are already handled by the build-in script.
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=service-event.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

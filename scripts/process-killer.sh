@@ -10,7 +10,7 @@
 #  Cannot block files that are symlinked
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=process-killer.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

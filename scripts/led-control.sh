@@ -8,7 +8,7 @@
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/led_control.mod
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=led-control.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"

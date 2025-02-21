@@ -7,7 +7,7 @@
 # This script will detect if Rclone was installed through Entware and set RCLONE_PATH automatically when left empty
 #
 
-#jacklul-asuswrt-scripts-update
+#jacklul-asuswrt-scripts-update=rclone-backup.sh
 #shellcheck disable=SC2155
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
