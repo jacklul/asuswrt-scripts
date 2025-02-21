@@ -29,29 +29,36 @@ set_affinity() {
     [ -z "$1" ] && { echo "You must specify a process name"; exit 1; }
     [ -z "$2" ] && { echo "You must specify an affinity mask"; exit 1; }
 
-    _PROCESS_PATH="$(readlink -f "$(which "$1")")"
+    _PROCESS_BASENAME="$(basename "$1")"
+
+    if echo "$1" | grep -q "/"; then
+        _PROCESS_PATH="$(readlink -f "$1")"
+    else
+        _PROCESS_PATH="$(readlink -f "$(which "$1")")"
+    fi
+
     [ -z "$_PROCESS_PATH" ] && { echo "Executable '$_PROCESS_PATH' not found"; return; }
 
-    for PID in $(pidof "$1"); do
+    for PID in $(pidof "$_PROCESS_BASENAME"); do
         PROCESS_PATH="$(readlink -f "/proc/$PID/exe")"
 
         if [ "$_PROCESS_PATH" != "$PROCESS_PATH" ]; then
-            echo "Executable path mismatch for '$1' (PID $PID) ('$_PROCESS_PATH' != '$PROCESS_PATH')"
+            echo "Executable path mismatch for '$_PROCESS_BASENAME' (PID $PID) ('$_PROCESS_PATH' != '$PROCESS_PATH')"
             continue
         fi
 
         PID_AFFINITY="$(taskset -p "$PID" | sed 's/.*: //')"
 
         if ! echo "$PID_AFFINITY" | grep -Eq '^[0-9]+$'; then
-            echo "Failed to get CPU affinity mask of '$1' (PID $PID)"
+            echo "Failed to get CPU affinity mask of '$_PROCESS_BASENAME' (PID $PID)"
             continue
         fi
 
         if [ "$PID_AFFINITY" -ne "$2" ]; then
             if taskset -p "$2" "$PID" >/dev/null; then
-                logger -st "$SCRIPT_TAG" "Changed CPU affinity mask of '$1' (PID $PID) from $PID_AFFINITY to $2"
+                logger -st "$SCRIPT_TAG" "Changed CPU affinity mask of '$_PROCESS_BASENAME' (PID $PID) from $PID_AFFINITY to $2"
             else
-                logger -st "$SCRIPT_TAG" "Failed to change CPU affinity mask of '$1' (PID $PID) from $PID_AFFINITY to $2"
+                logger -st "$SCRIPT_TAG" "Failed to change CPU affinity mask of '$_PROCESS_BASENAME' (PID $PID) from $PID_AFFINITY to $2"
             fi
         fi
     done
