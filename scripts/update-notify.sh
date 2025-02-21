@@ -29,6 +29,7 @@ TELEGRAM_CHAT_ID=""
 PUSHOVER_TOKEN=""
 PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
+CUSTOM_COMMAND="" # command will receive the new firmware version as its first parameter
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
 CRON="0 */1 * * *"
 
@@ -120,6 +121,12 @@ send_notification() {
         logger -st "$SCRIPT_TAG" "Sending update notification through Pushbullet..."
 
         send_pushbullet_message "$1"
+    fi
+
+    if [ -n "$CUSTOM_COMMAND" ]; then
+        logger -st "$SCRIPT_TAG" "Sending update notification through custom command..."
+
+        $CUSTOM_COMMAND "$1"
     fi
 }
 
