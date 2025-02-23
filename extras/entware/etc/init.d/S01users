@@ -38,8 +38,8 @@ esac
 
 # Some firmware events can rewrite these files so in order to fix that:
 # - install service-event.sh script
-# - set EXECUTE_COMMAND="/jffs/scripts/service-script.sh" in the service-event.conf
-# - create the following executable script (/jffs/scripts/service-script.sh):
+# - set EXECUTE_COMMAND="/jffs/scripts/service-event-script.sh" in the service-event.conf
+# - create the following executable script (/jffs/scripts/service-event-script.sh):
 #
 #  #!/bin/sh
 #  # $1 = event, $2 = target
