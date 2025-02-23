@@ -23,6 +23,7 @@ ALTERNATIVE=false # Perform alternative install (separated users from the system
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 BASE_URL="bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no http/https prefix!)
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
+INSTALL_LOG="/tmp/entware-install.log" # where to store installation log
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -292,8 +293,22 @@ services() {
 }
 
 entware_in_ram() {
-    { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; return 1; }
-    [ -z "$($CURL_BINARY -fs "$CHECK_URL")" ] && { echo "Cannot reach bin.entware.net"; return 1; }
+    # Prevent the log file from growing above 1MB
+    if [ -f "$INSTALL_LOG" ] && [ "$(stat -c %s "$INSTALL_LOG")" -gt "1048576" ]; then
+        tail -c 1048576 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+    fi
+
+    if [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; then
+        echo "WAN network is not connected" 
+        echo "WAN network is not connected" >> "$INSTALL_LOG"
+        return 1
+    fi
+
+    if [ -z "$($CURL_BINARY -fs "$CHECK_URL" --retry 3)" ]; then
+        echo "Cannot reach $CHECK_URL"
+        echo "Cannot reach $CHECK_URL" >> "$INSTALL_LOG"
+        return 1
+    fi
 
     lockfile lockwait
 
@@ -301,10 +316,10 @@ entware_in_ram() {
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
             logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
 
-            echo "---------- Installation started at $(date) ----------" >> /tmp/entware-install.log
+            echo "---------- Installation started at $(date) ----------" >> "$INSTALL_LOG"
 
-            if ! sh "$SCRIPT_PATH" install /tmp >> /tmp/entware-install.log 2>&1; then
-                logger -st "$SCRIPT_TAG" "Installation failed, check /tmp/entware-install.log for details"
+            if ! sh "$SCRIPT_PATH" install /tmp >> "$INSTALL_LOG" 2>&1; then
+                logger -st "$SCRIPT_TAG" "Installation failed, check "$INSTALL_LOG" for details"
 
                 # Prevent cron job from retrying failed install
                 [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
@@ -313,7 +328,7 @@ entware_in_ram() {
                 return 1
             fi
 
-            echo "---------- Installation finished at $(date) ----------" >> /tmp/entware-install.log
+            echo "---------- Installation finished at $(date) ----------" >> "$INSTALL_LOG"
 
             logger -st "$SCRIPT_TAG" "Installation successful"
         fi
@@ -323,11 +338,11 @@ entware_in_ram() {
 
         logger -st "$SCRIPT_TAG" "Starting services..."
 
-        if ! /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH" >> /tmp/entware-install.log 2>&1; then
-            logger -st "$SCRIPT_TAG" "Failed to start services, check /tmp/entware-install.log for details"
+        if ! /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH" >> "$INSTALL_LOG" 2>&1; then
+            logger -st "$SCRIPT_TAG" "Failed to start services, check $INSTALL_LOG for details"
         fi
 
-        echo "---------- Services started at $(date) ----------" >> /tmp/entware-install.log
+        echo "---------- Services started at $(date) ----------" >> "$INSTALL_LOG"
     fi
 
     lockfile unlock
