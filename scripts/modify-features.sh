@@ -15,10 +15,15 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
+RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false), empty means false when service-event.sh is available but otherwise true
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 rc_support() {
@@ -84,10 +89,12 @@ case "$1" in
             logger -st "$SCRIPT_TAG" "Configuration is not set"
         fi
 
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         rc_support modify

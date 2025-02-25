@@ -23,7 +23,7 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
-SLEEP=1 # how to long to wait between each iteration
+SLEEP=1 # how to long to wait between each syslog reading iteration
 
 # Chain names definitions, must be changed if they were modified in their scripts
 CHAINS_FORCEDNS="FORCEDNS"
@@ -108,7 +108,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 
         grep -q "cron" "/proc/$_PPID/comm" && return 0
         grep -q "hotplug" "/proc/$_PPID/comm" && return 0
-        [ "$_PPID" -gt "1" ] || break
+        [ "$_PPID" -gt 1 ] || break
     done
 
     return 1
@@ -208,13 +208,13 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/samba-masquerade.sh" ]
                 then
                     if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                        _TIMER=0; while { # wait till our chains disappear
+                        TIMER=0; while { # wait till our chains disappear
                             iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_FORCEDNS" -t nat > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat > /dev/null 2>&1
-                        } && [ "$_TIMER" -lt "60" ]; do
-                            _TIMER=$((_TIMER+1))
+                        } && [ "$TIMER" -lt 60 ]; do
+                            TIMER=$((TIMER+1))
                             sleep 1
                         done
                     fi
@@ -234,19 +234,19 @@ case "$1" in
                     [ -x "$SCRIPT_DIR/dynamic-dns.sh" ]
                 then
                     if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                        _TIMER=0; while { # wait until wan goes down
-                            { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ]; } &&
-                            { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ]; };
-                        } && [ "$_TIMER" -lt "10" ]; do
-                            _TIMER=$((_TIMER+1))
+                        TIMER=0; while { # wait until wan goes down
+                            { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
+                            { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
+                        } && [ "$TIMER" -lt 10 ]; do
+                            TIMER=$((TIMER+1))
                             sleep 1
                         done
 
-                        _TIMER=0; while { # wait until wan goes up
+                        TIMER=0; while { # wait until wan goes up
                             [ "$(nvram get wan0_state_t)" != "2" ] &&
                             [ "$(nvram get wan1_state_t)" != "2" ];
-                        } && [ "$_TIMER" -lt "60" ]; do
-                            _TIMER=$((_TIMER+1))
+                        } && [ "$TIMER" -lt 60 ]; do
+                            TIMER=$((TIMER+1))
                             sleep 1
                         done
                     fi
@@ -271,10 +271,10 @@ case "$1" in
                         RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
 
                         if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                            _TIMER=0; while { # wait till rc_support is modified
+                            TIMER=0; while { # wait till rc_support is modified
                                 [ "$(nvram get rc_support)" = "$RC_SUPPORT_LAST" ]
-                            } && [ "$_TIMER" -lt "60" ]; do
-                                _TIMER=$((_TIMER+1))
+                            } && [ "$TIMER" -lt "60" ]; do
+                                TIMER=$((TIMER+1))
                                 sleep 1
                             done
                         fi

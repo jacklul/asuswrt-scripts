@@ -15,9 +15,71 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-ETC_FILES="profile hosts"
-NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml"
-NOPOSTCONF_FILES="/etc/profile"
+ETC_FILES="profile hosts" # /etc files we can modify
+NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
+NOPOSTCONF_FILES="/etc/profile" # files that cannot run postconf script
+
+lockfile() { #LOCKFILE_START#
+    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
+    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
+    _FD=100
+    _FD_MAX=200
+
+    if [ -n "$2" ]; then
+        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
+        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+    fi
+
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+
+    [ ! -d /var/lock ] && mkdir -p /var/lock
+    [ ! -d /var/run ] && mkdir -p /var/run
+
+    _LOCKPID=
+    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+
+    case "$1" in
+        "lockwait"|"lockfail"|"lockexit")
+            while [ -f "/proc/$$/fd/$_FD" ]; do
+                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
+                _FD=$((_FD+1))
+
+                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+            done
+
+            eval exec "$_FD>$_LOCKFILE"
+
+            case "$1" in
+                "lockwait")
+                    flock -x "$_FD"
+                ;;
+                "lockfail")
+                    flock -nx "$_FD" || return 1
+                ;;
+                "lockexit")
+                    flock -nx "$_FD" || exit 1
+                ;;
+            esac
+
+            echo $$ > "$_PIDFILE"
+            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+        ;;
+        "unlock")
+            flock -u "$_FD"
+            rm -f "$_LOCKFILE" "$_PIDFILE"
+            trap - INT TERM EXIT
+        ;;
+        "check")
+            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            return 1
+        ;;
+        "kill")
+            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            return 1
+        ;;
+    esac
+} #LOCKFILE_END#
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
@@ -248,8 +310,10 @@ restore_etc_files() {
 case "$1" in
     "run")
         if { [ ! -x "$SCRIPT_DIR/cron-queue.sh" ] || ! "$SCRIPT_DIR/cron-queue.sh" check "$SCRIPT_NAME" ; } && ! cru l | grep -q "#$SCRIPT_NAME#"; then
-            exit
+            exit # do not run if not started
         fi
+
+        lockfile lockwait run # not lockfail as multiple service restarts might queue this one up via service-event.sh
 
         # services.c
         modify_etc_files # profile, hosts
@@ -281,6 +345,8 @@ case "$1" in
 
         # rc_ipsec.c
         modify_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
+
+        lockfile unlock run
     ;;
     "start")
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then

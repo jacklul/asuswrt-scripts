@@ -37,10 +37,15 @@ BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are
 VERIFY_DNS=false # verify that the DNS server is working before applying
 VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applying (fallback only)
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
+RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 CHAIN_DNAT="FORCEDNS"
@@ -131,6 +136,20 @@ lockfile() { #LOCKFILE_START#
         ;;
     esac
 } #LOCKFILE_END#
+
+interface_exists() {
+    if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
+        _INTERFACE_GLOB="$(printf "%s" "$1" | head -c -1)"
+
+        if ip link show | grep ": $1" | grep -q "mtu"; then
+            return 0
+        fi
+    elif ip link show | grep " $1:" | grep -q "mtu"; then
+        return 0
+    fi
+
+    return 1
+}
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
@@ -296,14 +315,27 @@ iptables_rules() {
     done
 }
 
+rules_exist() {
+    if iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1 && iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN_DNAT" -j DNAT --to-destination "$1" > /dev/null 2>&1; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 firewall_rules() {
     [ -z "$TARGET_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Target interfaces are not set"; exit 1; }
 
     lockfile lockwait
 
+    _RULES_MODIFIED=0
     case "$1" in
         "add")
             if ! rules_exist "$DNS_SERVER"; then
+                _RULES_MODIFIED=1
+
                 iptables_chains remove
 
                 if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$DNS_SERVER" >/dev/null 2>&1; then
@@ -320,6 +352,8 @@ firewall_rules() {
         "remove")
             if [ -n "$FALLBACK_DNS_SERVER" ]; then
                 if ! rules_exist "$FALLBACK_DNS_SERVER"; then
+                    _RULES_MODIFIED=-1
+
                     iptables_chains remove
 
                     if [ "$VERIFY_DNS_FALLBACK" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" >/dev/null 2>&1; then
@@ -333,38 +367,18 @@ firewall_rules() {
                     fi
                 fi
             else
-                iptables_chains remove
+                if rules_exist "$DNS_SERVER" || rules_exist "$FALLBACK_DNS_SERVER"; then
+                    _RULES_MODIFIED=-1
+
+                    iptables_chains remove
+                fi
             fi
         ;;
     esac
 
-    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ "$_RULES_MODIFIED" -ne 0 ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
-}
-
-interface_exists() {
-    if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
-        _INTERFACE_GLOB="$(printf "%s" "$1" | head -c -1)"
-
-        if ip link show | grep ": $1" | grep -q "mtu"; then
-            return 0
-        fi
-    elif ip link show | grep " $1:" | grep -q "mtu"; then
-        return 0
-    fi
-
-    return 1
-}
-
-rules_exist() {
-    if iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1 && iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-        if iptables -t nat -C "$CHAIN_DNAT" -j DNAT --to-destination "$1" > /dev/null 2>&1; then
-            return 0
-        fi
-    fi
-
-    return 1
 }
 
 case "$1" in
@@ -389,13 +403,15 @@ case "$1" in
 
         [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
 
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
-        { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE"; } && firewall_rules add
+        { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
     ;;
     "stop")
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"

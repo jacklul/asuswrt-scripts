@@ -20,7 +20,7 @@ ROTATE_WL="wl0.1 wl1.1" # guest network interfaces to randomize passwords for (f
 CHAR_LIST="ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz123456789" # characters list for generated passwords
 PASSWORD_LENGTH=20 # length of generated passwords
 ROTATE_ON_START=false # should we rotate passwords on script start
-CRON="0 4 * * *"
+CRON="0 4 * * *" # schedule as cron string
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -59,7 +59,7 @@ case "$1" in
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
         if [ "$ROTATE_ON_START" = true ]; then
-            if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
+            if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
                 { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
             else
                 sh "$SCRIPT_PATH" run

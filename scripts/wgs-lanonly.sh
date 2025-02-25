@@ -16,10 +16,15 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 INTERFACE="wgs1" # WireGuard server interface (find it through 'nvram show | grep wgs' or 'ifconfig' command)
 BRIDGE_INTERFACE="br0" # the bridge interface(s) to limit access to, by default only LAN bridge ("br0") interface
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
+RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 CHAIN="WGS_LANONLY"
@@ -95,12 +100,12 @@ firewall_rules() {
 
     lockfile lockwait
 
-    _RULES_ADDED=0
+    _RULES_MODIFIED=0
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
                 if ! $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
-                    _RULES_ADDED=1
+                    _RULES_MODIFIED=1
 
                     _FORWARD_START="$($_IPTABLES -nL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _FORWARD_START_PLUS="$((_FORWARD_START+1))"
@@ -114,6 +119,8 @@ firewall_rules() {
             ;;
             "remove")
                 if $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
+                    _RULES_MODIFIED=-1
+
                     $_IPTABLES -D FORWARD -i "$INTERFACE" -j "$CHAIN"
 
                     $_IPTABLES -F "$CHAIN"
@@ -123,9 +130,9 @@ firewall_rules() {
         esac
     done
 
-    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Restricting WireGuard server to only allow LAN access"
+    [ "$_RULES_MODIFIED" = 1 ] && logger -st "$SCRIPT_TAG" "Restricting WireGuard server to only allow LAN access"
 
-    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ "$_RULES_MODIFIED" -ne 0 ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }
@@ -135,10 +142,12 @@ case "$1" in
         firewall_rules add
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         firewall_rules add

@@ -21,9 +21,10 @@ IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
 ALTERNATIVE=false # Perform alternative install (separated users from the system)
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
-BASE_URL="bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no http/https prefix!)
+BASE_URL="bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no http/https prefix and no ending slash!)
+WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only)
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
-INSTALL_LOG="/tmp/entware-install.log" # where to store installation log
+INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -36,7 +37,7 @@ LAST_ENTWARE_DEVICE=""
 CHECK_URL="http://$BASE_URL"
 [ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
 CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
+#[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # what was I thinking here?
 
 lockfile() { #LOCKFILE_START#
     _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
@@ -108,7 +109,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 
         grep -q "cron" "/proc/$_PPID/comm" && return 0
         grep -q "hotplug" "/proc/$_PPID/comm" && return 0
-        [ "$_PPID" -gt "1" ] || break
+        [ "$_PPID" -gt 1 ] || break
     done
 
     return 1
@@ -136,9 +137,9 @@ retry_command() {
 
         if $_COMMAND; then
             return 0
-        else
-            _COUNT=$((_COUNT + 1))
         fi
+
+        _COUNT=$((_COUNT + 1))
     done
 
     echo "Command failed after $_RETRIES attempts"
@@ -155,8 +156,10 @@ init_opt() {
         fi
 
         if mount --bind "$1" /opt; then
-            MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
-            [ -n "$MOUNT_DEVICE" ] && basename "$MOUNT_DEVICE" > "$CACHE_FILE"
+            if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
+                MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
+                [ -n "$MOUNT_DEVICE" ] && basename "$MOUNT_DEVICE" > "$CACHE_FILE"
+            fi
 
             logger -st "$SCRIPT_TAG" "Mounted $1 on /opt"
         else
@@ -167,6 +170,14 @@ init_opt() {
         logger -st "$SCRIPT_TAG" "Entware not found in $1"
         exit 1
     fi
+}
+
+echo_and_log() {
+    [ -z "$1" ] && { echo "Message is empty"; return 1; }
+    [ -z "$2" ] && { echo "File is empty"; return 1; }
+
+    echo "$1" 
+    echo "$1" >> "$2"
 }
 
 backup_initd_scripts() {
@@ -211,13 +222,14 @@ symlink_data() {
 
             [ "$(readlink -f "$TARGET_FILE")" = "$(readlink -f "$1")" ] && exit
 
+            # Prevent copying/symlinking files in directories marked to be symlinked
             TEST_DIR="$(dirname "$1")"
-            LIMIT=10
-            while [ "$LIMIT" -gt "0" ]; do
+            MAXDEPTH=10
+            while [ "$MAXDEPTH" -gt 0 ]; do
                 [ -f "$TEST_DIR/.symlinkthisdir" ] && exit
                 TEST_DIR="$(dirname "$TEST_DIR")"
                 [ "$TEST_DIR" = "/jffs/entware" ] && break
-                LIMIT=$((LIMIT-1))
+                MAXDEPTH=$((MAXDEPTH-1))
             done
 
             if [ -f "$TARGET_FILE" ]; then
@@ -268,7 +280,8 @@ services() {
 
                     /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH"
 
-                    [ -z "$IN_RAM" ] && backup_initd_scripts
+                    # this currently has been disabled due to some caveats...
+                    #[ -z "$IN_RAM" ] && backup_initd_scripts
                 else
                     logger -st "$SCRIPT_TAG" "Unable to start services - Entware is not installed"
                 fi
@@ -294,23 +307,22 @@ services() {
 
 entware_in_ram() {
     # Prevent the log file from growing above 1MB
-    if [ -f "$INSTALL_LOG" ] && [ "$(stat -c %s "$INSTALL_LOG")" -gt "1048576" ]; then
+    if [ -f "$INSTALL_LOG" ] && [ "$(wc -c < "$INSTALL_LOG")" -gt 1048576 ]; then
+        echo_and_log "Truncating $LOG_FILE to 1MB..." "$INSTALL_LOG"
         tail -c 1048576 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
     fi
 
     if [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; then
-        echo "WAN network is not connected" 
-        echo "WAN network is not connected" >> "$INSTALL_LOG"
+        echo_and_log "WAN network is not connected" "$INSTALL_LOG"
         return 1
     fi
 
     if [ -z "$($CURL_BINARY -fs "$CHECK_URL" --retry 3)" ]; then
-        echo "Cannot reach $CHECK_URL"
-        echo "Cannot reach $CHECK_URL" >> "$INSTALL_LOG"
+        echo_and_log "Cannot reach $CHECK_URL" "$INSTALL_LOG"
         return 1
     fi
 
-    lockfile lockwait
+    #lockfile lockwait inram
 
     if [ ! -f /opt/etc/init.d/rc.unslung ]; then # is it not mounted?
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
@@ -319,9 +331,9 @@ entware_in_ram() {
             echo "---------- Installation started at $(date) ----------" >> "$INSTALL_LOG"
 
             if ! sh "$SCRIPT_PATH" install /tmp >> "$INSTALL_LOG" 2>&1; then
-                logger -st "$SCRIPT_TAG" "Installation failed, check "$INSTALL_LOG" for details"
+                logger -st "$SCRIPT_TAG" "Installation failed, check '$INSTALL_LOG' for details"
 
-                # Prevent cron job from retrying failed install
+                # Prevent cron job from retrying failed install, if scheduled
                 [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
                 cru d "$SCRIPT_NAME"
 
@@ -333,7 +345,7 @@ entware_in_ram() {
             logger -st "$SCRIPT_TAG" "Installation successful"
         fi
 
-        # This should be already done but leave it just in case
+        # In case of script restart - /tmp/entware will already exist but won't be mounted
         ! is_entware_mounted && init_opt /tmp/entware
 
         logger -st "$SCRIPT_TAG" "Starting services..."
@@ -345,7 +357,7 @@ entware_in_ram() {
         echo "---------- Services started at $(date) ----------" >> "$INSTALL_LOG"
     fi
 
-    lockfile unlock
+    #lockfile unlock inram
 
     return 0
 }
@@ -381,38 +393,46 @@ entware() {
 
 case "$1" in
     "run")
+        lockfile lockfail run || { echo "Already running! ($_LOCKPID)"; exit 1; }
+
         if [ -n "$IN_RAM" ]; then
-            if is_started_by_system && [ "$2" != "nohup" ]; then # run in background when started by system (to no block scripts-startup.sh for example)
-                lockfile check && exit
+            if [ ! -f /opt/etc/init.d/rc.unslung ]; then
+                echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
 
-                nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
-            elif [ ! -f /opt/etc/init.d/rc.unslung ]; then
-                lockfile lockfail inram || { echo "Already running! ($_LOCKPID)"; exit 1; }
-                entware_in_ram
-                lockfile unlock inram
+                TIMEOUT="$WAIT_LIMIT"
+                while [ "$TIMEOUT" -ge 0 ]; do
+                    [ "$TIMEOUT" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..."; sleep 60; }
+
+                    [ -f /opt/etc/init.d/rc.unslung ] && break # already mounted?
+                    entware_in_ram && break # successfull?
+
+                    TIMEOUT=$((TIMEOUT-1))
+                done
+
+                [ "$TIMEOUT" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
             fi
-
-            exit
-        fi
-
-        if ! is_entware_mounted; then
-            for DIR in /tmp/mnt/*; do
-                if [ -d "$DIR/entware" ]; then
-                    entware start "$DIR/entware"
-
-                    break
-                fi
-            done
         else
-            [ -z "$LAST_ENTWARE_DEVICE" ] && exit
-            [ -z "$IN_RAM" ] && backup_initd_scripts
+            if ! is_entware_mounted; then
+                for DIR in /tmp/mnt/*; do
+                    if [ -d "$DIR/entware" ]; then
+                        entware start "$DIR/entware"
+                        break
+                    fi
+                done
+            else
+                [ -z "$LAST_ENTWARE_DEVICE" ] && exit
+                # this currently has been disabled due to some caveats...
+                #[ -z "$IN_RAM" ] && backup_initd_scripts
 
-            TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
+                TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
 
-            if [ -z "$TARGET_PATH" ]; then
-                entware stop
+                if [ -z "$TARGET_PATH" ]; then # device/mount is gone
+                    entware stop
+                fi
             fi
         fi
+
+        lockfile unlock run
     ;;
     "hotplug")
         [ -n "$IN_RAM" ] && exit
@@ -451,14 +471,21 @@ case "$1" in
             fi
         fi
 
-        sh "$SCRIPT_PATH" run
+        if is_started_by_system; then
+            {
+                sh "$SCRIPT_PATH" run
+            } &
+        else
+            sh "$SCRIPT_PATH" run
+        fi
     ;;
     "stop")
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
         entware stop
-        lockfile kill inram
+        lockfile kill run
+        #lockfile kill inram
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
@@ -510,7 +537,7 @@ case "$1" in
                 "armv7l")
                     ARCHITECTURE="armv7sf-k2.6"
 
-                    if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt "2" ]; then
+                    if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt 2 ]; then
                         ARCHITECTURE="armv7sf-k3.2"
                     fi
                 ;;

@@ -13,8 +13,8 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-TEMPERATURE_TARGET="80" # target temperature at which send the warning
-COOLDOWN=300 # how long to wait (seconds) before sending another warning
+TEMPERATURE_TARGET="80" # target temperature at which log the warning
+COOLDOWN=300 # how long to wait (seconds) before logging another warning
 CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
 
 if [ -f "$SCRIPT_CONFIG" ]; then

@@ -3,6 +3,9 @@
 #
 # Automatically turns LEDs on/off on by schedule
 #
+# WARNING: This is hit-or-miss on stock firmware as every model does things differently, 
+# consider this script proof-of-concept quality
+#
 # Based on:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/led_control.mod
@@ -103,10 +106,9 @@ case "$1" in
     ;;
     "run")
         if [ -n "$ON_HOUR" ] && [ -n "$ON_MINUTE" ] && [ -n "$OFF_HOUR" ] && [ -n "$OFF_MINUTE" ]; then
-            _TIMER=0
-            _TIMEOUT=60
-            while [ "$(nvram get ntp_ready)" = 0 ] && [ "$_TIMER" -lt "$_TIMEOUT" ]; do
-                _TIMER=$((_TIMER+1))
+            TIMEOUT=60
+            while [ "$(nvram get ntp_ready)" = 0 ] && [ "$TIMEOUT" -ge 0 ]; do
+                TIMEOUT=$((TIMEOUT-1))
                 sleep 1
             done
 

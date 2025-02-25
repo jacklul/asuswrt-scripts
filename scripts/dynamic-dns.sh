@@ -30,7 +30,7 @@ WAN_IP=""
 LAST_WAN_IP=""
 [ -f "$CACHE_FILE" ] && LAST_WAN_IP="$(cat "$CACHE_FILE")"
 CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 
 run_ddns_update() {
     if inadyn --config="$CONFIG_FILE" --once --foreground; then
@@ -46,7 +46,7 @@ run_ddns_update() {
 
 case "$1" in
     "run")
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit; }
 
         if [ "$IPECHO_URL" = "nvram" ]; then
             WAN_IP="$(nvram get wan0_ipaddr)"

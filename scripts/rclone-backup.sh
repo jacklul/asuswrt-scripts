@@ -24,7 +24,7 @@ RCLONE_PATH="" # path to Rclone binary
 LOG_FILE="/tmp/rclone.log" # log file
 NVRAMTXT_FILE="/tmp/nvram.txt" # file to dump 'nvram show' result to, empty means don't dump
 NVRAMCFG_FILE="/tmp/nvram.cfg" # file to 'nvram save' to, empty means don't save
-CRON="0 6 * * 7"
+CRON="0 6 * * 7" # schedule as cron string
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -56,7 +56,7 @@ case "$1" in
             fi
         fi
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
         [ ! -f "$FILTER_FILE" ] && { logger -st "$SCRIPT_TAG" "Could not find filter file: $FILTER_FILE"; exit 1; }
         [ ! -f "$RCLONE_PATH" ] && { logger -st "$SCRIPT_TAG" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }

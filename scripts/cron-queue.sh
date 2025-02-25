@@ -1,7 +1,8 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Runs "every minute" jobs one after another
+# Runs "every minute" jobs one after another to decrease performance impact
+# This only applies to scripts from jacklul/asuswrt-script repository
 #
 
 #jacklul-asuswrt-scripts-update=cron-queue.sh
@@ -12,7 +13,7 @@ readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 
-QUEUE_FILE="/tmp/cron_queue"
+QUEUE_FILE="/tmp/cron_queue" # where to store the queue
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -90,25 +91,28 @@ case "$1" in
 
         lockfile unlock run
     ;;
-    "add"|"remove"|"delete")
+    "add"|"remove"|"delete"|"a"|"r"|"d")
+        ADD="$1"
+        [ "$1" = "a" ] && ADD=add
+
         [ -z "$2" ] && { echo "Entry ID not set"; exit 1; }
-        { [ -z "$3" ] && [ "$1" = "add" ] ; } && { echo "Entry command not set"; exit 1; }
+        { [ -z "$3" ] && [ "$ADD" = "add" ] ; } && { echo "Entry command not set"; exit 1; }
 
         lockfile lockwait
 
         [ -f "$QUEUE_FILE" ] && sed "/#$(echo "$2" | sed 's/[]\/$*.^&[]/\\&/g')#$/d" -i "$QUEUE_FILE"
-        [ "$1" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
+        [ "$ADD" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
 
         lockfile unlock
     ;;
-    "list")
+    "list"|"l")
         if [ -f "$QUEUE_FILE" ]; then
             cat "$QUEUE_FILE"
         else
             echo "Queue file does not exist"
         fi
     ;;
-    "check")
+    "check"|"c")
         [ -z "$2" ] && { echo "Entry ID not provided"; exit 1; }
 
         if [ -f "$QUEUE_FILE" ]; then

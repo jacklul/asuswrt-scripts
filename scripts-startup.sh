@@ -2,7 +2,7 @@
 # Made by Jack'lul <jacklul.github.io>
 #
 # This script starts all other scripts
-# Only scripts containing "start" case will be started
+# Only scripts containing "start") or start) will be interacted with
 #
 
 #shellcheck disable=SC2155
@@ -27,8 +27,9 @@ scripts() {
     [ ! -d "$SCRIPTS_DIR" ] && return
 
     for ENTRY in "$SCRIPTS_DIR"/*.sh; do
-        [ "$(basename "$ENTRY" .sh)" = "$SCRIPT_NAME" ] && continue
+        [ "$(basename "$ENTRY" .sh)" = "$SCRIPT_NAME" ] && continue # do not interact with itself, just in case
         ! grep -q "\"start\")" "$ENTRY" && continue
+        ! grep -q "start)" "$ENTRY" && continue
 
         if [ -x "$ENTRY" ]; then
             ENTRY="$(readlink -f "$ENTRY")"
@@ -40,6 +41,12 @@ scripts() {
                 "stop")
                     logger -s -t "$SCRIPT_TAG" "Stopping $ENTRY..."
                 ;;
+                "restart")
+                    logger -s -t "$SCRIPT_TAG" "Restarting $ENTRY..."
+                ;;
+                *)
+                    echo "Unknown action: $_ACTION"
+                    return
             esac
 
             /bin/sh "$ENTRY" "$_ACTION"
@@ -63,6 +70,11 @@ case "$1" in
         rm -f "$CHECK_FILE"
 
         scripts stop
+    ;;
+    "restart")
+        logger -s -t "$SCRIPT_TAG" "Restarting custom scripts ($SCRIPTS_DIR)..."
+
+        scripts restart
     ;;
     "install")
         mkdir -pv "$SCRIPTS_DIR"
@@ -108,6 +120,16 @@ EOT
 
                 nvram set script_usbmount="$NVRAM_SCRIPT"
                 nvram commit
+
+                echo "Waiting for 15 seconds to verify that the value is still set..."
+                sleep 15
+
+                if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
+                    cat <<EOT
+Value has been cleaned by the router - you will have to use a workaround:
+https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount
+EOT
+                fi
             else
                 echo "NVRAM variable \"script_usbmount\" is already set to \"$NVRAM_SCRIPT\""
             fi

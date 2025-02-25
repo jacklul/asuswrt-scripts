@@ -63,7 +63,7 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
+        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
         else
             sh "$SCRIPT_PATH" run

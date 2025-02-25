@@ -17,20 +17,17 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 SWAP_FILE="" # swap file path, like /tmp/mnt/USBDEVICE/swap.img, leave empty to search for it in /tmp/mnt/*/swap.img
-SWAP_SIZE=128000 # swap file size, changing after swap is created requires it to be manually removed, 128000 = 128MB
+SWAP_SIZE=524288 # swap file size, changing after swap is created requires it to be manually removed, 524288 = 512MB
+SWAPPINESS= # change the value of vm.swappiness (/proc/sys/vm/swappiness), if left empty it will not be changed
+RUN_EVERY_MINUTE= # check for new devices to mount swap on periodically (true/false), empty means false when hotplug-event.sh is available but otherwise true
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
 fi
 
-if [ -z "$SWAP_FILE" ]; then
-    for DIR in /tmp/mnt/*; do
-        if [ -d "$DIR" ] && [ -f "$DIR/swap.img" ]; then
-            SWAP_FILE="$DIR/swap.img"
-            break
-        fi
-    done
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/hotplug-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 lockfile() { #LOCKFILE_START#
@@ -95,33 +92,97 @@ lockfile() { #LOCKFILE_START#
     esac
 } #LOCKFILE_END#
 
+find_swap_file() {
+    for _DIR in /tmp/mnt/*; do
+        if [ -d "$_DIR" ] && [ -f "$_DIR/swap.img" ]; then
+            SWAP_FILE="$_DIR/swap.img"
+            return
+        fi
+    done
+}
+
+disable_swap() {
+    [ -z "$1" ] && return
+
+    _SWAP_FILE="$1"
+
+    sync
+    echo 3 > /proc/sys/vm/drop_caches
+
+    if swapoff "$SWAP_FILE" ; then
+        logger -st "$SCRIPT_TAG" "Disabled swap on $SWAP_FILE"
+    else
+        logger -st "$SCRIPT_TAG" "Failed to disable swap on $SWAP_FILE"
+    fi
+}
+
 case "$1" in
     "run")
         lockfile lockexit
 
-        if [ "$(nvram get usb_idle_enable)" != "0" ]; then
-            logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
+        if ! grep -q "file" /proc/swaps; then
+            [ -z "$SWAP_FILE" ] && find_swap_file
 
-            [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-            cru d "$SCRIPT_NAME"
-        else
-            if ! grep -q "file" /proc/swaps; then
-                if [ -d "$(dirname "$SWAP_FILE")" ] && [ ! -f "$SWAP_FILE" ]; then
-                    sh "$SCRIPT_PATH" create
-                fi
+            if [ -n "$SWAP_FILE" ] && [ -d "$(dirname "$SWAP_FILE")" ] && [ ! -f "$SWAP_FILE" ]; then
+                sh "$SCRIPT_PATH" create
+            fi
 
-                if [ -f "$SWAP_FILE" ]; then
-                    if swapon "$SWAP_FILE" ; then
-                        #shellcheck disable=SC2012
-                        logger -st "$SCRIPT_TAG" "Enabled swap on $SWAP_FILE ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
-                    else
-                        logger -st "$SCRIPT_TAG" "Failed to enable swap on $SWAP_FILE"
+            if [ -f "$SWAP_FILE" ]; then
+                if swapon "$SWAP_FILE" ; then
+                    #shellcheck disable=SC2012
+                    logger -st "$SCRIPT_TAG" "Enabled swap on $SWAP_FILE ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
+
+                    if [ -n "$SWAPPINESS" ]; then
+                        echo "$SWAPPINESS" > /proc/sys/vm/swappiness
+                        logger -st "$SCRIPT_TAG" "Set swappiness to $SWAPPINESS"
                     fi
+                else
+                    logger -st "$SCRIPT_TAG" "Failed to enable swap on $SWAP_FILE"
                 fi
             fi
         fi
 
         lockfile unlock
+    ;;
+    "hotplug")
+        if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
+            case "$ACTION" in
+                "add")
+                    grep -q "file" /proc/swaps && exit 0 # do nothing if swap is already enabled
+
+                    TIMEOUT=60
+                    while ! df | grep -q "/dev/$DEVICENAME" && [ "$TIMEOUT" -ge 0 ]; do
+                        [ "$TIMEOUT" -lt 60 ] && { echo "Device is not yet mounted, waiting 5 seconds..."; sleep 5; }
+
+                        TIMEOUT=$((TIMEOUT-5))
+                    done
+
+                    if df | grep -q "/dev/$DEVICENAME"; then
+                        sh "$SCRIPT_PATH" run
+                        exit
+                    fi
+
+                    [ "$TIMEOUT" -le 0 ] && echo "Device /dev/$DEVICENAME did not mount within 60 seconds"
+                ;;
+                "remove")
+                    # officially multiple swap files are not supported but try to handle it...
+                    SWAP_FILES=$(grep 'file' /proc/swaps | awk '{print $1}')
+
+                    for SWAP_FILE in $SWAP_FILES; do
+                        # in theory this should not work as df won't return unmounted filesystems?
+                        SWAP_FILE_DEVICE="$(df "$SWAP_FILE" | tail -1 | awk '{print $1}')"
+
+                        if [ "$SWAP_FILE_DEVICE" = "/dev/$DEVICENAME" ]; then
+                            disable_swap "$SWAP_FILE"
+                        fi
+                    done
+                ;;
+                *)
+                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    exit 1
+                ;;
+            esac
+        fi
     ;;
     "create")
         [ -n "$2" ] && SWAP_FILE="$2"
@@ -140,6 +201,11 @@ case "$1" in
         set +e
     ;;
     "start")
+        if [ "$(nvram get usb_idle_enable)" != "0" ]; then
+            logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
+            exit 1
+        fi
+
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
             sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
         else
@@ -152,15 +218,10 @@ case "$1" in
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
-        if [ -n "$SWAP_FILE" ]; then
-            sync
-            echo 3 > /proc/sys/vm/drop_caches
+        [ -z "$SWAP_FILE" ] && find_swap_file
 
-            if swapoff "$SWAP_FILE" ; then
-                logger -st "$SCRIPT_TAG" "Disabled swap on $SWAP_FILE"
-            else
-                logger -st "$SCRIPT_TAG" "Failed to disable swap on $SWAP_FILE"
-            fi
+        if [ -n "$SWAP_FILE" ] && grep -q "$SWAP_FILE" /proc/swaps; then
+            disable_swap "$SWAP_FILE"
         fi
     ;;
     "restart")

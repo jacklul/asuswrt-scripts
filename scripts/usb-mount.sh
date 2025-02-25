@@ -14,10 +14,15 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = device)
+RUN_EVERY_MINUTE= # check for new devices to mount periodically (true/false), empty means false when hotplug-event.sh is available but otherwise true
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/hotplug-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 if [ -z "$MOUNT_DEVICE" ]; then
@@ -142,7 +147,7 @@ setup_mount() {
         ;;
         "remove")
             if mount | grep -q "$_MOUNTPOINT"; then
-                if [ "$(mount | grep -c "$_DEVICE")" -gt "1" ]; then
+                if [ "$(mount | grep -c "$_DEVICE")" -gt 1 ]; then
                     logger -st "$SCRIPT_TAG" "Unable to unmount $_MOUNTPOINT - device $_DEVICE is used by another mount"
                 else
                     if umount "$_MOUNTPOINT"; then
@@ -156,6 +161,7 @@ setup_mount() {
         ;;
     esac
 
+    # no extra condition needed, already handled outside this function
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$_DEVICE"
 
     lockfile unlock
@@ -190,10 +196,12 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         for DEVICE in /dev/sd*; do

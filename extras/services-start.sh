@@ -1,7 +1,6 @@
 #!/bin/sh
 # place this script in /jffs/scripts
-# to emulate services-start and also initial
-# start of firewall-start and nat-start
+# to emulate 'services-start' and also initial start of 'firewall-start' and 'nat-start'
 
 case "$1" in
     "start")

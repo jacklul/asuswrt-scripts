@@ -1,8 +1,7 @@
 #!/bin/sh
 # $1 = event, $2 = target
-# add this script to EXECUTE_COMMAND in service-event.conf
-# to emulate firewall-start, nat-start,
-# service-event and service-event-end scripts
+# set path to this script to EXECUTE_COMMAND variable in service-event.conf
+# to emulate 'firewall-start', 'nat-start', 'service-event' and 'service-event-end' scripts
 
 [ -z "$2" ] && exit
 [ -f "/usr/sbin/helper.sh" ] && exit # Don't run on Asuswrt-Merlin

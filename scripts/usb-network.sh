@@ -19,10 +19,15 @@ readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 BRIDGE_INTERFACE="br0" # bridge interface to add into, by default LAN bridge ("br0") interface
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = interface)
+RUN_EVERY_MINUTE= # scan for new interfaces to add to bridge periodically (true/false), empty means false when hotplug-event.sh is available but otherwise true
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 lockfile() { #LOCKFILE_START#
@@ -136,6 +141,7 @@ setup_inteface() {
         ;;
     esac
 
+    # no extra condition needed, already handled outside this function
     [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$2"
 
     lockfile unlock
@@ -174,10 +180,12 @@ case "$1" in
     "start")
         [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
 
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         for INTERFACE in /sys/class/net/usb*; do

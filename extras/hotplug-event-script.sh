@@ -1,6 +1,6 @@
 #!/bin/sh
 # $2 = subsystem, $3 = action
-# add this script to EXECUTE_COMMAND in hotplug-event.conf
+# set path to this script to EXECUTE_COMMAND variable in hotplug-event.conf
 # to fix AsusWRT USB network (github.com/jacklul/asuswrt-usb-raspberry-pi)
 # not starting when also using Entware because /opt is already mounted
 

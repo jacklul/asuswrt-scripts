@@ -74,7 +74,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 
         grep -q "cron" "/proc/$_PPID/comm" && return 0
         grep -q "hotplug" "/proc/$_PPID/comm" && return 0
-        [ "$_PPID" -gt "1" ] || break
+        [ "$_PPID" -gt 1 ] || break
     done
 
     return 1

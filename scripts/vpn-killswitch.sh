@@ -16,14 +16,17 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-# `nvram get apg_ifnames` command will list you the current bridge interfaces excluding br0 in case you need to
-# selectively pick one or more of the bridge interfaces, separated by spaces
-BRIDGE_INTERFACES="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge)
+BRIDGE_INTERFACES="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge), separated by spaces
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
+RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 CHAIN="VPN_KILLSWITCH"
@@ -104,35 +107,41 @@ get_wan_interface() {
         _INTERFACE="$(nvram get wan0_pppoe_ifname)"
     fi
 
+    [ -z "$_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Couldn't get WAN interface name"; exit 1; }
+
     echo "$_INTERFACE"
+}
+
+verify_bridge_interfaces() {
+    if echo "$BRIDGE_INTERFACES" | grep -q "br+"; then
+        BRIDGE_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
+    else
+        for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
+            if ! ip link show | grep ": $_BRIDGE_INTERFACE" | grep -q "mtu"; then
+                logger -st "$SCRIPT_TAG" "Couldn't find matching bridge interface for $_BRIDGE_INTERFACE"
+                exit 0
+            fi
+        done
+    fi
 }
 
 firewall_rules() {
     [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Bridge interfaces are not set"; exit 1; }
 
-    if echo "$BRIDGE_INTERFACES" | grep -q "br+"; then
-        logger -st "$SCRIPT_TAG" "Applying firewall rules to all bridge interfaces [br+]"
-        BRIDGE_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
-    else
-        for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
-            if ! ip link show | grep ": $_BRIDGE_INTERFACE" | grep -q "mtu"; then
-                logger -st "$SCRIPT_TAG" "Warning: Couldn't find matching bridge interface for $_BRIDGE_INTERFACE"
-                exit 0
-            fi
-        done
-    fi
-
-    _WAN_INTERFACE="$(get_wan_interface)"
-    [ -z "$_WAN_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Couldn't get WAN interface name"; exit 1; }
-
     lockfile lockwait
 
+    _RULES_MODIFIED=0
     for _IPTABLES in $FOR_IPTABLES; do
         case "$1" in
             "add")
                 if ! $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
+                    _RULES_MODIFIED=1
+
                     $_IPTABLES -N "$CHAIN"
                     $_IPTABLES -I "$CHAIN" -j REJECT
+
+                    _WAN_INTERFACE="$(get_wan_interface)"
+                    verify_bridge_interfaces
 
                     for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
                         $_IPTABLES -I FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
@@ -143,6 +152,11 @@ firewall_rules() {
             ;;
             "remove")
                 if $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
+                    _RULES_MODIFIED=-1
+
+                    _WAN_INTERFACE="$(get_wan_interface)"
+                    verify_bridge_interfaces
+
                     for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
                         $_IPTABLES -D FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
 
@@ -156,7 +170,7 @@ firewall_rules() {
         esac
     done
 
-    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ "$_RULES_MODIFIED" -ne 0 ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }
@@ -166,10 +180,12 @@ case "$1" in
         firewall_rules add
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         firewall_rules add

@@ -2,11 +2,11 @@
 
 This is a collection of custom scripts for AsusWRT firmware that can be used to enhance your router's functionality.
 
-Most of the scripts were tested on **RT-AX58U v2** running official **388.2** firmware - there is no guarantee that everything will work on non-AX routers and on lower versions of the firmware.
+Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on non-AX routers and on older versions of the firmware.
 
 Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
 
-**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki), big thanks to everyone who made contributions to the community.**
+**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki). Scripts that are based on existing resource have the original credited in the header.**
 
 ## Installation
 
@@ -454,6 +454,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`swap.sh`](/scripts/swap.sh)
 
 This script enables swap file on start, with configurable size and location.
+
+_Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/swap.sh" -o /jffs/scripts/swap.sh

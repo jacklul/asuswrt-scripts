@@ -26,10 +26,10 @@ fi
 
 DOWNLOAD_URL="$BASE_URL/$BRANCH/$BASE_PATH"
 CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 
 md5_compare() {
-    { [ ! -f "$1" ] || [ ! -f "$2" ]; } && return 1
+    { [ ! -f "$1" ] || [ ! -f "$2" ] ; } && return 1
 
     if [ -n "$1" ] && [ -n "$2" ]; then
         if [ "$(md5sum "$1" 2> /dev/null | awk '{print $1}')" = "$(md5sum "$2" 2> /dev/null | awk '{print $1}')" ]; then
@@ -62,7 +62,9 @@ if [ -z "$1" ] || [ "$1" = "run" ]; then
         [ -n "$TARGET_BASENAME" ] && BASENAME=$TARGET_BASENAME
 
         if download_and_check "$DOWNLOAD_URL/$BASENAME" "$SCRIPT_PATH"; then
+            # hacky but works
             { sleep 1 && cat "/tmp/$SCRIPT_NAME-download" > "$SCRIPT_PATH"; } &
+
             echo "Script has been updated, please re-run!"
             exit 0
         fi

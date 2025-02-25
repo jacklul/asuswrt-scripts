@@ -14,6 +14,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = subsystem, $2 = action)
+RUN_EVERY_MINUTE=false # verify that the hotplug configuration is modified (true/false), this usually should not be needed
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -94,17 +95,17 @@ hotplug_config() {
 
                 cat <<EOT >> /etc/hotplug2.rules
 SUBSYSTEM == block, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
-    exec $SCRIPT_DIR/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+    exec $SCRIPT_DIR/hotplug-event.sh event %SUBSYSTEM% %ACTION% ;
 }
 SUBSYSTEM == net, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
-    exec $SCRIPT_DIR/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+    exec $SCRIPT_DIR/hotplug-event.sh event %SUBSYSTEM% %ACTION% ;
 }
 SUBSYSTEM == misc, DEVICENAME ~~ ^(tun|tap)$, ACTION ~~ ^(add|remove)$ {
-    exec $SCRIPT_DIR/hotplug-event.sh run %SUBSYSTEM% %ACTION% ;
+    exec $SCRIPT_DIR/hotplug-event.sh event %SUBSYSTEM% %ACTION% ;
 }
 EOT
 
-                killall hotplug2
+                killall hotplug2 2> /dev/null
 
                 logger -st "$SCRIPT_TAG" "Modified hotplug configuration"
             fi
@@ -113,7 +114,8 @@ EOT
             if [ -f /etc/hotplug2.rules ] && [ -f /etc/hotplug2.rules.bak ]; then
                 rm /etc/hotplug2.rules
                 cp /etc/hotplug2.rules.bak /etc/hotplug2.rules
-                killall hotplug2
+
+                killall hotplug2 2> /dev/null
 
                 logger -st "$SCRIPT_TAG" "Restored original hotplug configuration"
             fi
@@ -123,30 +125,24 @@ EOT
 
 case "$1" in
     "run")
-        if [ -n "$2" ] && [ -n "$3" ]; then # handles calls from hotplug
-            lockfile lockwait "$2"
-
-            case "$2" in
-                "block"|"net"|"misc")
-                    logger -st "$SCRIPT_TAG" "Running script (args: \"$2\" \"$3\")"
-                ;;
-            esac
-
-            sh "$SCRIPT_PATH" event "$2" "$3"
-            [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
-
-            lockfile unlock "$2"
-        else # handles cron
-            if ! grep -q "$SCRIPT_PATH" /etc/hotplug2.rules; then
-                hotplug_config modify
-            fi
+        if ! grep -q "$SCRIPT_PATH" /etc/hotplug2.rules; then
+            hotplug_config modify
         fi
     ;;
     "event")
+        lockfile lockwait "$2"
+
+        case "$2" in
+            "block"|"net"|"misc")
+                logger -st "$SCRIPT_TAG" "Running script (args: \"$2\" \"$3\")"
+            ;;
+        esac
+
         # $2 = subsystem, $3 = action
         case "$2" in
             "block")
                 [ -x "$SCRIPT_DIR/usb-mount.sh" ] && sh "$SCRIPT_DIR/usb-mount.sh" hotplug
+                [ -x "$SCRIPT_DIR/swap.sh" ] && sh "$SCRIPT_DIR/swap.sh" hotplug
                 [ -x "$SCRIPT_DIR/entware.sh" ] && sh "$SCRIPT_DIR/entware.sh" hotplug
             ;;
             "net")
@@ -157,13 +153,19 @@ case "$1" in
             ;;
         esac
 
+        [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
+
+        lockfile unlock "$2"
+
         exit
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         hotplug_config modify

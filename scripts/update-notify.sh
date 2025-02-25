@@ -31,7 +31,7 @@ PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
 CUSTOM_COMMAND="" # command will receive the new firmware version as its first parameter
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
-CRON="0 */1 * * *"
+CRON="0 */6 * * *" # schedule as cron string
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -42,7 +42,7 @@ ROUTER_IP="$(nvram get lan_ipaddr)"
 ROUTER_NAME="$(nvram get lan_hostname)"
 [ -z "$ROUTER_NAME" ] && ROUTER_NAME="$ROUTER_IP"
 CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl"
+[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     _PPID=$PPID
@@ -52,7 +52,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 
         grep -q "cron" "/proc/$_PPID/comm" && return 0
         grep -q "hotplug" "/proc/$_PPID/comm" && return 0
-        [ "$_PPID" -gt "1" ] || break
+        [ "$_PPID" -gt 1 ] || break
     done
 
     return 1
@@ -132,7 +132,7 @@ send_notification() {
 
 case "$1" in
     "run")
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ]; } && { echo "WAN network is not connected"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
 
         BUILDNO=$(nvram get buildno | sed 's/[-_.]*//g')
         EXTENDNO=$(nvram get extendno)
@@ -157,7 +157,7 @@ case "$1" in
         fi
     ;;
     "test")
-        if { is_started_by_system || [ "$2" = "now" ]; } && cru l | grep -q "#$SCRIPT_NAME-test#"; then
+        if { is_started_by_system && cru l | grep -q "#$SCRIPT_NAME-test#"; } || [ "$2" = "now" ]; then
             logger -st "$SCRIPT_TAG" "Testing notification..."
 
             cru d "$SCRIPT_NAME-test"

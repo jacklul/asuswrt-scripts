@@ -13,12 +13,15 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-PROCESS_AFFINITY="crond" # List of processes and affinity masks in format "process1:6 process2:4", specify only the process name to set it to /sbin/init affinity minus one
+PROCESS_AFFINITIES="crond" # List of processes and affinity masks in format "process1:6 process2:4", specify only the process name to set it to /sbin/init affinity minus one
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
 fi
+
+# PROCESS_AFFINITY was renamed, do not break people's configuration @TODO Remove it someday...
+[ -n "$PROCESS_AFFINITY" ] && PROCESS_AFFINITIES="$PROCESS_AFFINITY"
 
 INIT_AFFINITY="$(taskset -p 1 | sed 's/.*: //')"
 if ! echo "$INIT_AFFINITY" | grep -Eq '^[0-9]+$'; then
@@ -73,7 +76,7 @@ process_affinity() {
         fi
     fi
 
-    for _PROCESS in $PROCESS_AFFINITY; do
+    for _PROCESS in $PROCESS_AFFINITIES; do
         _AFFINITY=$INIT_AFFINITY_MINUS_ONE
 
         case $1 in
@@ -103,7 +106,7 @@ case $1 in
         process_affinity set
     ;;
     "start")
-        { [ ! -f /usr/bin/taskset ] && [ ! -f /opt/bin/taskset ]; } && { logger -st "$SCRIPT_TAG" "Command 'taskset' not found"; exit 1; }
+        { [ ! -f /usr/bin/taskset ] && [ ! -f /opt/bin/taskset ] ; } && { logger -st "$SCRIPT_TAG" "Command 'taskset' not found"; exit 1; }
 
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
             sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"

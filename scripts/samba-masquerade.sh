@@ -17,10 +17,15 @@ VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24 10.10.10.0/24" # VPN networks (IPv4) to al
 VPN_NETWORKS6="" # VPN networks (IPv6) to allow access to Samba from, separated by spaces
 BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default only LAN bridge ("br0") interface
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
+RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
     . "$SCRIPT_CONFIG"
+fi
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 CHAIN="SAMBA_MASQUERADE"
@@ -90,13 +95,17 @@ lockfile() { #LOCKFILE_START#
     esac
 } #LOCKFILE_END#
 
+get_destination_network() {
+    "$1" -t nat -nvL POSTROUTING --line-numbers | grep -E " MASQUERADE .*$BRIDGE_INTERFACE" | head -1 | awk '{print $9}'
+}
+
 firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
     [ -z "$VPN_NETWORKS" ] && { logger -st "$SCRIPT_TAG" "Allowed VPN networks are not set"; exit 1; }
 
     lockfile lockwait
 
-    _RULES_ADDED=0
+    _RULES_MODIFIED=0
     for _IPTABLES in $FOR_IPTABLES; do
         if [ "$_IPTABLES" = "ip6tables" ]; then
             _VPN_NETWORKS="$VPN_NETWORKS6"
@@ -106,12 +115,10 @@ firewall_rules() {
 
         [ -z "$_VPN_NETWORKS" ] && continue
 
-        _DESTINATION_NETWORK="$($_IPTABLES -t nat -nvL POSTROUTING --line-numbers | grep -E " MASQUERADE .*$BRIDGE_INTERFACE" | head -1 | awk '{print $9}')"
-
         case "$1" in
             "add")
                 if ! $_IPTABLES -t nat -nL "$CHAIN" > /dev/null 2>&1; then
-                    _RULES_ADDED=1
+                    _RULES_MODIFIED=1
 
                     $_IPTABLES -t nat -N "$CHAIN"
                     $_IPTABLES -t nat -A "$CHAIN" -p tcp --dport 445 -j MASQUERADE
@@ -120,6 +127,8 @@ firewall_rules() {
                     $_IPTABLES -t nat -A "$CHAIN" -p udp --dport 137 -j MASQUERADE
                     $_IPTABLES -t nat -A "$CHAIN" -p icmp --icmp-type 1 -j MASQUERADE
                     $_IPTABLES -t nat -A "$CHAIN" -j RETURN
+
+                    _DESTINATION_NETWORK="$(get_destination_network "$_IPTABLES")"
 
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
                         if [ -n "$_DESTINATION_NETWORK" ]; then
@@ -132,7 +141,11 @@ firewall_rules() {
             ;;
             "remove")
                 if $_IPTABLES -t nat -nL "$CHAIN" > /dev/null 2>&1; then
+                    _RULES_MODIFIED=-1
+
                     for _VPN_NETWORK in $_VPN_NETWORKS; do
+                        _DESTINATION_NETWORK="$(get_destination_network "$_IPTABLES")"
+
                         if [ -n "$_DESTINATION_NETWORK" ] && $_IPTABLES -t nat -C POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1; then
                             $_IPTABLES -t nat -D POSTROUTING -s "$_VPN_NETWORK" -d "$_DESTINATION_NETWORK" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
                         fi
@@ -149,9 +162,9 @@ firewall_rules() {
         esac
     done
 
-    [ "$_RULES_ADDED" = 1 ] && logger -st "$SCRIPT_TAG" "Masquerading Samba connections from networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')"
+    [ "$_RULES_MODIFIED" = 1 ] && logger -st "$SCRIPT_TAG" "Masquerading Samba connections from networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')"
 
-    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ "$_RULES_MODIFIED" -ne 0 ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }
@@ -161,10 +174,12 @@ case "$1" in
         firewall_rules add
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         firewall_rules add

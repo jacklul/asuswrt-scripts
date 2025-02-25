@@ -3,11 +3,11 @@
 
 define('DS', DIRECTORY_SEPARATOR);
 
-$IDENTIFIERS = ['LOCKFILE', 'ISSTARTEDBYSYSTEM'];
-$TARGET_DIRS = [__DIR__ . DS . 'scripts', __DIR__ . DS . 'extras'];
-$SOURCE_FILE = __DIR__ . DS . 'common.sh';
+$markers = ['LOCKFILE', 'ISSTARTEDBYSYSTEM'];
+$target_dirs = [__DIR__ . DS . 'scripts', __DIR__ . DS . 'extras'];
+$source_file = __DIR__ . DS . 'common.sh';
 
-######################
+#########################
 
 // https://stackoverflow.com/a/46697247
 function scandir_recursive($dir) {
@@ -32,61 +32,59 @@ function scandir_recursive($dir) {
 function replace_between($str, $needle_start, $needle_end, $replacement) {
     $pos = strpos($str, $needle_start);
     $start = $pos === false ? 0 : $pos + strlen($needle_start);
-
     $pos = strpos($str, $needle_end, $start);
     $end = $pos === false ? strlen($str) : $pos;
-
     return substr_replace($str, $replacement, $start, $end - $start);
 }
 
-if (file_exists($SOURCE_FILE))
-    $SOURCE_FILE = file_get_contents($SOURCE_FILE);
+if (file_exists($source_file))
+    $source_file = file_get_contents($source_file);
 else
-    exit($SOURCE_FILE . ' does not exist');
+    exit($source_file . ' does not exist');
 
-$SOURCES = [];
-foreach ($IDENTIFIERS as $IDENTIFIER) {
-    $REGEX = '/#' . $IDENTIFIER . '_START#(.*)#' . $IDENTIFIER . '_END#/s';
+$sources = [];
+foreach ($markers as $marker) {
+    $regex = '/#' . $marker . '_START#(.*)#' . $marker . '_END#/s';
 
-    echo 'Fetching: ' . $REGEX . PHP_EOL;
-    preg_match($REGEX, $SOURCE_FILE, $matches);
+    echo 'Fetching: ' . $regex . PHP_EOL;
+    preg_match($regex, $source_file, $matches);
 
     if (isset($matches[1])) {
-        $SOURCES[$IDENTIFIER] = $matches[1];
+        $sources[$marker] = $matches[1];
     }
 }
 
-$FILES = [];
-foreach ($TARGET_DIRS as $TARGET_DIR) {
-    if (!is_dir($TARGET_DIR))
-        exit($TARGET_DIR . ' does not exist');
+$files = [];
+foreach ($target_dirs as $target_dir) {
+    if (!is_dir($target_dir))
+        exit($target_dir . ' does not exist');
 
-    $SCANDIR = scandir_recursive($TARGET_DIR);
+    $scandir = scandir_recursive($target_dir);
 
-    foreach ($SCANDIR as $FILE) {
-        if ($FILE[0] === '.')
+    foreach ($scandir as $file) {
+        if ($file[0] === '.')
             continue;
 
-        $FILES[] = $TARGET_DIR . DS . $FILE;
+        $files[] = $target_dir . DS . $file;
     }
 }
 
-foreach ($FILES as $FILE) {
-    echo 'Processing ' . $FILE . '...';
+foreach ($files as $file) {
+    echo 'Processing ' . $file . '...';
 
-    $FILE_CONTENTS = file_get_contents($FILE);
-    $NEW_FILE_CONTENTS = $FILE_CONTENTS;
+    $contents = file_get_contents($file);
+    $new_contents = $contents;
 
-    foreach ($IDENTIFIERS as $IDENTIFIER) {
-        if (strpos($FILE_CONTENTS, '#' . $IDENTIFIER . '_START#') == false)
+    foreach ($markers as $marker) {
+        if (strpos($contents, '#' . $marker . '_START#') == false)
             continue;
 
-        $NEW_FILE_CONTENTS = replace_between($NEW_FILE_CONTENTS, '#' . $IDENTIFIER . '_START#', '#' . $IDENTIFIER . '_END#', $SOURCES[$IDENTIFIER]);
+        $new_contents = replace_between($new_contents, '#' . $marker . '_START#', '#' . $marker . '_END#', $sources[$marker]);
     }
 
-    if ($NEW_FILE_CONTENTS != $FILE_CONTENTS) {
+    if ($new_contents != $contents) {
         echo ' modified!' . PHP_EOL;
-        file_put_contents($FILE, $NEW_FILE_CONTENTS);
+        file_put_contents($file, $new_contents);
     } else {
         echo ' not modified!' . PHP_EOL;
     }

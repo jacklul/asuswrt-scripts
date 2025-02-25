@@ -16,7 +16,7 @@ readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
-CRON="0 0 * * *"
+CRON="0 0 * * *" # schedule as cron string
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
@@ -38,7 +38,7 @@ case "$1" in
     "start")
         cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
 
-        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt "300" ]; then
+        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
         else
             sh "$SCRIPT_PATH" run

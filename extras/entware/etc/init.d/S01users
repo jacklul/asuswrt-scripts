@@ -11,6 +11,7 @@ is_uid_in_use() {
             return 0
         fi
     done
+
     return 1
 }
 

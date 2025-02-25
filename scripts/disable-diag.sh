@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Disable diagnostics (?)
+# Disable diagnostics process (?)
 #
 # Prevents conn_diag from starting amas_portstatus
 #
@@ -12,6 +12,14 @@
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
 readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+
+RUN_EVERY_MINUTE=false # verify that the nvram value is set periodically (true/false)
+
+if [ -f "$SCRIPT_CONFIG" ]; then
+    #shellcheck disable=SC1090
+    . "$SCRIPT_CONFIG"
+fi
 
 case "$1" in
     "run")
@@ -23,10 +31,12 @@ case "$1" in
         fi
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
-        else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
+                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            else
+                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            fi
         fi
 
         sh "$SCRIPT_PATH" run

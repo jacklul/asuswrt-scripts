@@ -14,7 +14,7 @@ readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
 readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
 
 TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443" # list of tweaks to apply
-TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www"
+TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www" # directory to store modified files in
 
 if [ -f "$SCRIPT_CONFIG" ]; then
     #shellcheck disable=SC1090
