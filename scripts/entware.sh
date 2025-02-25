@@ -584,14 +584,17 @@ case "$1" in
         echo "Installing package manager..."
 
         if [ ! -f /opt/bin/opkg ]; then
-            curl -f "$INSTALL_URL/opkg" -o /opt/bin/opkg && chmod 755 /opt/bin/opkg && echo "Saved /opt/bin/opkg"
+            curl -fsS "$INSTALL_URL/opkg" -o /opt/bin/opkg
+            chmod 755 /opt/bin/opkg
+            echo "'$INSTALL_URL/opkg' -> '/opt/bin/opkg'"
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
             if [ -f /jffs/entware/etc/opkg.conf ]; then
                 ln -sv /jffs/entware/etc/opkg.conf /opt/etc/opkg.conf
             else
-                curl -f "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf && echo "Saved /opt/etc/opkg.conf"
+                curl -fsS "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
+                echo "'$INSTALL_URL/opkg.conf' -> '/opt/etc/opkg.conf'"
 
                 [ "$BASE_URL" != "$DEFAULT_BASE_URL" ] && sed -i "s#$DEFAULT_BASE_URL:#$BASE_URL:#g" /opt/etc/opkg.conf
                 [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
