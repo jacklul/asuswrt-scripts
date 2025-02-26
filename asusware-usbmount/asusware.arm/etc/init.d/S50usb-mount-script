@@ -1,31 +1,70 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
+# This script will be executed by the router on mount/unmount event
+# It will first look for the script to execute in script_usbmount/script_usbumount NVRAM variable
+# Then it will look for usb-mount-script/usb-umount-script script in /jffs/scripts
+# It will launch /jffs/scripts-startup.sh if none of the above are available
+#
+# Receiving 'stop' here is unlikely, possibly only when unmounting from the web UI
+#
 
-TARGET_SCRIPT="/jffs/scripts-startup.sh"
+TARGET_SCRIPT="/jffs/scripts-startup.sh" # https://github.com/jacklul/asuswrt-scripts bootstrap
+SYSLOG_TAG="$(basename "$0")"
 
 case "$1" in
     "start")
         NVRAM_SCRIPT="$(nvram get script_usbmount)"
 
         if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$(basename "$0")" "Executing command in \"script_usbmount\" NVRAM variable: $NVRAM_SCRIPT"
-
+            logger -t "$SYSLOG_TAG" "Executing command in \"script_usbmount\" NVRAM variable"
             eval "$NVRAM_SCRIPT"
         else
+            if [ -x /jffs/scripts/usb-mount-script ]; then
+                TARGET_SCRIPT=/jffs/scripts/usb-mount-script
+            fi
+
             if [ -x "$TARGET_SCRIPT" ]; then
-                /bin/sh "$TARGET_SCRIPT" start
+                logger -t "$SYSLOG_TAG" "Executing \"$TARGET_SCRIPT\" script with \"start\" argument"
+                "$TARGET_SCRIPT" start
             fi
         fi
+
+        # This allows the USB drive to be unplugged and then plugged back in and retriggering this script again,
+        # without this router will not call this script ever again until a reboot.
+        # "USB Application" in the web UI will also be stuck on "apps installing" without this fix.
+        {
+            sleep 10
+            nvram set apps_state_autorun=
+            nvram set apps_state_install=
+            nvram set apps_state_remove=
+            nvram set apps_state_switch=
+            nvram set apps_state_stop=
+            nvram set apps_state_enable=
+            nvram set apps_state_update=
+            nvram set apps_state_upgrade=
+            nvram set apps_state_cancel=
+            nvram set apps_state_error=
+            nvram set apps_state_action=
+            nvram set apps_mounted_path=
+            nvram set apps_dev=
+            # nvram commit not needed!
+        } >/dev/null 2>&1 &
     ;;
     "stop")
         NVRAM_SCRIPT="$(nvram get script_usbumount)"
 
         if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$(basename "$0")" "Executing command in \"script_usbumount\" NVRAM variable: $NVRAM_SCRIPT"
-
+            logger -t "$SYSLOG_TAG" "Executing command in \"script_usbumount\" NVRAM variable"
             eval "$NVRAM_SCRIPT"
         else
+            if [ -x /jffs/scripts/usb-umount-script ]; then
+                TARGET_SCRIPT=/jffs/scripts/usb-umount-script
+            fi
+
             if [ -x "$TARGET_SCRIPT" ]; then
-                /bin/sh "$TARGET_SCRIPT" stop
+                logger -t "$SYSLOG_TAG" "Executing \"$TARGET_SCRIPT\" script with \"stop\" argument"
+                "$TARGET_SCRIPT" stop
             fi
         fi
     ;;

@@ -1,6 +1,21 @@
-## How to use this
+# What is this?
+
+This is my current workaround for **Asus routers** that no longer execute command in `script_usbmount` NVRAM variable on USB mount.  
+The variable is being cleaned by `asd` (**Asus Security Daemon**).
+
+_Last updated: **26-02-2025**_
+
+## How to use this?
 
 Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
+
+**The workaround is hardcoded to launch whichever exists first:**
+
+- command in `script_usbmount` NVRAM variable
+- `/jffs/scripts/usb-mount-script` script
+- `/jffs/scripts-startup.sh` script
+
+You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` script to run your own logic.
 
 > [!IMPORTANT]
 > If your router's architecture is not ARM you will have to replace it with the correct one in these files:
@@ -8,28 +23,28 @@ Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusw
 > - **asusware.arm/lib/info/usb-mount-script.control**
 > - **asusware.arm/lib/lists/optware.asus**
 > 
-> You will also need to rename **asusware.arm** directory to contain the new architecture suffix.
+> You will also need to rename **asusware.arm** directory to contain the new architecture suffix as well.
 > 
 > Known supported architecture values are `arm, mipsbig, mipsel`.  
-> For `mipsel` the directory has to be called just **asusware**.
-
-> [!WARNING]
-> If you installed `scripts-startup.sh` script in a custom path (`/jffs/scripts-startup.sh` is the default) you will have to correct the value of `TARGET_SCRIPT` variable in `asusware.arm/etc/init.d/S50usb-mount-script` file!
+> For `mipsel` the directory has to be called just **asusware** (no suffix!).
 
 ### Sometimes this workaround does not work straight away - in that case do the following:
 
-- grab another USB stick (or reformat current one)
+- grab another USB stick (or reformat the current one)
 - plug it into the router (it has to be the only one plugged in)
 - install Download Master
-- unplug it and plug back the "workaround" one - everything should be working now
+- unplug it, preferably cleanly unmount it from the web UI first
+- plug back the "workaround" one - the script should be executed now
 
-I'm yet to discover how to avoid this, perhaps it has something to do with `apps_` variables.
+### Reducing script startup delay:
 
-### This can reduce scripts startup delay:
+To reduce the delay before the script is triggered you can prevent the firmware from checking mounted filesystems for errors.
+
+> [!WARNING]
+> Do not do this if you're using the USB stick for other purposes like file share or Entware.  
+> Power failures will lead to filesystem corruption, without **fsck** running regularly it will eventually make the filesystem unreadable.
 
 ```
 nvram set stop_fsck=1
 nvram commit
 ```
-
-_This prevents the firmware from checking device containing `asusware` directory for filesystem errors._
