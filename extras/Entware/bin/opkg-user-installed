@@ -1,0 +1,10 @@
+#!/bin/sh
+# /opt/bin/opkg-user-installed
+#
+# Lists user-installed packages only
+
+for package in $(opkg list-installed | awk '{print $1}'); do
+	if opkg status "$package" | grep -q "install user installed"; then
+		echo "$package"
+	fi
+done
