@@ -28,8 +28,7 @@ scripts() {
 
     for ENTRY in "$SCRIPTS_DIR"/*.sh; do
         [ "$(basename "$ENTRY" .sh)" = "$SCRIPT_NAME" ] && continue # do not interact with itself, just in case
-        ! grep -q "\"start\")" "$ENTRY" && continue
-        ! grep -q "start)" "$ENTRY" && continue
+        { ! grep -q "\"start\")" "$ENTRY" && ! grep -q "start)" "$ENTRY" ; } && continue
 
         if [ -x "$ENTRY" ]; then
             ENTRY="$(readlink -f "$ENTRY")"
