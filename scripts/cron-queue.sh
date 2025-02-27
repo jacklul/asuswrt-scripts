@@ -84,12 +84,12 @@ lockfile() { #LOCKFILE_START#
 
 case "$1" in
     "run")
-        lockfile lockwait run
+        lockfile lockwait # make sure queue list does not get written to while running
 
         #shellcheck disable=SC1090
         sh "$QUEUE_FILE"
 
-        lockfile unlock run
+        lockfile unlock
     ;;
     "add"|"remove"|"delete"|"a"|"r"|"d")
         ADD="$1"

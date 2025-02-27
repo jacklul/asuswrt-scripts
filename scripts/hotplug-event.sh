@@ -84,6 +84,8 @@ lockfile() { #LOCKFILE_START#
 } #LOCKFILE_END#
 
 hotplug_config() {
+    lockfile lockwait
+
     case "$1" in
         "modify")
             if [ -f /etc/hotplug2.rules ]; then
@@ -121,6 +123,8 @@ EOT
             fi
         ;;
     esac
+
+    lockfile unlock
 }
 
 case "$1" in
@@ -130,7 +134,7 @@ case "$1" in
         fi
     ;;
     "event")
-        lockfile lockwait "$2"
+        lockfile lockwait event "$2"
 
         case "$2" in
             "block"|"net"|"misc")
@@ -155,7 +159,7 @@ case "$1" in
 
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
 
-        lockfile unlock "$2"
+        lockfile unlock event "$2"
 
         exit
     ;;

@@ -150,6 +150,8 @@ case "$1" in
     "stop")
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
+
+        lockfile kill
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop

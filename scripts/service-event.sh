@@ -115,6 +115,8 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 } #ISSTARTEDBYSYSTEM_END#
 
 service_monitor() {
+    [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+
     lockfile lockfail || { echo "Already running! ($_LOCKPID)"; exit 1; }
 
     set -e
@@ -186,16 +188,9 @@ service_monitor() {
 
 case "$1" in
     "run")
-        [ -n "$MERLIN" ] && exit # Do not run as background process on Asuswrt-Merlin firmware
-        [ ! -f "$SYSLOG_FILE" ] && { logger -st "$SCRIPT_TAG" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+        [ -n "$MERLIN" ] && exit # Do not run on Asuswrt-Merlin firmware
 
-        if is_started_by_system && [ "$2" != "nohup" ]; then
-            lockfile check && exit
-
-            nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
-        else
-            service_monitor
-        fi
+        service_monitor
     ;;
     "event")
         # $2 = event, $3 = target
@@ -324,9 +319,9 @@ EOT
             fi
 
             if is_started_by_system; then
-                sh "$SCRIPT_PATH" run
+                nohup "$SCRIPT_PATH" run > /dev/null 2>&1 &
             else
-                echo "Will launch in the next minute by cron..."
+                echo "Will launch within one minute by cron..."
             fi
         fi
     ;;

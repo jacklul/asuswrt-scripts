@@ -118,7 +118,7 @@ disable_swap() {
 
 case "$1" in
     "run")
-        lockfile lockexit
+        lockfile lockfail || { echo "Already running! ($_LOCKPID)"; exit 1; }
 
         if ! grep -q "file" /proc/swaps; then
             [ -z "$SWAP_FILE" ] && find_swap_file

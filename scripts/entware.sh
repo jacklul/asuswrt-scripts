@@ -322,8 +322,6 @@ entware_in_ram() {
         return 1
     fi
 
-    #lockfile lockwait inram
-
     if [ ! -f /opt/etc/init.d/rc.unslung ]; then # is it not mounted?
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
             logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
@@ -356,8 +354,6 @@ entware_in_ram() {
 
         echo "---------- Services started at $(date) ----------" >> "$INSTALL_LOG"
     fi
-
-    #lockfile unlock inram
 
     return 0
 }
@@ -393,9 +389,9 @@ entware() {
 
 case "$1" in
     "run")
-        lockfile lockfail run || { echo "Already running! ($_LOCKPID)"; exit 1; }
-
         if [ -n "$IN_RAM" ]; then
+            lockfile lockfail inram || { echo "Already running! ($_LOCKPID)"; exit 1; }
+
             if [ ! -f /opt/etc/init.d/rc.unslung ]; then
                 echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
 
@@ -410,6 +406,8 @@ case "$1" in
                 done
 
                 [ "$TIMEOUT" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
+
+                lockfile unlock inram
             fi
         else
             if ! is_entware_mounted; then
@@ -431,8 +429,6 @@ case "$1" in
                 fi
             fi
         fi
-
-        lockfile unlock run
     ;;
     "hotplug")
         [ -n "$IN_RAM" ] && exit
@@ -472,9 +468,7 @@ case "$1" in
         fi
 
         if is_started_by_system; then
-            {
-                sh "$SCRIPT_PATH" run
-            } &
+            nohup "$SCRIPT_PATH" run > /dev/null 2>&1 &
         else
             sh "$SCRIPT_PATH" run
         fi
@@ -483,9 +477,10 @@ case "$1" in
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
+        lockfile kill inram
+        lockfile kill
+
         entware stop
-        lockfile kill run
-        #lockfile kill inram
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop

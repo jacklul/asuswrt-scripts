@@ -307,46 +307,86 @@ restore_etc_files() {
     done
 }
 
+configs() {
+    lockfile lockwait # not lockfail as multiple service restarts might queue this one up via service-event.sh
+
+    case "$1" in
+        "modify")
+            # services.c
+            modify_etc_files # profile, hosts
+            modify_service_config_file "/etc/dnsmasq.conf" "dnsmasq" "dnsmasq"
+            modify_service_config_file "/etc/stubby/stubby.yml" "stubby" "stubby"
+            # inadyn.conf - currently no way to support this as it is not running as daemon
+            modify_service_config_file "/var/mcpd.conf" "mcpd" "mcpd"
+            modify_service_config_file "/etc/upnp/config" "miniupnpd" "miniupnpd" "upnp"
+            modify_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon" "avahi-daemon"
+            # afpd.service, adisk.service, mt-daap.service - use avahi-daemon.postconf to modify these
+            modify_service_config_file "/etc/zebra.conf" "zebra" "zebra"
+            modify_service_config_file "/etc/ripd.conf" "ripd" "ripd"
+            modify_service_config_file "/tmp/torrc" "tor" "tor"
+
+            # wan.c
+            modify_service_config_file "/tmp/igmpproxy.conf" "igmpproxy" "igmpproxy"
+
+            # snmpd.c
+            modify_service_config_file "/tmp/snmpd.conf" "snmpd" "snmpd"
+
+            # usb.c
+            modify_service_config_file "/etc/vsftpd.conf" "vsftpd" "vsftpd"
+            modify_service_config_file "/etc/smb.conf" "nmbd\|smbd" "samba"
+            modify_service_config_file "/etc/minidlna.conf" "minidlna" "minidlna"
+            modify_service_config_file "/etc/mt-daapd.conf" "mt-daapd" "mt-daapd"
+
+            # vpn.c
+            modify_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd" "pptpd"
+
+            # rc_ipsec.c
+            modify_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
+        ;;
+        "restore")
+            # services.c
+            restore_etc_files
+            restore_service_config_file "/etc/dnsmasq.conf" "dnsmasq" "dnsmasq"
+            restore_service_config_file "/etc/stubby/stubby.yml" "stubby" "stubby"
+            # inadyn.conf
+            restore_service_config_file "/var/mcpd.conf" "mcpd" "wan"
+            restore_service_config_file "/etc/upnp/config" "miniupnpd" "upnp"
+            restore_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon" "mdns"
+            # afpd.service, adisk.service, mt-daap.service
+            restore_service_config_file "/etc/zebra.conf" "zebra" "quagga"
+            restore_service_config_file "/etc/ripd.conf" "ripd" "quagga"
+            restore_service_config_file "/tmp/torrc" "tor" "tor"
+
+            # wan.c
+            restore_service_config_file "/tmp/igmpproxy.conf" "igmpproxy" "wan_line"
+
+            # snmpd.c
+            restore_service_config_file "/tmp/snmpd.conf" "snmpd" "snmpd"
+
+            # usb.c
+            restore_service_config_file "/etc/vsftpd.conf" "vsftpd" "ftpd"
+            restore_service_config_file "/etc/smb.conf" "nmbd\|smbd" "samba"
+            restore_service_config_file "/etc/minidlna.conf" "minidlna" "dms"
+            restore_service_config_file "/etc/mt-daapd.conf" "mt-daapd" "mt_daapd"
+
+            # vpn.c
+            restore_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd" "pptpd"
+
+            # rc_ipsec.c
+            restore_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
+        ;;
+    esac
+
+    lockfile unlock
+}
+
 case "$1" in
     "run")
         if { [ ! -x "$SCRIPT_DIR/cron-queue.sh" ] || ! "$SCRIPT_DIR/cron-queue.sh" check "$SCRIPT_NAME" ; } && ! cru l | grep -q "#$SCRIPT_NAME#"; then
             exit # do not run if not started
         fi
 
-        lockfile lockwait run # not lockfail as multiple service restarts might queue this one up via service-event.sh
-
-        # services.c
-        modify_etc_files # profile, hosts
-        modify_service_config_file "/etc/dnsmasq.conf" "dnsmasq" "dnsmasq"
-        modify_service_config_file "/etc/stubby/stubby.yml" "stubby" "stubby"
-        # inadyn.conf - currently no way to support this as it is not running as daemon
-        modify_service_config_file "/var/mcpd.conf" "mcpd" "mcpd"
-        modify_service_config_file "/etc/upnp/config" "miniupnpd" "miniupnpd" "upnp"
-        modify_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon" "avahi-daemon"
-        # afpd.service, adisk.service, mt-daap.service - use avahi-daemon.postconf to modify these
-        modify_service_config_file "/etc/zebra.conf" "zebra" "zebra"
-        modify_service_config_file "/etc/ripd.conf" "ripd" "ripd"
-        modify_service_config_file "/tmp/torrc" "tor" "tor"
-
-        # wan.c
-        modify_service_config_file "/tmp/igmpproxy.conf" "igmpproxy" "igmpproxy"
-
-        # snmpd.c
-        modify_service_config_file "/tmp/snmpd.conf" "snmpd" "snmpd"
-
-        # usb.c
-        modify_service_config_file "/etc/vsftpd.conf" "vsftpd" "vsftpd"
-        modify_service_config_file "/etc/smb.conf" "nmbd\|smbd" "samba"
-        modify_service_config_file "/etc/minidlna.conf" "minidlna" "minidlna"
-        modify_service_config_file "/etc/mt-daapd.conf" "mt-daapd" "mt-daapd"
-
-        # vpn.c
-        modify_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd" "pptpd"
-
-        # rc_ipsec.c
-        modify_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
-
-        lockfile unlock run
+        configs modify
     ;;
     "start")
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
@@ -361,36 +401,7 @@ case "$1" in
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
         cru d "$SCRIPT_NAME"
 
-        # services.c
-        restore_etc_files
-        restore_service_config_file "/etc/dnsmasq.conf" "dnsmasq" "dnsmasq"
-        restore_service_config_file "/etc/stubby/stubby.yml" "stubby" "stubby"
-        # inadyn.conf
-        restore_service_config_file "/var/mcpd.conf" "mcpd" "wan"
-        restore_service_config_file "/etc/upnp/config" "miniupnpd" "upnp"
-        restore_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon" "mdns"
-        # afpd.service, adisk.service, mt-daap.service
-        restore_service_config_file "/etc/zebra.conf" "zebra" "quagga"
-        restore_service_config_file "/etc/ripd.conf" "ripd" "quagga"
-        restore_service_config_file "/tmp/torrc" "tor" "tor"
-
-        # wan.c
-        restore_service_config_file "/tmp/igmpproxy.conf" "igmpproxy" "wan_line"
-
-        # snmpd.c
-        restore_service_config_file "/tmp/snmpd.conf" "snmpd" "snmpd"
-
-        # usb.c
-        restore_service_config_file "/etc/vsftpd.conf" "vsftpd" "ftpd"
-        restore_service_config_file "/etc/smb.conf" "nmbd\|smbd" "samba"
-        restore_service_config_file "/etc/minidlna.conf" "minidlna" "dms"
-        restore_service_config_file "/etc/mt-daapd.conf" "mt-daapd" "mt_daapd"
-
-        # vpn.c
-        restore_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd" "pptpd"
-
-        # rc_ipsec.c
-        restore_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
+        configs restore
     ;;
     "restart")
         sh "$SCRIPT_PATH" stop
