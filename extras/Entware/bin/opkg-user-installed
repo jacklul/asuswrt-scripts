@@ -1,10 +1,14 @@
 #!/bin/sh
 # /opt/bin/opkg-user-installed
-#
 # Lists user-installed packages only
 
-for package in $(opkg list-installed | awk '{print $1}'); do
-	if opkg status "$package" | grep -q "install user installed"; then
-		echo "$package"
-	fi
+installed="$(opkg list-installed)"
+IFS="$(printf '\n\b')"
+echo "$installed" | while read -r package; do
+    name="$(echo "$package" | awk '{print $1}')"
+
+    if opkg status "$name" | grep -q "install user installed"; then
+        echo "$package"
+    fi
 done
+IFS=""
