@@ -205,6 +205,7 @@ add_modified_mark() {
         ;;
     esac
 
+    echo "" >> "$1"
     echo "$_COMMENT Modified by $SCRIPT_NAME script" >> "$1"
 }
 
