@@ -56,7 +56,7 @@ sed_and_check() {
         return 0
     fi
 
-    logger -st "$SCRIPT_TAG" "Failed to apply modification to $(basename "$4"): sed $1  \"$2\"  \"$3\""
+    logger -st "$SCRIPT_TAG" "Failed to apply modification to '$(basename "$4")': sed  '$1'  '$2'  '$3'"
 
     return 1
 }
@@ -143,7 +143,7 @@ notrendmicro_support() {
                     sed_and_check replace '{url: "AdaptiveQoS_InternetSpeed.asp"' '//{url: "AdaptiveQoS_InternetSpeed.asp"' "$TMP_WWW_PATH/require/modules/menuTree.js"
                     sed_and_check after '{url: "Advanced_Smart_Connect.asp' "$INTERNETSPEED_TAB" "$TMP_WWW_PATH/require/modules/menuTree.js"
                 else
-                    logger -st "$SCRIPT_TAG" "There was a problem running modification on file $TMP_WWW_PATH/require/modules/menuTree.js: unable to find AdaptiveQoS_InternetSpeed line"
+                    logger -st "$SCRIPT_TAG" "There was a problem performing modification on file '$TMP_WWW_PATH/require/modules/menuTree.js': unable to find line containing 'AdaptiveQoS_InternetSpeed'!"
                 fi
 
                 sed_and_check before 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_PATH/require/modules/menuTree.js"

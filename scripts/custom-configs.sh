@@ -165,11 +165,11 @@ modify_config_file() {
     fi
 
     if [ -f "/jffs/configs/$_BASENAME" ] && is_file_replace_supported "$1"; then
-        logger -st "$SCRIPT_TAG" "Replacing $1 with /jffs/configs/$_BASENAME..."
+        logger -st "$SCRIPT_TAG" "Replacing '$1' with '/jffs/configs/$_BASENAME'..."
 
         cat "/jffs/configs/$_BASENAME" > "$1.new"
     elif [ -f "/jffs/configs/$_BASENAME.add" ]; then
-        logger -st "$SCRIPT_TAG" "Appending /jffs/configs/$_BASENAME.add to $1..."
+        logger -st "$SCRIPT_TAG" "Appending '/jffs/configs/$_BASENAME.add' to '$1'..."
 
         cp "$1" "$1.new"
         cat "/jffs/configs/$_BASENAME.add" >> "$1.new"
@@ -186,7 +186,7 @@ run_postconf_script() {
     _BASENAME="$(basename "$1" | cut -d. -f1)"
 
     if [ -x "/jffs/scripts/$_BASENAME.postconf" ]; then
-        logger -st "$SCRIPT_TAG" "Running /jffs/scripts/$_BASENAME.postconf script..."
+        logger -st "$SCRIPT_TAG" "Running '/jffs/scripts/$_BASENAME.postconf' script..."
 
         [ ! -f "$1.new" ] && cp "$1" "$1.new"
         sh "/jffs/scripts/$_BASENAME.postconf" "$1.new"
@@ -279,7 +279,7 @@ restore_service_config_file() {
 
         rm -f "$1.new"
 
-        logger -st "$SCRIPT_TAG" "Restarted $3 service"
+        logger -st "$SCRIPT_TAG" "Restarted service: $3"
     fi
 }
 
@@ -303,7 +303,7 @@ restore_etc_files() {
         if  [ -f "/etc/$FILE.bak" ] && [ -f "/etc/$FILE.new" ]; then
             cp -f "/etc/$FILE.bak" "/etc/$FILE"
             rm -f "/etc/$FILE.new"
-            logger -st "$SCRIPT_TAG" "Restored /etc/$FILE"
+            logger -st "$SCRIPT_TAG" "Restored: /etc/$FILE"
         fi
     done
 }

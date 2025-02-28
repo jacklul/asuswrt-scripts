@@ -161,13 +161,13 @@ init_opt() {
                 [ -n "$MOUNT_DEVICE" ] && basename "$MOUNT_DEVICE" > "$CACHE_FILE"
             fi
 
-            logger -st "$SCRIPT_TAG" "Mounted $1 on /opt"
+            logger -st "$SCRIPT_TAG" "Mounted '$1' on /opt"
         else
-            logger -st "$SCRIPT_TAG" "Failed to mount $1 on /opt"
+            logger -st "$SCRIPT_TAG" "Failed to mount '$1' on /opt"
             exit 1
         fi
     else
-        logger -st "$SCRIPT_TAG" "Entware not found in $1"
+        logger -st "$SCRIPT_TAG" "Entware not found in '$1'"
         exit 1
     fi
 }
@@ -349,7 +349,7 @@ entware_in_ram() {
         logger -st "$SCRIPT_TAG" "Starting services..."
 
         if ! /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH" >> "$INSTALL_LOG" 2>&1; then
-            logger -st "$SCRIPT_TAG" "Failed to start services, check $INSTALL_LOG for details"
+            logger -st "$SCRIPT_TAG" "Failed to start services, check '$INSTALL_LOG' for details"
         fi
 
         echo "---------- Services started at $(date) ----------" >> "$INSTALL_LOG"

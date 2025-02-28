@@ -17,7 +17,7 @@ case "$1" in
         NVRAM_SCRIPT="$(nvram get script_usbmount)"
 
         if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$SYSLOG_TAG" "Executing command in \"script_usbmount\" NVRAM variable"
+            logger -t "$SYSLOG_TAG" "Executing command in 'script_usbmount' NVRAM variable"
             eval "$NVRAM_SCRIPT"
         else
             if [ -x /jffs/scripts/usb-mount-script ]; then
@@ -25,7 +25,7 @@ case "$1" in
             fi
 
             if [ -x "$TARGET_SCRIPT" ]; then
-                logger -t "$SYSLOG_TAG" "Executing \"$TARGET_SCRIPT\" script with \"start\" argument"
+                logger -t "$SYSLOG_TAG" "Executing '$TARGET_SCRIPT' script with 'start' argument"
                 "$TARGET_SCRIPT" start
             fi
         fi
@@ -55,7 +55,7 @@ case "$1" in
         NVRAM_SCRIPT="$(nvram get script_usbumount)"
 
         if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$SYSLOG_TAG" "Executing command in \"script_usbumount\" NVRAM variable"
+            logger -t "$SYSLOG_TAG" "Executing command in 'script_usbumount' NVRAM variable"
             eval "$NVRAM_SCRIPT"
         else
             if [ -x /jffs/scripts/usb-umount-script ]; then
@@ -63,7 +63,7 @@ case "$1" in
             fi
 
             if [ -x "$TARGET_SCRIPT" ]; then
-                logger -t "$SYSLOG_TAG" "Executing \"$TARGET_SCRIPT\" script with \"stop\" argument"
+                logger -t "$SYSLOG_TAG" "Executing '$TARGET_SCRIPT' script with 'stop' argument"
                 "$TARGET_SCRIPT" stop
             fi
         fi

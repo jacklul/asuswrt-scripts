@@ -68,7 +68,7 @@ case "$1" in
     "start")
         [ -f "/usr/sbin/helper.sh" ] && logger -st "$SCRIPT_TAG" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
 
-        [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config file ($CONFIG_FILE) not found"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
         inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config is not valid"; exit 1; }
 
         if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then

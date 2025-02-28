@@ -110,9 +110,9 @@ disable_swap() {
     echo 3 > /proc/sys/vm/drop_caches
 
     if swapoff "$SWAP_FILE" ; then
-        logger -st "$SCRIPT_TAG" "Disabled swap on $SWAP_FILE"
+        logger -st "$SCRIPT_TAG" "Disabled swap on '$SWAP_FILE'"
     else
-        logger -st "$SCRIPT_TAG" "Failed to disable swap on $SWAP_FILE"
+        logger -st "$SCRIPT_TAG" "Failed to disable swap on '$SWAP_FILE'"
     fi
 }
 
@@ -130,14 +130,14 @@ case "$1" in
             if [ -f "$SWAP_FILE" ]; then
                 if swapon "$SWAP_FILE" ; then
                     #shellcheck disable=SC2012
-                    logger -st "$SCRIPT_TAG" "Enabled swap on $SWAP_FILE ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
+                    logger -st "$SCRIPT_TAG" "Enabled swap file '$SWAP_FILE' ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
 
                     if [ -n "$SWAPPINESS" ]; then
                         echo "$SWAPPINESS" > /proc/sys/vm/swappiness
                         logger -st "$SCRIPT_TAG" "Set swappiness to $SWAPPINESS"
                     fi
                 else
-                    logger -st "$SCRIPT_TAG" "Failed to enable swap on $SWAP_FILE"
+                    logger -st "$SCRIPT_TAG" "Failed to enable swap on '$SWAP_FILE'"
                 fi
             fi
         fi

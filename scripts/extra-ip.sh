@@ -81,15 +81,15 @@ extra_ip() {
 
         case "$1" in
             "add")
-                if [ -n "$EXTRA_IP6" ] && ! ip addr show dev "$TARGET_INTERFACE" | grep -q "inet6 $EXTRA_IP6 "; then
-                    ip -6 addr add "$EXTRA_IP6" dev "$TARGET_INTERFACE"
-                    logger -st "$SCRIPT_TAG" "Added IPv6 address $EXTRA_IP6 to interface $TARGET_INTERFACE"
+                if [ -n "$_ADDRESS" ] && ! ip addr show dev "$_INTERFACE" | grep -q "inet6 $_ADDRESS "; then
+                    ip -6 addr add "$_ADDRESS" dev "$_INTERFACE"
+                    logger -st "$SCRIPT_TAG" "Added IPv6 address $_ADDRESS to interface $_INTERFACE"
                 fi
             ;;
             "remove")
-                if [ -n "$EXTRA_IP6" ] && ip addr show dev "$TARGET_INTERFACE" | grep -q "inet6 $EXTRA_IP6 "; then
-                    ip -6 addr delete "$EXTRA_IP6" dev "$TARGET_INTERFACE"
-                    logger -st "$SCRIPT_TAG" "Removed IPv6 address $EXTRA_IP6 from interface $TARGET_INTERFACE"
+                if [ -n "$_ADDRESS" ] && ip addr show dev "$_INTERFACE" | grep -q "inet6 $_ADDRESS "; then
+                    ip -6 addr delete "$_ADDRESS" dev "$_INTERFACE"
+                    logger -st "$SCRIPT_TAG" "Removed IPv6 address $_ADDRESS from interface $_INTERFACE"
                 fi
             ;;
         esac

@@ -161,7 +161,7 @@ service_monitor() {
                                 EVENT_ACTION="$(echo "$EVENT" | cut -d'_' -f1)"
                                 EVENT_TARGET="$(echo "$EVENT" | cut -d'_' -f2- | cut -d' ' -f1)"
 
-                                logger -st "$SCRIPT_TAG" "Running script (args: \"${EVENT_ACTION}\" \"${EVENT_TARGET}\")"
+                                logger -st "$SCRIPT_TAG" "Running script (args: '${EVENT_ACTION}' '${EVENT_TARGET}')"
 
                                 sh "$SCRIPT_PATH" event "$EVENT_ACTION" "$EVENT_TARGET" &
                                 [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$EVENT_ACTION" "$EVENT_TARGET" &

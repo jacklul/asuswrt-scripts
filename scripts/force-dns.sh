@@ -340,12 +340,12 @@ firewall_rules() {
 
                 if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$DNS_SERVER" >/dev/null 2>&1; then
                     iptables_chains add
-                    iptables_rules add "${DNS_SERVER}" "${DNS_SERVER6}"
+                    iptables_rules add "$DNS_SERVER" "$DNS_SERVER6"
 
                     _DNS_SERVER="$DNS_SERVER"
                     [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
 
-                    logger -st "$SCRIPT_TAG" "Forcing DNS server(s): ${_DNS_SERVER}"
+                    logger -st "$SCRIPT_TAG" "Forcing DNS server(s): $_DNS_SERVER"
                 fi
             fi
         ;;
@@ -358,12 +358,12 @@ firewall_rules() {
 
                     if [ "$VERIFY_DNS_FALLBACK" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" >/dev/null 2>&1; then
                         iptables_chains add
-                        iptables_rules add "${FALLBACK_DNS_SERVER}" "${FALLBACK_DNS_SERVER6}"
+                        iptables_rules add "$FALLBACK_DNS_SERVER" "$FALLBACK_DNS_SERVER6"
 
                         _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
                         [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
 
-                        logger -st "$SCRIPT_TAG" "Forcing fallback DNS server(s): ${_FALLBACK_DNS_SERVER}"
+                        logger -st "$SCRIPT_TAG" "Forcing fallback DNS server(s): $_FALLBACK_DNS_SERVER"
                     fi
                 fi
             else

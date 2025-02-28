@@ -115,7 +115,7 @@ EOT
             NVRAM_SCRIPT="/bin/sh $SCRIPT_PATH start"
 
             if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
-                echo "Setting NVRAM variable \"script_usbmount\" to \"$NVRAM_SCRIPT\""
+                echo "Setting NVRAM variable 'script_usbmount' to '$NVRAM_SCRIPT'"
 
                 nvram set script_usbmount="$NVRAM_SCRIPT"
                 nvram commit
@@ -130,7 +130,7 @@ https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount
 EOT
                 fi
             else
-                echo "NVRAM variable \"script_usbmount\" is already set to \"$NVRAM_SCRIPT\""
+                echo "NVRAM variable 'script_usbmount' is already set to '$NVRAM_SCRIPT'"
             fi
         fi
     ;;

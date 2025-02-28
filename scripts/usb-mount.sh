@@ -120,7 +120,7 @@ setup_mount() {
     [ -z "$2" ] && { echo "You must specify a device"; exit 1; }
 
     if is_asusware_mounting; then
-        logger -st "$SCRIPT_TAG" "Ignoring call because Asusware is mounting (args: \"$1\" \"$2\")"
+        logger -st "$SCRIPT_TAG" "Ignoring call because Asusware is mounting (args: '$1' '$2')"
         exit
     fi
 
@@ -138,23 +138,23 @@ setup_mount() {
 
                 #shellcheck disable=SC2086
                 if mount "$_DEVICE" "$_MOUNTPOINT"; then
-                    logger -st "$SCRIPT_TAG" "Mounted $_DEVICE on $_MOUNTPOINT"
+                    logger -st "$SCRIPT_TAG" "Mounted '$_DEVICE' on '$_MOUNTPOINT'"
                 else
                     rmdir "$_MOUNTPOINT"
-                    logger -st "$SCRIPT_TAG" "Failed to mount $_DEVICE on $_MOUNTPOINT"
+                    logger -st "$SCRIPT_TAG" "Failed to mount '$_DEVICE' on '$_MOUNTPOINT'"
                 fi
             fi
         ;;
         "remove")
             if mount | grep -q "$_MOUNTPOINT"; then
                 if [ "$(mount | grep -c "$_DEVICE")" -gt 1 ]; then
-                    logger -st "$SCRIPT_TAG" "Unable to unmount $_MOUNTPOINT - device $_DEVICE is used by another mount"
+                    logger -st "$SCRIPT_TAG" "Unable to unmount '$_MOUNTPOINT' - device '$_DEVICE' is used by another mount"
                 else
                     if umount "$_MOUNTPOINT"; then
                         rmdir "$_MOUNTPOINT"
-                        logger -st "$SCRIPT_TAG" "Unmounted $_DEVICE from $_MOUNTPOINT"
+                        logger -st "$SCRIPT_TAG" "Unmounted '$_DEVICE' from '$_MOUNTPOINT'"
                     else
-                        logger -st "$SCRIPT_TAG" "Failed to unmount $_DEVICE from $_MOUNTPOINT"
+                        logger -st "$SCRIPT_TAG" "Failed to unmount '$_DEVICE' from '$_MOUNTPOINT'"
                     fi
                 fi
             fi

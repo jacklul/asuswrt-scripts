@@ -112,6 +112,8 @@ case "$1" in
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
         [ -z "$($CURL_BINARY -fs "https://boot.netboot.xyz")" ] && { echo "Cannot reach boot.netboot.xyz"; exit 1; }
 
+        #logger -st "$SCRIPT_TAG" "Downloading files from netboot.xyz..."
+
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
 
         DOWNLOADED=""
@@ -127,7 +129,7 @@ case "$1" in
         done
 
         [ -n "$DOWNLOADED" ] && logger -st "$SCRIPT_TAG" "Downloaded files from netboot.xyz:$DOWNLOADED"
-        [ -n "$FAILED" ] && logger -st "$SCRIPT_TAG" "Failed to downloaded files from netboot.xyz:$FAILED"
+        #[ -n "$FAILED" ] && logger -st "$SCRIPT_TAG" "Failed to downloaded files from netboot.xyz:$FAILED"
         [ -z "$FAILED" ] && sh "$SCRIPT_PATH" stop
 
         lockfile unlock

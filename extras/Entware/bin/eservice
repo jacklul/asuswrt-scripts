@@ -57,4 +57,4 @@ for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
     done
 done
 
-echo "Service \"$service\" not found"
+echo "Service '$service' not found"

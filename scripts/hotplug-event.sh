@@ -138,7 +138,7 @@ case "$1" in
 
         case "$2" in
             "block"|"net"|"misc")
-                logger -st "$SCRIPT_TAG" "Running script (args: \"$2\" \"$3\")"
+                logger -st "$SCRIPT_TAG" "Running script (args: '$2' '$3')"
             ;;
         esac
 
