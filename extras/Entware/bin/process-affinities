@@ -1,0 +1,22 @@
+#!/bin/sh
+# /opt/bin/process-affinities
+# List all processes and their CPU affinities
+# This will require installation of procps-ng-ps package
+
+[ ! -f /opt/bin/ps ] && { echo "Install 'procps-ng-ps' package!"; exit 1; }
+
+pids=$(ps -e -o pid --no-headers)
+
+printf "%-40s %-10s %-15s %-25s\n" "Process Name" "PID" "Hex Mask" "CPU Cores"
+printf "%-40s %-10s %-15s %-25s\n" "------------" "----" "---------" "---------"
+
+for pid in $pids; do
+    process_name=$(ps -p "$pid" -o comm=)
+    cpu_affinity=$(taskset -p "$pid" 2>/dev/null | awk -F ': ' '{print $2}')
+
+    if [ -n "$cpu_affinity" ]; then
+        cpu_cores=$(taskset -cp "$pid" 2>/dev/null | awk -F ': ' '{print $2}')
+
+        printf "%-40s %-10s %-15s %-25s\n" "$process_name" "$pid" "$cpu_affinity" "$cpu_cores"
+    fi
+done
