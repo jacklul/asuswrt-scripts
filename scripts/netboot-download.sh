@@ -109,7 +109,7 @@ case "$1" in
     "run")
         lockfile lockfail || { echo "Already running! ($_LOCKPID)"; exit 1; }
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
         [ -z "$($CURL_BINARY -fs "https://boot.netboot.xyz")" ] && { echo "Cannot reach boot.netboot.xyz"; exit 1; }
 
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
