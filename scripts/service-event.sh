@@ -190,7 +190,11 @@ case "$1" in
     "run")
         [ -n "$MERLIN" ] && exit # Do not run on Asuswrt-Merlin firmware
 
-        service_monitor
+        if is_started_by_system && [ "$(ps -o comm= $PPID)" != "nohup" ]; then
+            nohup "$SCRIPT_PATH" run > /dev/null 2>&1 &
+        else
+            service_monitor
+        fi
     ;;
     "event")
         # $2 = event, $3 = target
@@ -319,7 +323,7 @@ EOT
             fi
 
             if is_started_by_system; then
-                nohup "$SCRIPT_PATH" run > /dev/null 2>&1 &
+                sh "$SCRIPT_PATH" run
             else
                 echo "Will launch within one minute by cron..."
             fi
