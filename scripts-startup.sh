@@ -26,29 +26,29 @@ scripts() {
 
     [ ! -d "$SCRIPTS_DIR" ] && return
 
-    for ENTRY in "$SCRIPTS_DIR"/*.sh; do
-        [ "$(basename "$ENTRY" .sh)" = "$SCRIPT_NAME" ] && continue # do not interact with itself, just in case
-        { ! grep -q "\"start\")" "$ENTRY" && ! grep -q "start)" "$ENTRY" ; } && continue
+    for _ENTRY in "$SCRIPTS_DIR"/*.sh; do
+        _ENTRY="$(readlink -f "$_ENTRY")"
 
-        if [ -x "$ENTRY" ]; then
-            ENTRY="$(readlink -f "$ENTRY")"
+        [ "$_ENTRY" = "$SCRIPT_PATH" ] && continue # do not interact with itself, just in case
+        { ! grep -q "\"start\")" "$_ENTRY" && ! grep -q "start)" "$_ENTRY" ; } && continue
 
+        if [ -x "$_ENTRY" ]; then
             case "$_ACTION" in
                 "start")
-                    logger -s -t "$SCRIPT_TAG" "Starting $ENTRY..."
+                    logger -s -t "$SCRIPT_TAG" "Starting $_ENTRY..."
                 ;;
                 "stop")
-                    logger -s -t "$SCRIPT_TAG" "Stopping $ENTRY..."
+                    logger -s -t "$SCRIPT_TAG" "Stopping $_ENTRY..."
                 ;;
                 "restart")
-                    logger -s -t "$SCRIPT_TAG" "Restarting $ENTRY..."
+                    logger -s -t "$SCRIPT_TAG" "Restarting $_ENTRY..."
                 ;;
                 *)
                     echo "Unknown action: $_ACTION"
                     return
             esac
 
-            /bin/sh "$ENTRY" "$_ACTION"
+            /bin/sh "$_ENTRY" "$_ACTION"
         fi
     done
 }
@@ -123,7 +123,7 @@ EOT
                 echo "Waiting for 15 seconds to verify that the value is still set..."
                 sleep 15
 
-                if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
+                if [ -z "$(nvram get script_usbmount)" ]; then
                     cat <<EOT
 Value has been cleaned by the router - you will have to use a workaround:
 https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount
