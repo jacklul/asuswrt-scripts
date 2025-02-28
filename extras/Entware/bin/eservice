@@ -1,70 +1,60 @@
 #!/bin/sh
 # /opt/bin/eservice
-#
 # This is a small helper script that makes
 # executing Entware's init.d scripts easier
 #
 # Examples:
 #  eservice dnsmasq restart - restart dnsmasq
 #  eservice list - list all services and their statuses
-#
 
-SERVICE="$1"
-ACTION="$2"
-CALLER="$(basename "$0" .sh)"
+service="$1"
+action="$2"
+caller="$(basename "$0" .sh)"
 
-if [ "$SERVICE" = "list" ] && [ -z "$ACTION" ]; then
-    ANSI_GREEN=$(printf '\033[1;32m')
-    ANSI_RED=$(printf '\033[1;31m')
-    ANSI_YELLOW=$(printf '\033[1;33m')
-    ANSI_WHITE=$(printf '\033[1;37m')
-    ANSI_RESET=$(printf '\033[0m')
+if [ "$service" = "list" ] && [ -z "$action" ]; then
+    ansi_green=$(printf '\033[1;32m')
+    ansi_red=$(printf '\033[1;31m')
+    ansi_yellow=$(printf '\033[1;33m')
+    ansi_white=$(printf '\033[1;37m')
+    ansi_reset=$(printf '\033[0m')
 
-    for FILE in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*' | sort); do
-        FILE_BASE="$(basename "$FILE" | sed 's/^S[0-9]*//')"
-        STATUS="$("$FILE" check 2>/dev/null)"
+    for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*' | sort); do
+        base="$(basename "$file" | sed 's/^S[0-9]*//')"
+        status="$("$file" check 2>/dev/null)"
 
-        if echo "$STATUS" | grep -q 'alive'; then
-            STATUS="${ANSI_GREEN}alive${ANSI_RESET}"
-        elif echo "$STATUS" | grep -q 'dead'; then
-            STATUS="${ANSI_RED}dead${ANSI_RESET}"
-        elif [ -n "$STATUS" ]; then
-            STATUS="${ANSI_YELLOW}other${ANSI_RESET}"
+        if echo "$status" | grep -q 'alive'; then
+            status="${ansi_green}alive${ansi_reset}"
+        elif echo "$status" | grep -q 'dead'; then
+            status="${ansi_red}dead${ansi_reset}"
+        elif [ -n "$status" ]; then
+            status="${ansi_yellow}other${ansi_reset}"
         else
-            STATUS="${ANSI_WHITE}unknown${ANSI_RESET}"
+            status="${ansi_white}unknown${ansi_reset}"
         fi
 
-        printf "%-20s %-20s %-30s\n" "$FILE_BASE" "$STATUS" "$FILE"
+        printf "%-20s %-20s %-30s\n" "$base" "$status" "$file"
     done
+
     exit
 fi
 
-[ -z "$SERVICE" ] && { echo "Service not specified"; exit 1; }
-[ -z "$ACTION" ] && { echo "Action not specified"; exit 1; }
+[ -z "$service" ] && { echo "Service not specified"; exit 1; }
+[ -z "$action" ] && { echo "Action not specified"; exit 1; }
 
-for FILE in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
-    FILE_CHECK="$(basename "$FILE")"
-    MAX=4
-    while [ "$MAX" -gt 0 ]; do
-        FILE_CHECK="$(echo "$FILE_CHECK" | cut -c2-)"
+for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
+    check="$(basename "$file")"
+    max=3
 
-        if [ "$FILE_CHECK" = "$SERVICE" ]; then
-            case "$FILE" in
-                S* | *.sh )
-                    trap "" INT QUIT TSTP EXIT
-                    #shellcheck disable=SC1090,SC2240
-                    . "$FILE" "$ACTION" "$CALLER"
-                ;;
-                *)
-                    "$FILE" "$ACTION" "$CALLER"
-                ;;
-            esac
+    while [ "$max" -ge 0 ]; do
+        check="$(echo "$check" | cut -c2-)"
 
-            exit
+        if [ "$check" = "$service" ]; then
+            #shellcheck disable=SC1090,SC2240
+            exec "$file" "$action" "$caller"
         fi
 
-        MAX=$((MAX-1))
+        max=$((max-1))
     done
 done
 
-echo "Service \"$SERVICE\" not found"
+echo "Service \"$service\" not found"
