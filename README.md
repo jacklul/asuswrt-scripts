@@ -84,11 +84,15 @@ Then you can proceed to install scripts that you want to use from the [section b
 > Remember to mark the scripts as executable after installing, you can use `chmod +x /jffs/scripts/*.sh` to do it in one go.
 
 > [!NOTE]
-> You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `/jffs/scripts/conditional-reboot.conf`).  
-> Configuration variables are defined on top of each script - peek into the script to see what's available to change.
+> You can override config variables for scripts by creating `.conf` with the same name as the script (for example: `/jffs/scripts/conditional-reboot.conf`).  
+> Configuration variables are defined on top of each script - peek into the script to see what's available to change!
 
-> [!NOTE]
+> [!TIP]
 > You can rename the scripts and add prefixes to them (such as `010-force-dns.sh`) to control the order in which they start.
+> Don't worry about <a href="#user-content-update-scriptssh">update-scripts.sh</a> as it will still be able to update them!
+
+> [!TIP]
+> For better organization, you can put the scripts in `/jffs/scripts/jacklul-asuswrt-scripts` directory and set `SCRIPTS_DIR=/jffs/scripts/jacklul-asuswrt-scripts` in `/jffs/scripts-startup.conf`.
 
 ---
 
@@ -503,7 +507,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`update-scripts.sh`](/scripts/update-scripts.sh)
 
-This script updates all `*.sh` scripts present in the `/jffs/scripts` folder.
+This script updates all scripts from this repository present in the same directory.
 
 **This is on-demand script that must be ran manually.**
 
