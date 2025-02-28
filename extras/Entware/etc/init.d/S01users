@@ -3,11 +3,13 @@
 # This script allows easy creation of users for services that require them
 
 USERS="pihole unbound"
-MIN_UID=1000
+MIN_UID=1001
+
+# On AsusWRT users added from fileshare UI start at 501, 'asd' sometimes switches to UID 1000 so 1001 should be safe value to use
 
 is_uid_in_use() {
-    for test_uid in $2; do
-        if [ "$test_uid" -eq "$1" ]; then
+    for _test_uid in $2; do
+        if [ "$_test_uid" -eq "$1" ]; then
             return 0
         fi
     done
@@ -17,27 +19,27 @@ is_uid_in_use() {
 
 case $1 in
     start|restart)
-        for USER in $USERS; do
-            if ! grep -q "$USER:" /opt/etc/passwd; then
-                USED_UIDS=$(cut -d: -f3 /opt/etc/passwd)
-                NEXT_UID=$MIN_UID
+        for new_user in $USERS; do
+            if ! grep -q "$new_user:" /opt/etc/passwd; then
+                used_uids=$(cut -d: -f3 /opt/etc/passwd)
+                next_uid=$MIN_UID
 
-                while is_uid_in_use "$NEXT_UID" "$USED_UIDS"; do
-                    NEXT_UID=$((NEXT_UID + 1))
+                while is_uid_in_use "$next_uid" "$used_uids"; do
+                    next_uid=$((next_uid + 1))
                 done
 
-                echo "Adding user $USER with UID $NEXT_UID..."
+                echo "Adding user $new_user with UID $next_uid..."
 
-                echo "$USER:x:$NEXT_UID:$NEXT_UID::/dev/null:/dev/null" >> /opt/etc/passwd
-                echo "$USER:x:$NEXT_UID:" >> /opt/etc/group
-                echo "$USER:*:0:0:99999:7:::" >> /opt/etc/shadow
-                echo "$USER:*::" >> /opt/etc/gshadow
+                echo "$new_user:x:$next_uid:$next_uid::/dev/null:/dev/null" >> /opt/etc/passwd
+                echo "$new_user:x:$next_uid:" >> /opt/etc/group
+                echo "$new_user:*:0:0:99999:7:::" >> /opt/etc/shadow
+                echo "$new_user:*::" >> /opt/etc/gshadow
             fi
         done
     ;;
 esac
 
-# Some firmware events can rewrite these files so in order to fix that:
+# Some firmware events can rewrite these files so in order to fix that on stock firmware:
 # - install service-event.sh script
 # - set EXECUTE_COMMAND="/jffs/scripts/service-event-script.sh" in the service-event.conf
 # - create the following executable script (/jffs/scripts/service-event-script.sh):
@@ -58,4 +60,6 @@ esac
 #          esac
 #      ;;
 #  esac
+#
+# On Merlin firmware you can insert the whole case code into /jffs/scripts/service-event-end script
 #
