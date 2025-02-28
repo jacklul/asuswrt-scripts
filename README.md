@@ -80,11 +80,15 @@ Then you can proceed to install scripts that you want to use from the [section b
 
 <br>
 
+> [!IMPORTANT]
+> Remember to mark the scripts as executable after installing, you can use `chmod +x /jffs/scripts/*.sh` to do it in one go.
+
 > [!NOTE]
 > You can override config variables for scripts by creating `.conf` with the same base name as the script (for example: `/jffs/scripts/conditional-reboot.conf`).  
 > Configuration variables are defined on top of each script - peek into the script to see what's available to change.
 
-Remember to mark the scripts as executable after installing, you can use `chmod +x /jffs/scripts/*.sh` to do it in one go.
+> [!NOTE]
+> You can rename the scripts and add prefixes to them (such as `010-force-dns.sh`) to control the order in which they start.
 
 ---
 
