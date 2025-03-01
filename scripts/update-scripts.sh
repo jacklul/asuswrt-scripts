@@ -47,7 +47,7 @@ download_and_check() {
                 return 0
             fi
         else
-            echo "Failed to download from url '$1'!"
+            echo "failed to download '$1'"
         fi
     fi
 
@@ -83,14 +83,16 @@ if [ -z "$1" ] || [ "$1" = "run" ]; then
         [ -n "$TARGET_BASENAME" ] && BASENAME=$TARGET_BASENAME
 
         if [ -n "$TARGET_BASENAME" ]; then
-            echo "Processing '$ENTRY' ('$BASENAME')..."
+            printf "Processing '%s' (%s)... " "$ENTRY" "$BASENAME"
         else
-            echo "Processing '$ENTRY'..."
+            printf "Processing '%s'... " "$ENTRY"
         fi
 
         if download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"; then
             cat "/tmp/$SCRIPT_NAME-download" > "$ENTRY"
-            echo "Updated '$ENTRY'!"
+            printf "updated!"
         fi
+
+        printf "\n";
     done
 fi
