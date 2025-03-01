@@ -34,7 +34,7 @@ case "$1" in
         # without this router will not call this script ever again until a reboot.
         # "USB Application" in the web UI will also be stuck on "apps installing" without this fix.
         {
-            sleep 10
+            sleep 15
             nvram set apps_state_autorun=
             nvram set apps_state_install=
             nvram set apps_state_remove=
