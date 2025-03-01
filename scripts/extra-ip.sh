@@ -51,7 +51,7 @@ extra_ip() {
         case "$1" in
             "add")
                 if ! ip addr show dev "$_INTERFACE" | grep -q "inet $_ADDRESS "; then
-                    ip -4 addr add "$_ADDRESS" dev "$_INTERFACE"
+                    ip -4 addr add "$_ADDRESS" brd + dev "$_INTERFACE"
                     logger -st "$SCRIPT_TAG" "Added IPv4 address $_ADDRESS to interface $_INTERFACE"
                 fi
             ;;
@@ -82,7 +82,7 @@ extra_ip() {
         case "$1" in
             "add")
                 if [ -n "$_ADDRESS" ] && ! ip addr show dev "$_INTERFACE" | grep -q "inet6 $_ADDRESS "; then
-                    ip -6 addr add "$_ADDRESS" dev "$_INTERFACE"
+                    ip -6 addr add "$_ADDRESS" brd + dev "$_INTERFACE"
                     logger -st "$SCRIPT_TAG" "Added IPv6 address $_ADDRESS to interface $_INTERFACE"
                 fi
             ;;
