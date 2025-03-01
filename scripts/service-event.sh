@@ -190,8 +190,8 @@ case "$1" in
     "run")
         [ -n "$MERLIN" ] && exit # Do not run on Asuswrt-Merlin firmware
 
-        if is_started_by_system && [ "$(ps -o comm= $PPID)" != "nohup" ]; then
-            nohup "$SCRIPT_PATH" run > /dev/null 2>&1 &
+        if is_started_by_system && [ "$2" != "nohup" ]; then
+            nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
         else
             service_monitor
         fi
