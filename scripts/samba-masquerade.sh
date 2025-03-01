@@ -66,7 +66,14 @@ lockfile() { #LOCKFILE_START#
 
             case "$1" in
                 "lockwait")
-                    flock -x "$_FD"
+                    _LOCK_WAITED=0
+                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                        sleep 1
+                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                            echo "Failed to acquire a lock after 60 seconds"
+                            exit 1
+                        fi
+                    done
                 ;;
                 "lockfail")
                     flock -nx "$_FD" || return 1
