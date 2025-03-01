@@ -24,7 +24,8 @@ fi
 [ -n "$PROCESS_AFFINITY" ] && PROCESS_AFFINITIES="$PROCESS_AFFINITY"
 
 INIT_AFFINITY="$(taskset -p 1 | sed 's/.*: //')"
-if ! echo "$INIT_AFFINITY" | grep -Eq '^[0-9]+$'; then
+INIT_AFFINITY=$((0x$INIT_AFFINITY))
+if ! echo "$INIT_AFFINITY" | grep -q '^[0-9]\+$'; then
     unset INIT_AFFINITY
 fi
 
@@ -73,6 +74,8 @@ process_affinity() {
 
         if [ "$INIT_AFFINITY_MINUS_ONE" -le 0 ]; then
             unset INIT_AFFINITY_MINUS_ONE
+        else
+            INIT_AFFINITY_MINUS_ONE=$(printf '%x\n' "$INIT_AFFINITY_MINUS_ONE")
         fi
     fi
 
