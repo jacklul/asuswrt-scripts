@@ -2,8 +2,8 @@
 # /opt/etc/init.d/S01users
 # This script allows easy creation of users for services that require them
 
-USERS="pihole unbound"
-MIN_UID=1001
+users="pihole unbound"
+min_uid=1001
 
 # On AsusWRT users added from fileshare UI start at 501, 'asd' sometimes switches to UID 1000 so 1001 should be safe value to use
 
@@ -19,10 +19,10 @@ is_uid_in_use() {
 
 case $1 in
     start|restart)
-        for new_user in $USERS; do
+        for new_user in $users; do
             if ! grep -q "$new_user:" /opt/etc/passwd; then
                 used_uids=$(cut -d: -f3 /opt/etc/passwd)
-                next_uid=$MIN_UID
+                next_uid=$min_uid
 
                 while is_uid_in_use "$next_uid" "$used_uids"; do
                     next_uid=$((next_uid + 1))

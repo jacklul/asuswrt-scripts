@@ -10,35 +10,34 @@
 #jacklul-asuswrt-scripts-update=dynamic-dns.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 CONFIG_FILE="/jffs/inadyn.conf" # Inadyn configuration file to use
 CACHE_FILE="/tmp/last_wan_ip" # where to cache last public IP
 IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr" (use "nvram2" for wan1), can use URL like "https://ipecho.net/plain" here or empty to not check
 IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL address
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
-WAN_IP=""
-LAST_WAN_IP=""
-[ -f "$CACHE_FILE" ] && LAST_WAN_IP="$(cat "$CACHE_FILE")"
-CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
+wan_ip=""
+last_wan_ip=""
+[ -f "$CACHE_FILE" ] && last_wan_ip="$(cat "$CACHE_FILE")"
+curl_binary="curl"
+[ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 
 run_ddns_update() {
     if inadyn --config="$CONFIG_FILE" --once --foreground; then
-        logger -st "$SCRIPT_TAG" "Custom Dynamic DNS update successful"
+        logger -st "$script_name" "Custom Dynamic DNS update successful"
 
-        [ -n  "$WAN_IP" ] && echo "$WAN_IP" > "$CACHE_FILE"
+        [ -n  "$wan_ip" ] && echo "$wan_ip" > "$CACHE_FILE"
     else
-        logger -st "$SCRIPT_TAG" "Custom Dynamic DNS update failed"
+        logger -st "$script_name" "Custom Dynamic DNS update failed"
 
         rm -f "$CACHE_FILE"
     fi
@@ -49,16 +48,16 @@ case "$1" in
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit; }
 
         if [ "$IPECHO_URL" = "nvram" ]; then
-            WAN_IP="$(nvram get wan0_ipaddr)"
+            wan_ip="$(nvram get wan0_ipaddr)"
         elif [ "$IPECHO_URL" = "nvram2" ]; then
-            WAN_IP="$(nvram get wan1_ipaddr)"
+            wan_ip="$(nvram get wan1_ipaddr)"
         elif [ -n "$IPECHO_URL" ]; then
-            WAN_IP="$($CURL_BINARY -fsL "$IPECHO_URL" -m "$IPECHO_TIMEOUT")"
+            wan_ip="$($curl_binary -fsL "$IPECHO_URL" -m "$IPECHO_TIMEOUT")"
         else
-            FORCE=true
+            force=true
         fi
 
-        if [ -n "$FORCE" ] || { [ -n "$WAN_IP" ] && [ "$WAN_IP" != "$LAST_WAN_IP" ]; }; then
+        if [ -n "$force" ] || { [ -n "$wan_ip" ] && [ "$wan_ip" != "$last_wan_ip" ]; }; then
             run_ddns_update
         fi
     ;;
@@ -66,24 +65,24 @@ case "$1" in
         run_ddns_update
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && logger -st "$SCRIPT_TAG" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
+        [ -f "/usr/sbin/helper.sh" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
 
-        [ ! -f "$CONFIG_FILE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
-        inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$SCRIPT_TAG" "Unable to start - Inadyn config is not valid"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
+        inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$script_name" "Unable to start - Inadyn config is not valid"; exit 1; }
 
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        if [ -x "$script_dir/cron-queue.sh" ]; then
+            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
         else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            cru a "$script_name" "*/1 * * * * $script_path run"
         fi
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|force"

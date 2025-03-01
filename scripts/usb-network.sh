@@ -11,89 +11,90 @@
 #jacklul-asuswrt-scripts-update=usb-network.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 BRIDGE_INTERFACE="br0" # bridge interface to add into, by default LAN bridge ("br0") interface
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = interface)
 RUN_EVERY_MINUTE= # scan for new interfaces to add to bridge periodically (true/false), empty means false when hotplug-event.sh is available but otherwise true
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
+    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 lockfile() { #LOCKFILE_START#
-    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
-    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=100
-    _FD_MAX=200
+    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
+
+    _lockfile="/var/lock/script-$script_name.lock"
+    _pidfile="/var/run/script-$script_name.pid"
+    _fd=100
+    _fd_max=200
 
     if [ -n "$2" ]; then
-        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
-        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+        _lockfile="/var/lock/script-$script_name-$2.lock"
+        _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
 
-    [ ! -d /var/lock ] && mkdir -p /var/lock
-    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
+    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _LOCKPID=
-    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+    _lockpid=
+    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_FD" ]; do
-                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
-                _FD=$((_FD+1))
+            while [ -f "/proc/$$/fd/$_fd" ]; do
+                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
+                _fd=$((_fd+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
-            eval exec "$_FD>$_LOCKFILE"
+            eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _LOCK_WAITED=0
-                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                    _lockwait=0
+                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                        if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
                 ;;
                 "lockfail")
-                    flock -nx "$_FD" || return 1
+                    flock -nx "$_fd" || return 1
                 ;;
                 "lockexit")
-                    flock -nx "$_FD" || exit 1
+                    flock -nx "$_fd" || exit 1
                 ;;
             esac
 
-            echo $$ > "$_PIDFILE"
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+            echo $$ > "$_pidfile"
+            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
-            flock -u "$_FD"
-            rm -f "$_LOCKFILE" "$_PIDFILE"
+            flock -u "$_fd"
+            rm -f "$_lockfile" "$_pidfile"
             trap - INT TERM EXIT
         ;;
         "check")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
             return 1
         ;;
     esac
@@ -102,9 +103,9 @@ lockfile() { #LOCKFILE_START#
 is_interface_up() {
     [ ! -d "/sys/class/net/$1" ] && return 1
 
-    _OPERSTATE="$(cat "/sys/class/net/$1/operstate")"
+    _operstate="$(cat "/sys/class/net/$1/operstate")"
 
-    case "$_OPERSTATE" in
+    case "$_operstate" in
         "up")
             return 0
         ;;
@@ -118,7 +119,7 @@ is_interface_up() {
 }
 
 setup_inteface() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Bridge interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Bridge interface is not set"; exit 1; }
     [ -z "$2" ] && { echo "You must specify a network interface"; exit 1; }
 
     lockfile lockwait
@@ -128,21 +129,21 @@ setup_inteface() {
             [ ! -d "/sys/class/net/$2" ] && return
 
             if ! is_interface_up "$2"; then
-                logger -st "$SCRIPT_TAG" "Bringing interface $2 up..."
+                logger -st "$script_name" "Bringing interface $2 up..."
                 ifconfig "$2" up
             fi
 
             if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
-                logger -st "$SCRIPT_TAG" "Added interface $2 to bridge $BRIDGE_INTERFACE"
+                logger -st "$script_name" "Added interface $2 to bridge $BRIDGE_INTERFACE"
             fi
         ;;
         "remove")
             if brctl show "$BRIDGE_INTERFACE" | grep -q "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
-                logger -st "$SCRIPT_TAG" "Removed interface $2 from bridge $BRIDGE_INTERFACE"
+                logger -st "$script_name" "Removed interface $2 from bridge $BRIDGE_INTERFACE"
             fi
 
             if [ -d "/sys/class/net/$2" ] && is_interface_up "$2"; then
-                logger -st "$SCRIPT_TAG" "Taking interface $2 down..."
+                logger -st "$script_name" "Taking interface $2 down..."
                 ifconfig "$2" down
             fi
         ;;
@@ -156,15 +157,15 @@ setup_inteface() {
 
 case "$1" in
     "run")
-        BRIDGE_MEMBERS="$(brctl show "$BRIDGE_INTERFACE")"
+        bridge_members="$(brctl show "$BRIDGE_INTERFACE")"
 
-        for INTERFACE in /sys/class/net/usb*; do
-            [ ! -d "$INTERFACE" ] && continue
+        for interface in /sys/class/net/usb*; do
+            [ ! -d "$interface" ] && continue
 
-            INTERFACE="$(basename "$INTERFACE")"
+            interface="$(basename "$interface")"
 
-            if ! echo "$BRIDGE_MEMBERS" | grep -q "$INTERFACE"; then
-                setup_inteface add "$INTERFACE"
+            if ! echo "$bridge_members" | grep -q "$interface"; then
+                setup_inteface add "$interface"
             fi
         done
     ;;
@@ -178,38 +179,38 @@ case "$1" in
                     setup_inteface remove "$DEVICENAME"
                 ;;
                 *)
-                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac
         fi
     ;;
     "start")
-        [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Unable to start - bridge interface is not set"; exit 1; }
+        [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Unable to start - bridge interface is not set"; exit 1; }
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then
-            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            if [ -x "$script_dir/cron-queue.sh" ]; then
+                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
             else
-                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+                cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
 
-        for INTERFACE in /sys/class/net/usb*; do
-            [ -d "$INTERFACE" ] && setup_inteface add "$(basename "$INTERFACE")"
+        for interface in /sys/class/net/usb*; do
+            [ -d "$interface" ] && setup_inteface add "$(basename "$interface")"
         done
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
 
-        for INTERFACE in /sys/class/net/usb*; do
-            [ -d "$INTERFACE" ] && setup_inteface remove "$(basename "$INTERFACE")"
+        for interface in /sys/class/net/usb*; do
+            [ -d "$interface" ] && setup_inteface remove "$(basename "$interface")"
         done
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"

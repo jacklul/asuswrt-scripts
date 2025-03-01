@@ -7,92 +7,91 @@
 #jacklul-asuswrt-scripts-update=temperature-warning.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 TEMPERATURE_TARGET="80" # target temperature at which log the warning
 COOLDOWN=300 # how long to wait (seconds) before logging another warning
 CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 get_temperatures() {
-    ETH_24G=""
-    ETH_5G=""
+    _eth_24g=""
+    _eth_5g=""
 
-    for _INTERFACE in /sys/class/net/eth*; do
-        [ ! -d "$_INTERFACE" ] && continue
+    for _interface in /sys/class/net/eth*; do
+        [ ! -d "$_interface" ] && continue
 
-        _INTERFACE="$(basename "$_INTERFACE")"
-        _STATUS="$(wl -i "$_INTERFACE" status 2> /dev/null)"
+        _interface="$(basename "$_interface")"
+        _status="$(wl -i "$_interface" status 2> /dev/null)"
 
-        if echo "$_STATUS" | grep -q "2.4GHz"; then
-            ETH_24G="$_INTERFACE"
-        elif echo "$_STATUS" | grep -q "5GHz"; then
-            ETH_5G="$_INTERFACE"
+        if echo "$_status" | grep -q "2.4GHz"; then
+            _eth_24g="$_interface"
+        elif echo "$_status" | grep -q "5GHz"; then
+            _eth_5g="$_interface"
         fi
 
-        [ -n "$ETH_24G" ] && [ -n "$ETH_5G" ] && break
+        [ -n "$_eth_24g" ] && [ -n "$_eth_5g" ] && break
     done
 
-    [ -f /sys/class/thermal/thermal_zone0/temp ] && CPU_TEMPERATURE="$(awk '{print $1 / 1000}' < /sys/class/thermal/thermal_zone0/temp)"
-    [ -n "$ETH_24G" ] && WIFI_24G_TEMPERATURE="$(wl -i "$ETH_24G" phy_tempsense | awk '{print $1 / 2 + 20}')"
-    [ -n "$ETH_5G" ] && WIFI_5G_TEMPERATURE="$(wl -i "$ETH_5G" phy_tempsense | awk '{print $1 / 2 + 20}')"
+    [ -f /sys/class/thermal/thermal_zone0/temp ] && cpu_temperature="$(awk '{print $1 / 1000}' < /sys/class/thermal/thermal_zone0/temp)"
+    [ -n "$_eth_24g" ] && wifi_24g_temperature="$(wl -i "$_eth_24g" phy_tempsense | awk '{print $1 / 2 + 20}')"
+    [ -n "$_eth_5g" ] && wifi_5g_temperature="$(wl -i "$_eth_5g" phy_tempsense | awk '{print $1 / 2 + 20}')"
 }
 
 case "$1" in
     "run")
-        UPTIME="$(awk -F '.' '{print $1}' /proc/uptime)"
-        UPTIME_CACHED="$([ -f "$CACHE_FILE" ] && cat "$CACHE_FILE" || echo "0")"
+        uptime="$(awk -F '.' '{print $1}' /proc/uptime)"
+        uptime_cached="$([ -f "$CACHE_FILE" ] && cat "$CACHE_FILE" || echo "0")"
 
-        if [ -z "$UPTIME_CACHED" ] || [ "$((UPTIME_CACHED+COOLDOWN))" -le "$UPTIME" ]; then
+        if [ -z "$uptime_cached" ] || [ "$((uptime_cached+COOLDOWN))" -le "$uptime" ]; then
             get_temperatures
 
-            if [ "$(printf "%.0f" "$CPU_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
-                logger -st "$SCRIPT_TAG" "CPU temperature warning: $CPU_TEMPERATURE C"
-                WARNING=1
+            if [ "$(printf "%.0f" "$cpu_temperature")" -ge "$TEMPERATURE_TARGET" ]; then
+                logger -st "$script_name" "CPU temperature warning: $cpu_temperature C"
+                warning=1
             fi
 
-            if [ -n "$WIFI_24G_TEMPERATURE" ] && [ "$(printf "%.0f\n" "$WIFI_24G_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
-                logger -st "$SCRIPT_TAG" "WiFi 2.4G temperature warning: $WIFI_24G_TEMPERATURE C"
-                WARNING=1
+            if [ -n "$wifi_24g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_24g_temperature")" -ge "$TEMPERATURE_TARGET" ]; then
+                logger -st "$script_name" "WiFi 2.4G temperature warning: $wifi_24g_temperature C"
+                warning=1
             fi
 
-            if [ -n "$WIFI_5G_TEMPERATURE" ] && [ "$(printf "%.0f\n" "$WIFI_5G_TEMPERATURE")" -ge "$TEMPERATURE_TARGET" ]; then
-                logger -st "$SCRIPT_TAG" "WiFi 5G temperature warning: $WIFI_5G_TEMPERATURE C"
-                WARNING=1
+            if [ -n "$wifi_5g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_5g_temperature")" -ge "$TEMPERATURE_TARGET" ]; then
+                logger -st "$script_name" "WiFi 5G temperature warning: $wifi_5g_temperature C"
+                warning=1
             fi
 
-            [ -n "$WARNING" ] && echo "$UPTIME" > "$CACHE_FILE"
+            [ -n "$warning" ] && echo "$uptime" > "$CACHE_FILE"
         fi
     ;;
     "check")
         get_temperatures
 
-        [ -n "$CPU_TEMPERATURE" ] && echo "CPU temperature: $CPU_TEMPERATURE C"
-        [ -n "$WIFI_24G_TEMPERATURE" ] && echo "WiFi 2.4G temperature: $WIFI_24G_TEMPERATURE C ($ETH_24G)"
-        [ -n "$WIFI_5G_TEMPERATURE" ] && echo "WiFi 5G temperature: $WIFI_5G_TEMPERATURE C ($ETH_5G)"
+        [ -n "$cpu_temperature" ] && echo "CPU temperature: $cpu_temperature C"
+        [ -n "$wifi_24g_temperature" ] && echo "WiFi 2.4G temperature: $wifi_24g_temperature C ($_eth_24g)"
+        [ -n "$wifi_5g_temperature" ] && echo "WiFi 5G temperature: $wifi_5g_temperature C ($_eth_5g)"
     ;;
     "start")
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        if [ -x "$script_dir/cron-queue.sh" ]; then
+            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
         else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            cru a "$script_name" "*/1 * * * * $script_path run"
         fi
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|check"

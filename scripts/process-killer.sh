@@ -13,50 +13,49 @@
 #jacklul-asuswrt-scripts-update=process-killer.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 case "$1" in
     "run")
         if [ -n "$PROCESSES_TO_KILL" ]; then
-            for PROCESS in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
-                FILEPATH="$PROCESS"
+            for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
+                filepath="$process"
 
-                if [ ! -f "$FILEPATH" ]; then
-                    TMP=$(which "$PROCESS")
+                if [ ! -f "$filepath" ]; then
+                    tmp=$(which "$process")
 
-                    [ -n "$TMP" ] && FILEPATH=$TMP
+                    [ -n "$tmp" ] && filepath=$tmp
                 fi
 
-                [ -f "$FILEPATH" ] && mount | grep "$FILEPATH" > /dev/null && continue
+                [ -f "$filepath" ] && mount | grep "$filepath" > /dev/null && continue
 
-                FILENAME="$(basename "$FILEPATH")"
-                FILEEXT="${FILENAME##*.}"
+                filename="$(basename "$filepath")"
+                fileext="${filename##*.}"
 
-                if [ "$FILEEXT" = "ko" ]; then
-                    MODULENAME="${FILENAME%.*}"
-                    FILEPATH="/lib/modules/$(uname -r)/$(modprobe -l "$MODULENAME")"
+                if [ "$fileext" = "ko" ]; then
+                    modulename="${filename%.*}"
+                    filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
 
-                    if [ -f "$FILEPATH" ] && [ ! -h "$FILEPATH" ]; then
-                        lsmod | grep -qF "$MODULENAME" && modprobe -r "$MODULENAME" && logger -st "$SCRIPT_TAG" "Blocked kernel module: $PROCESS" && usleep 250000
-                        mount -o bind /dev/null "$FILEPATH"
+                    if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
+                        lsmod | grep -qF "$modulename" && modprobe -r "$modulename" && logger -st "$script_name" "Blocked kernel module: $process" && usleep 250000
+                        mount -o bind /dev/null "$filepath"
                     fi
                 else
-                    [ -n "$(pidof "$FILENAME")" ] && killall "$FILENAME" && logger -st "$SCRIPT_TAG" "Killed process: $PROCESS"
+                    [ -n "$(pidof "$filename")" ] && killall "$filename" && logger -st "$script_name" "Killed process: $process"
 
-                    if [ -f "$FILEPATH" ] && [ ! -h "$FILEPATH" ]; then
+                    if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
                         usleep 250000
-                        mount -o bind /dev/null "$FILEPATH"
+                        mount -o bind /dev/null "$filepath"
                     fi
                 fi
             done
@@ -64,16 +63,16 @@ case "$1" in
     ;;
     "start")
         if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
-            { sleep 60 && sh "$SCRIPT_PATH" run; } & # delay when freshly booted
+            { sleep 60 && sh "$script_path" run; } & # delay when freshly booted
         else
-            sh "$SCRIPT_PATH" run
+            sh "$script_path" run
         fi
     ;;
     "stop")
-        logger -st "$SCRIPT_TAG" "Operations made by this script cannot be reverted - disable it then reboot the router!"
+        logger -st "$script_name" "Operations made by this script cannot be reverted - disable it then reboot the router!"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"

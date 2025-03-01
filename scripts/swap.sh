@@ -10,99 +10,100 @@
 #jacklul-asuswrt-scripts-update=swap.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 SWAP_FILE="" # swap file path, like /tmp/mnt/USBDEVICE/swap.img, leave empty to search for it in /tmp/mnt/*/swap.img
 SWAP_SIZE=524288 # swap file size, changing after swap is created requires it to be manually removed, 524288 = 512MB
 SWAPPINESS= # change the value of vm.swappiness (/proc/sys/vm/swappiness), if left empty it will not be changed
 RUN_EVERY_MINUTE= # check for new devices to mount swap on periodically (true/false), empty means false when hotplug-event.sh is available but otherwise true
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$SCRIPT_DIR/hotplug-event.sh" ] && RUN_EVERY_MINUTE=true
+    [ ! -x "$script_dir/hotplug-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 lockfile() { #LOCKFILE_START#
-    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
-    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=100
-    _FD_MAX=200
+    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
+
+    _lockfile="/var/lock/script-$script_name.lock"
+    _pidfile="/var/run/script-$script_name.pid"
+    _fd=100
+    _fd_max=200
 
     if [ -n "$2" ]; then
-        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
-        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+        _lockfile="/var/lock/script-$script_name-$2.lock"
+        _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
 
-    [ ! -d /var/lock ] && mkdir -p /var/lock
-    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
+    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _LOCKPID=
-    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+    _lockpid=
+    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_FD" ]; do
-                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
-                _FD=$((_FD+1))
+            while [ -f "/proc/$$/fd/$_fd" ]; do
+                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
+                _fd=$((_fd+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
-            eval exec "$_FD>$_LOCKFILE"
+            eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _LOCK_WAITED=0
-                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                    _lockwait=0
+                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                        if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
                 ;;
                 "lockfail")
-                    flock -nx "$_FD" || return 1
+                    flock -nx "$_fd" || return 1
                 ;;
                 "lockexit")
-                    flock -nx "$_FD" || exit 1
+                    flock -nx "$_fd" || exit 1
                 ;;
             esac
 
-            echo $$ > "$_PIDFILE"
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+            echo $$ > "$_pidfile"
+            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
-            flock -u "$_FD"
-            rm -f "$_LOCKFILE" "$_PIDFILE"
+            flock -u "$_fd"
+            rm -f "$_lockfile" "$_pidfile"
             trap - INT TERM EXIT
         ;;
         "check")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
             return 1
         ;;
     esac
 } #LOCKFILE_END#
 
 find_swap_file() {
-    for _DIR in /tmp/mnt/*; do
-        if [ -d "$_DIR" ] && [ -f "$_DIR/swap.img" ]; then
-            SWAP_FILE="$_DIR/swap.img"
+    for _dir in /tmp/mnt/*; do
+        if [ -d "$_dir" ] && [ -f "$_dir/swap.img" ]; then
+            SWAP_FILE="$_dir/swap.img"
             return
         fi
     done
@@ -111,40 +112,40 @@ find_swap_file() {
 disable_swap() {
     [ -z "$1" ] && return
 
-    _SWAP_FILE="$1"
+    _swap_file="$1"
 
     sync
     echo 3 > /proc/sys/vm/drop_caches
 
-    if swapoff "$SWAP_FILE" ; then
-        logger -st "$SCRIPT_TAG" "Disabled swap on '$SWAP_FILE'"
+    if swapoff "$_swap_file" ; then
+        logger -st "$script_name" "Disabled swap on '$_swap_file'"
     else
-        logger -st "$SCRIPT_TAG" "Failed to disable swap on '$SWAP_FILE'"
+        logger -st "$script_name" "Failed to disable swap on '$_swap_file'"
     fi
 }
 
 case "$1" in
     "run")
-        lockfile lockfail || { echo "Already running! ($_LOCKPID)"; exit 1; }
+        lockfile lockfail || { echo "Already running! ($_lockpid)"; exit 1; }
 
         if ! grep -q "file" /proc/swaps; then
             [ -z "$SWAP_FILE" ] && find_swap_file
 
             if [ -n "$SWAP_FILE" ] && [ -d "$(dirname "$SWAP_FILE")" ] && [ ! -f "$SWAP_FILE" ]; then
-                sh "$SCRIPT_PATH" create
+                sh "$script_path" create
             fi
 
             if [ -f "$SWAP_FILE" ]; then
                 if swapon "$SWAP_FILE" ; then
                     #shellcheck disable=SC2012
-                    logger -st "$SCRIPT_TAG" "Enabled swap file '$SWAP_FILE' ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
+                    logger -st "$script_name" "Enabled swap file '$SWAP_FILE' ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
 
                     if [ -n "$SWAPPINESS" ]; then
                         echo "$SWAPPINESS" > /proc/sys/vm/swappiness
-                        logger -st "$SCRIPT_TAG" "Set swappiness to $SWAPPINESS"
+                        logger -st "$script_name" "Set swappiness to $SWAPPINESS"
                     fi
                 else
-                    logger -st "$SCRIPT_TAG" "Failed to enable swap on '$SWAP_FILE'"
+                    logger -st "$script_name" "Failed to enable swap on '$SWAP_FILE'"
                 fi
             fi
         fi
@@ -157,35 +158,34 @@ case "$1" in
                 "add")
                     grep -q "file" /proc/swaps && exit 0 # do nothing if swap is already enabled
 
-                    TIMEOUT=60
-                    while ! df | grep -q "/dev/$DEVICENAME" && [ "$TIMEOUT" -ge 0 ]; do
-                        [ "$TIMEOUT" -lt 60 ] && { echo "Device is not yet mounted, waiting 5 seconds..."; sleep 5; }
-
-                        TIMEOUT=$((TIMEOUT-5))
+                    timeout=60
+                    while ! df | grep -q "/dev/$DEVICENAME" && [ "$timeout" -ge 0 ]; do
+                        [ "$timeout" -lt 60 ] && { echo "Device is not yet mounted, waiting 5 seconds..."; sleep 5; }
+                        timeout=$((timeout-5))
                     done
 
                     if df | grep -q "/dev/$DEVICENAME"; then
-                        sh "$SCRIPT_PATH" run
+                        sh "$script_path" run
                         exit
                     fi
 
-                    [ "$TIMEOUT" -le 0 ] && echo "Device /dev/$DEVICENAME did not mount within 60 seconds"
+                    [ "$timeout" -le 0 ] && echo "Device /dev/$DEVICENAME did not mount within 60 seconds"
                 ;;
                 "remove")
                     # officially multiple swap files are not supported but try to handle it...
-                    SWAP_FILES=$(grep 'file' /proc/swaps | awk '{print $1}')
+                    swap_files=$(grep 'file' /proc/swaps | awk '{print $1}')
 
-                    for SWAP_FILE in $SWAP_FILES; do
+                    for swap_file in $swap_files; do
                         # in theory this should not work as df won't return unmounted filesystems?
-                        SWAP_FILE_DEVICE="$(df "$SWAP_FILE" | tail -1 | awk '{print $1}')"
+                        swap_file_device="$(df "$swap_file" | tail -1 | awk '{print $1}')"
 
-                        if [ "$SWAP_FILE_DEVICE" = "/dev/$DEVICENAME" ]; then
-                            disable_swap "$SWAP_FILE"
+                        if [ "$swap_file_device" = "/dev/$DEVICENAME" ]; then
+                            disable_swap "$swap_file"
                         fi
                     done
                 ;;
                 *)
-                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac
@@ -195,8 +195,8 @@ case "$1" in
         [ -n "$2" ] && SWAP_FILE="$2"
         [ -n "$3" ] && SWAP_SIZE="$3"
 
-        [ -z "$SWAP_FILE" ] && { logger -st "$SCRIPT_TAG" "Swap file is not set"; exit 1; }
-        [ -z "$SWAP_SIZE" ] && { logger -st "$SCRIPT_TAG" "Swap size is not set"; exit 1; }
+        [ -z "$SWAP_FILE" ] && { logger -st "$script_name" "Swap file is not set"; exit 1; }
+        [ -z "$SWAP_SIZE" ] && { logger -st "$script_name" "Swap size is not set"; exit 1; }
 
         set -e
 
@@ -209,21 +209,21 @@ case "$1" in
     ;;
     "start")
         if [ "$(nvram get usb_idle_enable)" != "0" ]; then
-            logger -st "$SCRIPT_TAG" "Unable to enable swap - USB Idle timeout is set"
+            logger -st "$script_name" "Unable to enable swap - USB Idle timeout is set"
             exit 1
         fi
 
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        if [ -x "$script_dir/cron-queue.sh" ]; then
+            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
         else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            cru a "$script_name" "*/1 * * * * $script_path run"
         fi
 
-        sh "$SCRIPT_PATH" run
+        sh "$script_path" run
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
 
         [ -z "$SWAP_FILE" ] && find_swap_file
 
@@ -232,8 +232,8 @@ case "$1" in
         fi
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|create"

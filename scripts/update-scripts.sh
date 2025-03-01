@@ -9,24 +9,24 @@
 #jacklul-asuswrt-scripts-update=update-scripts.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 BRANCH="master" # which git branch to use
 BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base download url, no ending slash!
 BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
 AUTOUPDATE=true # whenever to auto-update this script first or not
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
-DOWNLOAD_URL="$BASE_URL/$BRANCH/$BASE_PATH"
-CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
+download_url="$BASE_URL/$BRANCH/$BASE_PATH"
+curl_binary="curl"
+[ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 
 md5_compare() {
     { [ ! -f "$1" ] || [ ! -f "$2" ] ; } && return 1
@@ -42,8 +42,8 @@ md5_compare() {
 
 download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
-        if $CURL_BINARY -fsSL "$1?$(date +%s)" -o "/tmp/$SCRIPT_NAME-download"; then
-            if ! md5_compare "/tmp/$SCRIPT_NAME-download" "$2"; then
+        if $curl_binary -fsSL "$1?$(date +%s)" -o "/tmp/$script_name-download"; then
+            if ! md5_compare "/tmp/$script_name-download" "$2"; then
                 return 0
             fi
         else
@@ -56,40 +56,40 @@ download_and_check() {
 
 if [ -z "$1" ] || [ "$1" = "run" ]; then
     if [ "$AUTOUPDATE" = true ]; then
-        BASENAME="$(basename "$SCRIPT_PATH")"
+        basename="$(basename "$script_path")"
 
-        TARGET_BASENAME="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$SCRIPT_PATH" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
-        [ -n "$TARGET_BASENAME" ] && BASENAME=$TARGET_BASENAME
+        target_basename="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$script_path" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
+        [ -n "$target_basename" ] && basename=$target_basename
 
-        if download_and_check "$DOWNLOAD_URL/$BASENAME" "$SCRIPT_PATH"; then
+        if download_and_check "$download_url/$basename" "$script_path"; then
             # hacky but works
-            { sleep 1 && cat "/tmp/$SCRIPT_NAME-download" > "$SCRIPT_PATH"; } &
+            { sleep 1 && cat "/tmp/$script_name-download" > "$script_path"; } &
 
             echo "Script has been updated, please re-run!"
             exit 0
         fi
     fi
 
-    trap 'rm -f "/tmp/$SCRIPT_NAME-download"; exit $?' EXIT
+    trap 'rm -f "/tmp/$script_name-download"; exit $?' EXIT
 
-    for ENTRY in "$SCRIPT_DIR"/*.sh; do
-        ENTRY="$(readlink -f "$ENTRY")"
-        BASENAME="$(basename "$ENTRY")"
+    for entry in "$script_dir"/*.sh; do
+        entry="$(readlink -f "$entry")"
+        basename="$(basename "$entry")"
 
-        [ "$ENTRY" = "$SCRIPT_PATH" ] && continue
-        ! grep -q "jacklul-asuswrt-scripts-update" "$ENTRY" && continue
+        [ "$entry" = "$script_path" ] && continue
+        ! grep -q "jacklul-asuswrt-scripts-update" "$entry" && continue
 
-        TARGET_BASENAME="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$ENTRY" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
-        [ -n "$TARGET_BASENAME" ] && BASENAME=$TARGET_BASENAME
+        target_basename="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$entry" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
+        [ -n "$target_basename" ] && basename=$target_basename
 
-        if [ -n "$TARGET_BASENAME" ]; then
-            printf "Processing '%s' (%s)... " "$ENTRY" "$BASENAME"
+        if [ -n "$target_basename" ]; then
+            printf "Processing '%s' (%s)... " "$entry" "$basename"
         else
-            printf "Processing '%s'... " "$ENTRY"
+            printf "Processing '%s'... " "$entry"
         fi
 
-        if download_and_check "$DOWNLOAD_URL/$BASENAME" "$ENTRY"; then
-            cat "/tmp/$SCRIPT_NAME-download" > "$ENTRY"
+        if download_and_check "$download_url/$basename" "$entry"; then
+            cat "/tmp/$script_name-download" > "$entry"
             printf "updated!"
         fi
 

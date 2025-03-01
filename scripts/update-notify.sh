@@ -10,11 +10,10 @@
 #jacklul-asuswrt-scripts-update=update-notify.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 EMAIL_SMTP=""
 EMAIL_PORT=""
@@ -33,26 +32,27 @@ CUSTOM_COMMAND="" # command will receive the new firmware version as its first p
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
 CRON="0 */6 * * *" # schedule as cron string
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
-ROUTER_IP="$(nvram get lan_ipaddr)"
-ROUTER_NAME="$(nvram get lan_hostname)"
-[ -z "$ROUTER_NAME" ] && ROUTER_NAME="$ROUTER_IP"
-CURL_BINARY="curl"
-[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
+router_ip="$(nvram get lan_ipaddr)"
+router_name="$(nvram get lan_hostname)"
+[ -z "$router_name" ] && router_name="$router_ip"
+curl_binary="curl"
+[ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
-    _PPID=$PPID
-    while true; do
-        [ -z "$_PPID" ] && break
-        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+    _ppid=$PPID
 
-        grep -q "cron" "/proc/$_PPID/comm" && return 0
-        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
-        [ "$_PPID" -gt 1 ] || break
+    while true; do
+        [ -z "$_ppid" ] && break
+        _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_ppid/comm" && return 0
+        grep -q "hotplug" "/proc/$_ppid/comm" && return 0
+        [ "$_ppid" -gt 1 ] || break
     done
 
     return 1
@@ -62,69 +62,69 @@ send_email_message() {
     cat <<EOT > /tmp/mail.eml
 From: "$EMAIL_FROM_NAME" <$EMAIL_FROM_ADDRESS>
 To: "$EMAIL_TO_NAME" <$EMAIL_TO_ADDRESS>
-Subject: New router firmware notification @ $ROUTER_NAME
+Subject: New router firmware notification @ $router_name
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
-New firmware version <b>$1</b> is now available for your router at <a href="$ROUTER_IP">$ROUTER_IP</a>.
+New firmware version <b>$1</b> is now available for your router at <a href="$router_ip">$router_ip</a>.
 EOT
 
-    curl --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file /tmp/mail.eml --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logger -st "$SCRIPT_TAG" "Failed to send an email message"
+    curl --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file /tmp/mail.eml --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logger -st "$script_name" "Failed to send an email message"
     rm -f /tmp/mail.eml
 }
 
 send_telegram_message() {
-    _LINE_BREAK=$(printf '\n\r')
-    _MESSAGE="<b>New router firmware notification @ $ROUTER_NAME</b>${_LINE_BREAK}${_LINE_BREAK}New firmware version <b>$1</b> is now available for your router at $ROUTER_IP."
+    _linebreak=$(printf '\n\r')
+    _message="<b>New router firmware notification @ $router_name</b>${_linebreak}${_linebreak}New firmware version <b>$1</b> is now available for your router at $router_ip."
 
-    RESULT=$($CURL_BINARY -fsS --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=$_MESSAGE" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
+    _result=$($curl_binary -fsS --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=$_message" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
 
-    if ! echo "$RESULT" | grep -q '"ok":true'; then
-        if echo "$RESULT" | grep -q '"ok":'; then
-            logger -st "$SCRIPT_TAG" "Telegram API error: $RESULT"
+    if ! echo "$_result" | grep -q '"ok":true'; then
+        if echo "$_result" | grep -q '"ok":'; then
+            logger -st "$script_name" "Telegram API error: $_result"
         else
-            logger -st "$SCRIPT_TAG" "Connection to Telegram API failed: $RESULT"
+            logger -st "$script_name" "Connection to Telegram API failed: $_result"
         fi
     fi
 }
 
 send_pushover_message() {
-    curl --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $ROUTER_NAME" --form-string "message=New firmware version $1 is now available for your router at $ROUTER_IP." "https://api.pushover.net/1/messages.json" || logger -st "$SCRIPT_TAG" "Failed to send Pushover message"
+    curl --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logger -st "$script_name" "Failed to send Pushover message"
 }
 
 send_pushbullet_message () {
-    curl -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $ROUTER_NAME"'", "body": "'"New firmware version $1 is now available for your router at $ROUTER_IP."'"}' "https://api.pushbullet.com/v2/pushes" || logger -st "$SCRIPT_TAG" "Failed to send Pushbullet message"
+    curl -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logger -st "$script_name" "Failed to send Pushbullet message"
 }
 
 send_notification() {
     [ -z "$1" ] && { echo "Version not provided"; exit 1; }
 
     if [ -n "$EMAIL_SMTP" ] && [ -n "$EMAIL_PORT" ] && [ -n "$EMAIL_USERNAME" ] && [ -n "$EMAIL_PASSWORD" ] && [ -n "$EMAIL_FROM_NAME" ] && [ -n "$EMAIL_FROM_ADDRESS" ] && [ -n "$EMAIL_TO_NAME" ] && [ -n "$EMAIL_TO_ADDRESS" ]; then
-        logger -st "$SCRIPT_TAG" "Sending update notification through Email..."
+        logger -st "$script_name" "Sending update notification through Email..."
 
         send_email_message "$1"
     fi
 
     if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-        logger -st "$SCRIPT_TAG" "Sending update notification through Telegram..."
+        logger -st "$script_name" "Sending update notification through Telegram..."
 
         send_telegram_message "$1"
     fi
 
     if [ -n "$PUSHOVER_TOKEN" ] && [ -n "$PUSHOVER_USERNAME" ]; then
-        logger -st "$SCRIPT_TAG" "Sending update notification through Pushover..."
+        logger -st "$script_name" "Sending update notification through Pushover..."
 
         send_pushover_message "$1"
     fi
 
     if [ -n "$PUSHBULLET_TOKEN" ]; then
-        logger -st "$SCRIPT_TAG" "Sending update notification through Pushbullet..."
+        logger -st "$script_name" "Sending update notification through Pushbullet..."
 
         send_pushbullet_message "$1"
     fi
 
     if [ -n "$CUSTOM_COMMAND" ]; then
-        logger -st "$SCRIPT_TAG" "Sending update notification through custom command..."
+        logger -st "$script_name" "Sending update notification through custom command..."
 
         $CUSTOM_COMMAND "$1"
     fi
@@ -134,59 +134,59 @@ case "$1" in
     "run")
         { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
 
-        BUILDNO=$(nvram get buildno | sed 's/[-_.]*//g')
-        EXTENDNO=$(nvram get extendno)
-        WEBS_STATE_INFO=$(nvram get webs_state_info)
+        buildno=$(nvram get buildno | sed 's/[-_.]*//g')
+        extendno=$(nvram get extendno)
+        web_state_info=$(nvram get webs_state_info)
 
-        #EXTENDNO_VER=$(echo "$EXTENDNO" | awk -F '-' '{print $1}')
-        WEBS_BUILDNO=$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
-        #WEBS_EXTENDNO_VER=$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
+        #extendno_ver=$(echo "$extendno" | awk -F '-' '{print $1}')
+        web_buildno=$(echo "$web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
+        #web_extendno_ver=$(echo "$web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
 
-        if [ -z "$BUILDNO" ] || [ -z "$EXTENDNO" ] || [ -z "$WEBS_STATE_INFO" ] ||  [ "$BUILDNO" -gt "$WEBS_BUILDNO" ]; then
+        if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] ||  [ "$buildno" -gt "$web_buildno" ]; then
             echo "Could not gather valid values from NVRAM"
             exit
         fi
 
-        NEW_VERSION="$(echo "$WEBS_STATE_INFO" | awk -F '_' '{print $2 "_" $3}')"
-        CURRENT_VERSION="${BUILDNO}_${EXTENDNO}"
+        new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
+        current_version="${buildno}_${extendno}"
 
-        if [ -n "$NEW_VERSION" ] && [ "$CURRENT_VERSION" != "$NEW_VERSION" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$NEW_VERSION" ]; }; then
-            send_notification "$NEW_VERSION"
+        if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$new_version" ]; }; then
+            send_notification "$new_version"
 
-            echo "$NEW_VERSION" > "$CACHE_FILE"
+            echo "$new_version" > "$CACHE_FILE"
         fi
     ;;
     "test")
-        if { is_started_by_system && cru l | grep -q "#$SCRIPT_NAME-test#"; } || [ "$2" = "now" ]; then
-            logger -st "$SCRIPT_TAG" "Testing notification..."
+        if { is_started_by_system && cru l | grep -q "#$script_name-test#"; } || [ "$2" = "now" ]; then
+            logger -st "$script_name" "Testing notification..."
 
-            cru d "$SCRIPT_NAME-test"
+            cru d "$script_name-test"
 
-            BUILDNO=$(nvram get buildno)
-            EXTENDNO=$(nvram get extendno)
+            buildno=$(nvram get buildno)
+            extendno=$(nvram get extendno)
 
-            if [ -n "$BUILDNO" ] && [ -n "$EXTENDNO" ]; then
-                send_notification "${BUILDNO}_${EXTENDNO}"
+            if [ -n "$buildno" ] && [ -n "$extendno" ]; then
+                send_notification "${buildno}_${extendno}"
             else
-                logger -st "$SCRIPT_TAG" "Unable to obtain current version info"
+                logger -st "$script_name" "Unable to obtain current version info"
             fi
         else
-            cru a "$SCRIPT_NAME-test" "*/1 * * * * sh $SCRIPT_PATH test"
+            cru a "$script_name-test" "*/1 * * * * sh $script_path test"
             echo "Scheduled a test with crontab, please wait one minute."
         fi
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "$CRON $SCRIPT_PATH run"
+        cru a "$script_name" "$CRON $script_path run"
 
-        sh "$SCRIPT_PATH" run &
+        sh "$script_path" run &
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|test"

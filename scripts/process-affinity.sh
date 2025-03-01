@@ -7,99 +7,98 @@
 #jacklul-asuswrt-scripts-update=process-affinity.sh
 #shellcheck disable=SC2155,SC2009
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 PROCESS_AFFINITIES="crond" # List of processes and affinity masks in format "process1:6 process2:4", specify only the process name to set it to /sbin/init affinity minus one
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 # PROCESS_AFFINITY was renamed, do not break people's configuration @TODO Remove it someday...
 [ -n "$PROCESS_AFFINITY" ] && PROCESS_AFFINITIES="$PROCESS_AFFINITY"
 
-INIT_AFFINITY="$(taskset -p 1 | sed 's/.*: //')"
-INIT_AFFINITY=$((0x$INIT_AFFINITY))
-if ! echo "$INIT_AFFINITY" | grep -q '^[0-9]\+$'; then
-    unset INIT_AFFINITY
+init_affinity="$(taskset -p 1 | sed 's/.*: //')"
+init_affinity=$((0x$init_affinity))
+if ! echo "$init_affinity" | grep -q '^[0-9]\+$'; then
+    unset init_affinity
 fi
 
 set_affinity() {
     [ -z "$1" ] && { echo "You must specify a process name"; exit 1; }
     [ -z "$2" ] && { echo "You must specify an affinity mask"; exit 1; }
 
-    _PROCESS_BASENAME="$(basename "$1")"
+    _process_basename="$(basename "$1")"
 
     if echo "$1" | grep -q "/"; then
-        _PROCESS_PATH="$(readlink -f "$1")"
+        _process_path="$(readlink -f "$1")"
     else
-        _PROCESS_PATH="$(readlink -f "$(which "$1")")"
+        _process_path="$(readlink -f "$(which "$1")")"
     fi
 
-    [ -z "$_PROCESS_PATH" ] && { echo "Executable '$_PROCESS_PATH' not found"; return; }
+    [ -z "$_process_path" ] && { echo "Executable '$_process_path' not found"; return; }
 
-    for PID in $(pidof "$_PROCESS_BASENAME"); do
-        PROCESS_PATH="$(readlink -f "/proc/$PID/exe")"
+    for _pid in $(pidof "$_process_basename"); do
+        _actual_process_path="$(readlink -f "/proc/$_pid/exe")"
 
-        if [ "$_PROCESS_PATH" != "$PROCESS_PATH" ]; then
-            echo "Executable path mismatch for '$_PROCESS_BASENAME' (PID $PID) ('$_PROCESS_PATH' != '$PROCESS_PATH')"
+        if [ "$_process_path" != "$_actual_process_path" ]; then
+            echo "Executable path mismatch for '$_process_basename' (PID $_pid) ('$_process_path' != '$_actual_process_path')"
             continue
         fi
 
-        PID_AFFINITY="$(taskset -p "$PID" | sed 's/.*: //')"
+        _pid_affinity="$(taskset -p "$_pid" | sed 's/.*: //')"
 
-        if ! echo "$PID_AFFINITY" | grep -Eq '^[0-9]+$'; then
-            echo "Failed to get CPU affinity mask of '$_PROCESS_BASENAME' (PID $PID)"
+        if ! echo "$_pid_affinity" | grep -Eq '^[0-9]+$'; then
+            echo "Failed to get CPU affinity mask of '$_process_basename' (PID $_pid)"
             continue
         fi
 
-        if [ "$PID_AFFINITY" -ne "$2" ]; then
-            if taskset -p "$2" "$PID" >/dev/null; then
-                logger -st "$SCRIPT_TAG" "Changed CPU affinity mask of '$_PROCESS_BASENAME' (PID $PID) from $PID_AFFINITY to $2"
+        if [ "$_pid_affinity" -ne "$2" ]; then
+            if taskset -p "$2" "$_pid" >/dev/null; then
+                logger -st "$script_name" "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
             else
-                logger -st "$SCRIPT_TAG" "Failed to change CPU affinity mask of '$_PROCESS_BASENAME' (PID $PID) from $PID_AFFINITY to $2"
+                logger -st "$script_name" "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
             fi
         fi
     done
 }
 
 process_affinity() {
-    if [ -n "$INIT_AFFINITY" ]; then
-        INIT_AFFINITY_MINUS_ONE=$((INIT_AFFINITY - 1))
+    if [ -n "$init_affinity" ]; then
+        init_affinity_minus_one=$((init_affinity - 1))
 
-        if [ "$INIT_AFFINITY_MINUS_ONE" -le 0 ]; then
-            unset INIT_AFFINITY_MINUS_ONE
+        if [ "$init_affinity_minus_one" -le 0 ]; then
+            unset init_affinity_minus_one
         else
-            INIT_AFFINITY_MINUS_ONE=$(printf '%x\n' "$INIT_AFFINITY_MINUS_ONE")
+            init_affinity_minus_one=$(printf '%x\n' "$init_affinity_minus_one")
         fi
     fi
 
-    for _PROCESS in $PROCESS_AFFINITIES; do
-        _AFFINITY=$INIT_AFFINITY_MINUS_ONE
+    for _process in $PROCESS_AFFINITIES; do
+        _affinity=$init_affinity_minus_one
 
         case $1 in
             "set")
-                if echo "$_PROCESS" | grep -q ":"; then
-                    _AFFINITY="$(echo "$_PROCESS" | cut -d ':' -f 2 2> /dev/null)"
-                    _PROCESS="$(echo "$_PROCESS" | cut -d ':' -f 1 2> /dev/null)"
+                if echo "$_process" | grep -q ":"; then
+                    _affinity="$(echo "$_process" | cut -d ':' -f 2 2> /dev/null)"
+                    _process="$(echo "$_process" | cut -d ':' -f 1 2> /dev/null)"
 
-                    echo "$_PROCESS" | grep -q ":" && { echo "Failed to parse list element: $_PROCESS"; exit 1; } # no 'cut' command?
+                    echo "$_process" | grep -q ":" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
                 fi
             ;;
             "unset")
-                _AFFINITY=$INIT_AFFINITY
+                _affinity=$init_affinity
             ;;
         esac
 
-        if [ -n "$_AFFINITY" ]; then
-            set_affinity "$_PROCESS" "$_AFFINITY"
+        if [ -n "$_affinity" ]; then
+            set_affinity "$_process" "$_affinity"
         else
-            echo "Failed to change CPU affinity mask of '$_PROCESS' - no mask specified"
+            echo "Failed to change CPU affinity mask of '$_process' - no mask specified"
         fi
     done
 }
@@ -109,28 +108,28 @@ case $1 in
         process_affinity set
     ;;
     "start")
-        { [ ! -f /usr/bin/taskset ] && [ ! -f /opt/bin/taskset ] ; } && { logger -st "$SCRIPT_TAG" "Command 'taskset' not found"; exit 1; }
+        { [ ! -f /usr/bin/taskset ] && [ ! -f /opt/bin/taskset ] ; } && { logger -st "$script_name" "Command 'taskset' not found"; exit 1; }
 
-        if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-            sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+        if [ -x "$script_dir/cron-queue.sh" ]; then
+            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
         else
-            cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+            cru a "$script_name" "*/1 * * * * $script_path run"
         fi
 
         process_affinity set
     ;;
     "stop")
-        cru d "$SCRIPT_NAME"
+        cru d "$script_name"
 
-        if [ -n "$INIT_AFFINITY" ]; then
+        if [ -n "$init_affinity" ]; then
             process_affinity unset
         else
             echo "Changes made by this script cannot be reverted because the initial affinity mask is unknown - restart the process(es) to restore the original affinity mask(s)"
         fi
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"

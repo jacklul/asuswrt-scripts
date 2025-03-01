@@ -14,11 +14,10 @@
 #jacklul-asuswrt-scripts-update=led-control.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 ON_HOUR=6 # hour to turn on the leds
 ON_MINUTE=0 # minute to turn on the leds
@@ -26,42 +25,42 @@ OFF_HOUR=0 # hour to turn off the leds
 OFF_MINUTE=0 # minute to turn off the leds
 PERSISTENT=false # should the LED status be persistent between reboots (makes extra writes to the nvram)
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 [ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
 
-PERSISTENT_STATE="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
+persistent_state="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
 
-if [ -n "$PERSISTENT_STATE" ] && [ -n "$MERLIN" ]; then
-    PERSISTENT_STATE=""
-    logger -st "$SCRIPT_TAG" "Persistent LED state is only supported on Asuswrt-Merlin firmware"
+if [ -n "$persistent_state" ] && [ -n "$MERLIN" ]; then
+    persistent_state=""
+    logger -st "$script_name" "Persistent LED state is only supported on Asuswrt-Merlin firmware"
 fi
 
 set_wl_leds() {
-    _STATE=0
-    [ "$1" = "off" ] && _STATE=1
+    _state=0
+    [ "$1" = "off" ] && _state=1
 
-    for _INTERFACE in /sys/class/net/eth*; do
-        [ ! -d "$_INTERFACE" ] && continue
+    for _interface in /sys/class/net/eth*; do
+        [ ! -d "$_interface" ] && continue
 
-        _INTERFACE="$(basename "$_INTERFACE")"
-        _STATUS="$(wl -i "$_INTERFACE" status 2> /dev/null)"
+        _interface="$(basename "$_interface")"
+        _status="$(wl -i "$_interface" status 2> /dev/null)"
 
-        if echo "$_STATUS" | grep -q "2.4GHz" || echo "$_STATUS" | grep -q "5GHz"; then
-            wl -i "$_INTERFACE" leddc $_STATE
+        if echo "$_status" | grep -q "2.4GHz" || echo "$_status" | grep -q "5GHz"; then
+            wl -i "$_interface" leddc $_state
         fi
     done
 }
 
 loop_led_ctrl() {
-    _STATE=1
-    [ "$1" = "off" ] && _STATE=0
+    _state=1
+    [ "$1" = "off" ] && _state=0
 
-    for _LED in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25; do
-        led_ctrl $_LED $_STATE || break
+    for _led in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25; do
+        led_ctrl $_led $_state || break
     done
 }
 
@@ -78,7 +77,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logger -st "$SCRIPT_TAG" "LEDs are now ON$PERSISTENT_STATE"
+            logger -st "$script_name" "LEDs are now ON$persistent_state"
         ;;
         "off")
             if [ -n "$MERLIN" ]; then
@@ -92,7 +91,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logger -st "$SCRIPT_TAG" "LEDs are now OFF$PERSISTENT_STATE"
+            logger -st "$script_name" "LEDs are now OFF$persistent_state"
         ;;
     esac
 }
@@ -118,55 +117,55 @@ case "$1" in
                 now="$(date +%s)"
 
                 if [ "$on" -le "$off" ]; then
-                    [ "$on" -le "$now" ] && [ "$now" -lt "$off" ] && setLedsOn=1 || setLedsOn=0
+                    [ "$on" -le "$now" ] && [ "$now" -lt "$off" ] && set_leds_on=1 || set_leds_on=0
                 else
-                    [ "$on" -gt "$now" ] && [ "$now" -ge "$off" ] && setLedsOn=0 || setLedsOn=1
+                    [ "$on" -gt "$now" ] && [ "$now" -ge "$off" ] && set_leds_on=0 || set_leds_on=1
                 fi
 
-                if [ "$setLedsOn" = 1 ]; then
+                if [ "$set_leds_on" = 1 ]; then
                     if [ -n "$MERLIN" ]; then
-                        [ "$(nvram get led_disable)" = 1 ] && sh "$SCRIPT_PATH" off
+                        [ "$(nvram get led_disable)" = 1 ] && sh "$script_path" off
                     else
-                        sh "$SCRIPT_PATH" off
+                        sh "$script_path" off
                     fi
-                elif [ "$setLedsOn" = 0 ]; then
+                elif [ "$set_leds_on" = 0 ]; then
                     if [ -n "$MERLIN" ]; then
-                        [ "$(nvram get led_disable)" = 0 ] && sh "$SCRIPT_PATH" on
+                        [ "$(nvram get led_disable)" = 0 ] && sh "$script_path" on
                     else
-                        sh "$SCRIPT_PATH" on
+                        sh "$script_path" on
                     fi
                 fi
             else
-                logger -st "$SCRIPT_TAG" "NTP not synchronized after 60 seconds, LEDs will switch state with cron"
+                logger -st "$script_name" "NTP not synchronized after 60 seconds, LEDs will switch state with cron"
             fi
         fi
     ;;
     "start")
         if [ -n "$ON_HOUR" ] && [ -n "$ON_MINUTE" ] && [ -n "$OFF_HOUR" ] && [ -n "$OFF_MINUTE" ]; then
-            cru a "${SCRIPT_NAME}-On" "$ON_MINUTE $ON_HOUR * * * $SCRIPT_PATH on"
-            cru a "${SCRIPT_NAME}-Off" "$OFF_MINUTE $OFF_HOUR * * * $SCRIPT_PATH off"
+            cru a "${script_name}-On" "$ON_MINUTE $ON_HOUR * * * $script_path on"
+            cru a "${script_name}-Off" "$OFF_MINUTE $OFF_HOUR * * * $script_path off"
 
-            logger -st "$SCRIPT_TAG" "LED control schedule has been enabled"
+            logger -st "$script_name" "LED control schedule has been enabled"
 
-            sh "$SCRIPT_PATH" run &
+            sh "$script_path" run &
         else
-            logger -st "$SCRIPT_TAG" "LED control schedule is not set"
+            logger -st "$script_name" "LED control schedule is not set"
         fi
     ;;
     "stop")
-        cru d "${SCRIPT_NAME}-On"
-        cru d "${SCRIPT_NAME}-Off"
+        cru d "${script_name}-On"
+        cru d "${script_name}-Off"
 
         if [ -n "$MERLIN" ] && [ "$(nvram get led_disable)" = 1 ]; then
             PERSISTENT=true
             switch_leds on
         fi
 
-        logger -st "$SCRIPT_TAG" "LED control schedule has been disabled"
+        logger -st "$script_name" "LED control schedule has been disabled"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|on|off"

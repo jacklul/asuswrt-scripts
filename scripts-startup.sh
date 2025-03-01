@@ -7,18 +7,17 @@
 
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 SCRIPTS_DIR="/jffs/scripts"
 CHECK_FILE="/tmp/scripts_started"
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 scripts() {
@@ -29,19 +28,19 @@ scripts() {
     for _ENTRY in "$SCRIPTS_DIR"/*.sh; do
         _ENTRY="$(readlink -f "$_ENTRY")"
 
-        [ "$_ENTRY" = "$SCRIPT_PATH" ] && continue # do not interact with itself, just in case
+        [ "$_ENTRY" = "$script_path" ] && continue # do not interact with itself, just in case
         { ! grep -q "\"start\")" "$_ENTRY" && ! grep -q "start)" "$_ENTRY" ; } && continue
 
         if [ -x "$_ENTRY" ]; then
             case "$_ACTION" in
                 "start")
-                    logger -st "$SCRIPT_TAG" "Starting $_ENTRY..."
+                    logger -st "$script_name" "Starting $_ENTRY..."
                 ;;
                 "stop")
-                    logger -st "$SCRIPT_TAG" "Stopping $_ENTRY..."
+                    logger -st "$script_name" "Stopping $_ENTRY..."
                 ;;
                 "restart")
-                    logger -st "$SCRIPT_TAG" "Restarting $_ENTRY..."
+                    logger -st "$script_name" "Restarting $_ENTRY..."
                 ;;
                 *)
                     echo "Unknown action: $_ACTION"
@@ -56,7 +55,7 @@ scripts() {
 case "$1" in
     "start")
         if [ ! -f "$CHECK_FILE" ]; then
-            logger -st "$SCRIPT_TAG" "Starting custom scripts ($SCRIPTS_DIR)..."
+            logger -st "$script_name" "Starting custom scripts ($SCRIPTS_DIR)..."
 
             date "+%Y-%m-%d %H:%M:%S" > $CHECK_FILE
 
@@ -66,14 +65,14 @@ case "$1" in
         fi
     ;;
     "stop")
-        logger -st "$SCRIPT_TAG" "Stopping custom scripts ($SCRIPTS_DIR)..."
+        logger -st "$script_name" "Stopping custom scripts ($SCRIPTS_DIR)..."
 
         rm -f "$CHECK_FILE"
 
         scripts stop
     ;;
     "restart")
-        logger -st "$SCRIPT_TAG" "Restarting custom scripts ($SCRIPTS_DIR)..."
+        logger -st "$script_name" "Restarting custom scripts ($SCRIPTS_DIR)..."
 
         scripts restart
     ;;
@@ -104,17 +103,17 @@ EOT
                     chmod 0755 /jffs/scripts/services-start
                 fi
 
-                if ! grep -q "$SCRIPT_PATH" /jffs/scripts/services-start; then
+                if ! grep -q "$script_path" /jffs/scripts/services-start; then
                     echo "Adding script to /jffs/scripts/services-start"
 
-                    echo "$SCRIPT_PATH start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
+                    echo "$script_path start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
                 else
                     echo "Script line already exists in /jffs/scripts/services-start"
                 fi
                 ;;
             esac
         else
-            NVRAM_SCRIPT="/bin/sh $SCRIPT_PATH start"
+            NVRAM_SCRIPT="/bin/sh $script_path start"
 
             if [ "$(nvram get script_usbmount)" != "$NVRAM_SCRIPT" ]; then
                 echo "Setting NVRAM variable 'script_usbmount' to '$NVRAM_SCRIPT'"

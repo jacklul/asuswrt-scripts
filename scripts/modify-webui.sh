@@ -7,18 +7,17 @@
 #jacklul-asuswrt-scripts-update=modify-webui.sh
 #shellcheck disable=SC2155,SC2016
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443" # list of tweaks to apply
-TMP_WWW_PATH="/tmp/$SCRIPT_NAME/www" # directory to store modified files in
+TMP_WWW_PATH="/tmp/$script_name/www" # directory to store modified files in
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 [ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
@@ -29,20 +28,20 @@ sed_quote() {
 }
 
 sed_and_check() {
-    _MD5SUM="$(md5sum "$4" | awk '{print $1}')"
+    _md5sum="$(md5sum "$4" | awk '{print $1}')"
 
-    PATTERN=$(sed_quote "$2")
-    CONTENT=$(sed_quote "$3")
+    _patter=$(sed_quote "$2")
+    _content=$(sed_quote "$3")
 
     case "$1" in
         "replace")
-            sed -i "s/$PATTERN/$CONTENT/" "$4"
+            sed "s/$_patter/$_content/" -i "$4"
         ;;
         "before")
-            sed -i "/$PATTERN/i$CONTENT" "$4"
+            sed "/$_patter/i$_content" -i "$4"
         ;;
         "after")
-            sed -i "/$PATTERN/a$CONTENT" "$4"
+            sed "/$_patter/a$_content" -i "$4"
         ;;
         *)
             echo "Invalid mode: $1"
@@ -50,13 +49,13 @@ sed_and_check() {
         ;;
     esac
 
-    _MD5SUM2="$(md5sum "$4" | awk '{print $1}')"
+    _md5sum2="$(md5sum "$4" | awk '{print $1}')"
 
-    if [ "$_MD5SUM" != "$_MD5SUM2" ]; then
+    if [ "$_md5sum" != "$_md5sum2" ]; then
         return 0
     fi
 
-    logger -st "$SCRIPT_TAG" "Failed to apply modification to '$(basename "$4")': sed  '$1'  '$2'  '$3'"
+    logger -st "$script_name" "Failed to apply modification to '$(basename "$4")': sed  '$1'  '$2'  '$3'"
 
     return 1
 }
@@ -137,13 +136,13 @@ notrendmicro_support() {
                 mkdir -p "$TMP_WWW_PATH/require/modules"
                 [ ! -f "$TMP_WWW_PATH/require/modules/menuTree.js" ] && cp -f /www/require/modules/menuTree.js "$TMP_WWW_PATH/require/modules/menuTree.js"
 
-                INTERNETSPEED_TAB="$(grep 'url: "AdaptiveQoS_InternetSpeed\.asp' /www/require/modules/menuTree.js | tail -n 1)"
+                inetspeed_tab="$(grep 'url: "AdaptiveQoS_InternetSpeed\.asp' /www/require/modules/menuTree.js | tail -n 1)"
 
-                if [ -n "$INTERNETSPEED_TAB" ]; then
+                if [ -n "$inetspeed_tab" ]; then
                     sed_and_check replace '{url: "AdaptiveQoS_InternetSpeed.asp"' '//{url: "AdaptiveQoS_InternetSpeed.asp"' "$TMP_WWW_PATH/require/modules/menuTree.js"
-                    sed_and_check after '{url: "Advanced_Smart_Connect.asp' "$INTERNETSPEED_TAB" "$TMP_WWW_PATH/require/modules/menuTree.js"
+                    sed_and_check after '{url: "Advanced_Smart_Connect.asp' "$inetspeed_tab" "$TMP_WWW_PATH/require/modules/menuTree.js"
                 else
-                    logger -st "$SCRIPT_TAG" "There was a problem performing modification on file '$TMP_WWW_PATH/require/modules/menuTree.js': unable to find line containing 'AdaptiveQoS_InternetSpeed'!"
+                    logger -st "$script_name" "There was a problem performing modification on file '$TMP_WWW_PATH/require/modules/menuTree.js': unable to find line containing 'AdaptiveQoS_InternetSpeed'!"
                 fi
 
                 sed_and_check before 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_PATH/require/modules/menuTree.js"
@@ -157,7 +156,7 @@ notrendmicro_support() {
             fi
         ;;
         "unset")
-            [ -n "$MERLIN" ] && { logger -st "$SCRIPT_TAG" "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - restart required!"; return; }
+            [ -n "$MERLIN" ] && { logger -st "$script_name" "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - restart required!"; return; }
 
             if mount | grep -q /www/state.js; then
                 umount /www/state.js
@@ -197,14 +196,14 @@ www_override() {
         "set")
             mkdir -p "$TMP_WWW_PATH"
 
-            logger -st "$SCRIPT_TAG" "Applying WebUI tweaks: $TWEAKS"
+            logger -st "$script_name" "Applying WebUI tweaks: $TWEAKS"
 
-            for TWEAK in $TWEAKS; do
-                $TWEAK set
+            for tweak in $TWEAKS; do
+                $tweak set
             done
         ;;
         "unset")
-            logger -st "$SCRIPT_TAG" "Removing WebUI tweaks..."
+            logger -st "$script_name" "Removing WebUI tweaks..."
 
             cpu_temperature unset
             guest_wifi_qr_code unset
@@ -224,8 +223,8 @@ case "$1" in
         www_override unset
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 start|stop|restart"

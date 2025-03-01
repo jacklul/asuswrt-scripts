@@ -11,9 +11,9 @@ case "$2" in
         case "$1" in
             "block")
                 #shellcheck disable=SC2125
-                ASUSWRT_USB_NETWORK_GLOB=/tmp/mnt/*/asusware*/etc/init.d/S50asuswrt-usb-network
+                asuswrt_usb_network=/tmp/mnt/*/asusware*/etc/init.d/S50asuswrt-usb-network
                 #shellcheck disable=SC2086
-                [ -f $ASUSWRT_USB_NETWORK_GLOB ] && sh $ASUSWRT_USB_NETWORK_GLOB start
+                [ -f $asuswrt_usb_network ] && sh $asuswrt_usb_network start
             ;;
         esac
     ;;

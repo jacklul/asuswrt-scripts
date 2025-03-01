@@ -11,11 +11,10 @@
 #jacklul-asuswrt-scripts-update=entware.sh
 #shellcheck disable=SC2155,SC2016
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
@@ -26,97 +25,100 @@ WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in R
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
-DEFAULT_BASE_URL="bin.entware.net" # hardcoded in opkg.conf
-LAST_ENTWARE_DEVICE=""
-[ -f "$CACHE_FILE" ] && LAST_ENTWARE_DEVICE="$(cat "$CACHE_FILE")"
-CHECK_URL="http://$BASE_URL"
-[ "$USE_HTTPS" = true ] && CHECK_URL="$(echo "$CHECK_URL" | sed 's/http:/https:/')"
-CURL_BINARY="curl"
-#[ -f /opt/bin/curl ] && CURL_BINARY="/opt/bin/curl" # what was I thinking here?
+default_base_url="bin.entware.net" # hardcoded in opkg.conf
+last_entware_device=""
+[ -f "$CACHE_FILE" ] && last_entware_device="$(cat "$CACHE_FILE")"
+check_url="http://$BASE_URL"
+[ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
+curl_binary="curl"
+#[ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # what was I thinking here?
 
 lockfile() { #LOCKFILE_START#
-    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
-    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=100
-    _FD_MAX=200
+    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
+
+    _lockfile="/var/lock/script-$script_name.lock"
+    _pidfile="/var/run/script-$script_name.pid"
+    _fd=100
+    _fd_max=200
 
     if [ -n "$2" ]; then
-        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
-        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+        _lockfile="/var/lock/script-$script_name-$2.lock"
+        _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
 
-    [ ! -d /var/lock ] && mkdir -p /var/lock
-    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
+    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _LOCKPID=
-    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+    _lockpid=
+    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_FD" ]; do
-                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
-                _FD=$((_FD+1))
+            while [ -f "/proc/$$/fd/$_fd" ]; do
+                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
+                _fd=$((_fd+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
-            eval exec "$_FD>$_LOCKFILE"
+            eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _LOCK_WAITED=0
-                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                    _lockwait=0
+                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                        if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
                 ;;
                 "lockfail")
-                    flock -nx "$_FD" || return 1
+                    flock -nx "$_fd" || return 1
                 ;;
                 "lockexit")
-                    flock -nx "$_FD" || exit 1
+                    flock -nx "$_fd" || exit 1
                 ;;
             esac
 
-            echo $$ > "$_PIDFILE"
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+            echo $$ > "$_pidfile"
+            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
-            flock -u "$_FD"
-            rm -f "$_LOCKFILE" "$_PIDFILE"
+            flock -u "$_fd"
+            rm -f "$_lockfile" "$_pidfile"
             trap - INT TERM EXIT
         ;;
         "check")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
             return 1
         ;;
     esac
 } #LOCKFILE_END#
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
-    _PPID=$PPID
-    while true; do
-        [ -z "$_PPID" ] && break
-        _PPID=$(< "/proc/$_PPID/stat" awk '{print $4}')
+    _ppid=$PPID
 
-        grep -q "cron" "/proc/$_PPID/comm" && return 0
-        grep -q "hotplug" "/proc/$_PPID/comm" && return 0
-        [ "$_PPID" -gt 1 ] || break
+    while true; do
+        [ -z "$_ppid" ] && break
+        _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
+
+        grep -q "cron" "/proc/$_ppid/comm" && return 0
+        grep -q "hotplug" "/proc/$_ppid/comm" && return 0
+        [ "$_ppid" -gt 1 ] || break
     done
 
     return 1
@@ -131,25 +133,25 @@ is_entware_mounted() {
 }
 
 retry_command() {
-    _COMMAND="$1"
-    _RETRIES="$2"
-    _COUNT=1
-    [ -z "$_RETRIES" ] && _RETRIES=3
+    _command="$1"
+    _retries="$2"
+    _count=1
+    [ -z "$_retries" ] && _retries=3
 
-    while [ "$_COUNT" -le "$_RETRIES" ]; do
-        if [ "$_COUNT" -gt 1 ]; then
+    while [ "$_count" -le "$_retries" ]; do
+        if [ "$_count" -gt 1 ]; then
             echo "Command failed, retrying in 5 seconds..."
             sleep 5
         fi
 
-        if $_COMMAND; then
+        if $_command; then
             return 0
         fi
 
-        _COUNT=$((_COUNT + 1))
+        _count=$((_count + 1))
     done
 
-    echo "Command failed after $_RETRIES attempts"
+    echo "Command failed after $_retries attempts"
     return 1
 }
 
@@ -158,23 +160,23 @@ init_opt() {
 
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted && ! umount /opt; then
-            logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
+            logger -st "$script_name" "Failed to unmount /opt"
             exit 1
         fi
 
         if mount --bind "$1" /opt; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
-                MOUNT_DEVICE="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
-                [ -n "$MOUNT_DEVICE" ] && basename "$MOUNT_DEVICE" > "$CACHE_FILE"
+                _mount_device="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
+                [ -n "$_mount_device" ] && basename "$_mount_device" > "$CACHE_FILE"
             fi
 
-            logger -st "$SCRIPT_TAG" "Mounted '$1' on /opt"
+            logger -st "$script_name" "Mounted '$1' on /opt"
         else
-            logger -st "$SCRIPT_TAG" "Failed to mount '$1' on /opt"
+            logger -st "$script_name" "Failed to mount '$1' on /opt"
             exit 1
         fi
     else
-        logger -st "$SCRIPT_TAG" "Entware not found in '$1'"
+        logger -st "$script_name" "Entware not found in '$1'"
         exit 1
     fi
 }
@@ -190,28 +192,28 @@ echo_and_log() {
 backup_initd_scripts() {
     [ ! -d /opt/etc/init.d ] && return
 
-    if [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
-        rm -rf "/tmp/$SCRIPT_NAME-init.d-backup/*"
+    if [ -d "/tmp/$script_name-init.d-backup" ]; then
+        rm -rf "/tmp/$script_name-init.d-backup/*"
     else
-        mkdir -p "/tmp/$SCRIPT_NAME-init.d-backup"
+        mkdir -p "/tmp/$script_name-init.d-backup"
     fi
 
     # Copy rc.func, no modifications needed
-    cp -f /opt/etc/init.d/rc.func "/tmp/$SCRIPT_NAME-init.d-backup"
+    cp -f /opt/etc/init.d/rc.func "/tmp/$script_name-init.d-backup"
 
     # Copy and modify rc.unslung
-    cp -f /opt/bin/find "/tmp/$SCRIPT_NAME-init.d-backup"
-    cp -f /opt/etc/init.d/rc.unslung "/tmp/$SCRIPT_NAME-init.d-backup"
-    sed "s#/opt/etc/init.d/#/tmp/$SCRIPT_NAME-init.d-backup/#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/rc.unslung"
-    sed "s#/opt/bin/find#/tmp/$SCRIPT_NAME-init.d-backup/find#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/rc.unslung"
+    cp -f /opt/bin/find "/tmp/$script_name-init.d-backup"
+    cp -f /opt/etc/init.d/rc.unslung "/tmp/$script_name-init.d-backup"
+    sed "s#/opt/etc/init.d/#/tmp/$script_name-init.d-backup/#g" -i "/tmp/$script_name-init.d-backup/rc.unslung"
+    sed "s#/opt/bin/find#/tmp/$script_name-init.d-backup/find#g" -i "/tmp/$script_name-init.d-backup/rc.unslung"
 
-    for FILE in /opt/etc/init.d/*; do
-        [ ! -x "$FILE" ] && continue
+    for _file in /opt/etc/init.d/*; do
+        [ ! -x "$_file" ] && continue
 
-        case "$FILE" in
+        case "$_file" in
             S*)
-                cp -f "$FILE" "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
-                sed "s#/opt/etc/init.d/rc.func#/tmp/$SCRIPT_NAME-init.d-backup/rc.func#g" -i "/tmp/$SCRIPT_NAME-init.d-backup/$FILE"
+                cp -f "$_file" "/tmp/$script_name-init.d-backup/$_file"
+                sed "s#/opt/etc/init.d/rc.func#/tmp/$script_name-init.d-backup/rc.func#g" -i "/tmp/$script_name-init.d-backup/$_file"
             ;;
         esac
     done
@@ -224,10 +226,10 @@ symlink_data() {
         find /jffs/entware -type f -exec sh -c '
             echo "$1" | grep -q "\.copythisfile$" && exit
 
-            TARGET_FILE="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
-            TARGET_FILE_DIR="$(dirname "$TARGET_FILE")"
+            target_file="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
+            target_file_dir="$(dirname "$target_file")"
 
-            [ "$(readlink -f "$TARGET_FILE")" = "$(readlink -f "$1")" ] && exit
+            [ "$(readlink -f "$target_file")" = "$(readlink -f "$1")" ] && exit
 
             # Prevent copying/symlinking files in directories marked to be symlinked
             TEST_DIR="$(dirname "$1")"
@@ -239,40 +241,40 @@ symlink_data() {
                 MAXDEPTH=$((MAXDEPTH-1))
             done
 
-            if [ -f "$TARGET_FILE" ]; then
-                echo "Warning: File $TARGET_FILE already exists, renaming..."
-                [ -x "$TARGET_FILE" ] && chmod -x "$TARGET_FILE"
-                mv -v "$TARGET_FILE" "$TARGET_FILE.bak_$(date +%s)"
+            if [ -f "$target_file" ]; then
+                echo "Warning: File $target_file already exists, renaming..."
+                [ -x "$target_file" ] && chmod -x "$target_file"
+                mv -v "$target_file" "$target_file.bak_$(date +%s)"
             fi
 
-            [ ! -d "$TARGET_FILE_DIR" ] && mkdir -pv "$TARGET_FILE_DIR"
+            [ ! -d "$target_file_dir" ] && mkdir -pv "$target_file_dir"
 
             if [ -f "$1.copythisfile" ]; then
-                cp -v "$1" "$TARGET_FILE" || echo "Failed to copy a file: $TARGET_FILE => $1"
+                cp -v "$1" "$target_file" || echo "Failed to copy a file: $target_file => $1"
             else
-                ln -sv "$1" "$TARGET_FILE" || echo "Failed to create a symlink: $TARGET_FILE => $1"
+                ln -sv "$1" "$target_file" || echo "Failed to create a symlink: $target_file => $1"
             fi
         ' sh {} \;
 
         find /jffs/entware -type d -exec sh -c '
             [ ! -f "$1/.symlinkthisdir" ] && [ ! -f "$1/.copythisdir" ] && exit
 
-            TARGET_DIR="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
-            TARGET_DIR_DIR="$(dirname "$TARGET_DIR")"
+            target_dir="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
+            target_dir_dir="$(dirname "$target_dir")"
 
-            [ "$(readlink -f "$TARGET_DIR")" = "$(readlink -f "$1")" ] && exit
+            [ "$(readlink -f "$target_dir")" = "$(readlink -f "$1")" ] && exit
 
-            if [ -d "$TARGET_DIR" ]; then
-                echo "Warning: Directory $TARGET_DIR already exists, renaming..."
-                mv -v "$TARGET_DIR" "$TARGET_DIR.bak_$(date +%s)"
+            if [ -d "$target_dir" ]; then
+                echo "Warning: Directory $target_dir already exists, renaming..."
+                mv -v "$target_dir" "$target_dir.bak_$(date +%s)"
             fi
 
-            [ ! -d "$TARGET_DIR_DIR" ] && mkdir -pv "$TARGET_DIR_DIR"
+            [ ! -d "$target_dir_dir" ] && mkdir -pv "$target_dir_dir"
 
             if [ -f "$1.copythisdir" ]; then
-                cp -rv "$1" "$TARGET_DIR" || echo "Failed to copy a directory: $TARGET_DIR => $1"
+                cp -rv "$1" "$target_dir" || echo "Failed to copy a directory: $target_dir => $1"
             else
-                ln -sv "$1" "$TARGET_DIR" || echo "Failed to create a symlink: $TARGET_DIR => $1"
+                ln -sv "$1" "$target_dir" || echo "Failed to create a symlink: $target_dir => $1"
             fi
         ' sh {} \;
     fi
@@ -283,29 +285,29 @@ services() {
         "start")
             if is_entware_mounted; then
                 if [ -f /opt/etc/init.d/rc.unslung ]; then
-                    logger -st "$SCRIPT_TAG" "Starting services..."
+                    logger -st "$script_name" "Starting services..."
 
-                    /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH"
+                    /opt/etc/init.d/rc.unslung start "$script_path"
 
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
                 else
-                    logger -st "$SCRIPT_TAG" "Unable to start services - Entware is not installed"
+                    logger -st "$script_name" "Unable to start services - Entware is not installed"
                 fi
             else
-                logger -st "$SCRIPT_TAG" "Unable to start services - Entware is not mounted"
+                logger -st "$script_name" "Unable to start services - Entware is not mounted"
             fi
         ;;
         "stop")
             if [ -f /opt/etc/init.d/rc.unslung ]; then
-                logger -st "$SCRIPT_TAG" "Stopping services..."
+                logger -st "$script_name" "Stopping services..."
 
-                /opt/etc/init.d/rc.unslung stop "$SCRIPT_PATH"
-            elif [ -d "/tmp/$SCRIPT_NAME-init.d-backup" ]; then
-                logger -st "$SCRIPT_TAG" "Killing services..."
+                /opt/etc/init.d/rc.unslung stop "$script_path"
+            elif [ -d "/tmp/$script_name-init.d-backup" ]; then
+                logger -st "$script_name" "Killing services..."
 
-                if "/tmp/$SCRIPT_NAME-init.d-backup/rc.unslung" kill "$SCRIPT_PATH"; then
-                    rm -rf "/tmp/$SCRIPT_NAME-init.d-backup"
+                if "/tmp/$script_name-init.d-backup/rc.unslung" kill "$script_path"; then
+                    rm -rf "/tmp/$script_name-init.d-backup"
                 fi
             fi
         ;;
@@ -324,39 +326,39 @@ entware_in_ram() {
         return 1
     fi
 
-    if [ -z "$($CURL_BINARY -fs "$CHECK_URL" --retry 3)" ]; then
-        echo_and_log "Cannot reach $CHECK_URL" "$INSTALL_LOG"
+    if [ -z "$($curl_binary -fs "$check_url" --retry 3)" ]; then
+        echo_and_log "Cannot reach $check_url" "$INSTALL_LOG"
         return 1
     fi
 
     if [ ! -f /opt/etc/init.d/rc.unslung ]; then # is it not mounted?
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
-            logger -st "$SCRIPT_TAG" "Installing Entware in /tmp/entware..."
+            logger -st "$script_name" "Installing Entware in /tmp/entware..."
 
             echo "---------- Installation started at $(date) ----------" >> "$INSTALL_LOG"
 
-            if ! sh "$SCRIPT_PATH" install /tmp >> "$INSTALL_LOG" 2>&1; then
-                logger -st "$SCRIPT_TAG" "Installation failed, check '$INSTALL_LOG' for details"
+            if ! sh "$script_path" install /tmp >> "$INSTALL_LOG" 2>&1; then
+                logger -st "$script_name" "Installation failed, check '$INSTALL_LOG' for details"
 
                 # Prevent cron job from retrying failed install, if scheduled
-                [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-                cru d "$SCRIPT_NAME"
+                [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+                cru d "$script_name"
 
                 return 1
             fi
 
             echo "---------- Installation finished at $(date) ----------" >> "$INSTALL_LOG"
 
-            logger -st "$SCRIPT_TAG" "Installation successful"
+            logger -st "$script_name" "Installation successful"
         fi
 
         # In case of script restart - /tmp/entware will already exist but won't be mounted
         ! is_entware_mounted && init_opt /tmp/entware
 
-        logger -st "$SCRIPT_TAG" "Starting services..."
+        logger -st "$script_name" "Starting services..."
 
-        if ! /opt/etc/init.d/rc.unslung start "$SCRIPT_PATH" >> "$INSTALL_LOG" 2>&1; then
-            logger -st "$SCRIPT_TAG" "Failed to start services, check '$INSTALL_LOG' for details"
+        if ! /opt/etc/init.d/rc.unslung start "$script_path" >> "$INSTALL_LOG" 2>&1; then
+            logger -st "$script_name" "Failed to start services, check '$INSTALL_LOG' for details"
         fi
 
         echo "---------- Services started at $(date) ----------" >> "$INSTALL_LOG"
@@ -370,7 +372,7 @@ entware() {
 
     case "$1" in
         "start")
-            [ -z "$2" ] && { logger -st "$SCRIPT_TAG" "Entware directory not provided"; exit 1; }
+            [ -z "$2" ] && { logger -st "$script_name" "Entware directory not provided"; exit 1; }
 
             init_opt "$2"
             services start
@@ -380,14 +382,14 @@ entware() {
 
             if is_entware_mounted; then
                 if umount /opt; then
-                    logger -st "$SCRIPT_TAG" "Unmounted /opt"
+                    logger -st "$script_name" "Unmounted /opt"
                 else
-                    logger -st "$SCRIPT_TAG" "Failed to unmount /opt"
+                    logger -st "$script_name" "Failed to unmount /opt"
                 fi
             fi
 
             echo "" > "$CACHE_FILE"
-            LAST_ENTWARE_DEVICE=""
+            last_entware_device=""
         ;;
     esac
 
@@ -397,44 +399,44 @@ entware() {
 case "$1" in
     "run")
         if is_started_by_system && [ "$2" != "nohup" ]; then
-            nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
+            nohup "$script_path" run nohup > /dev/null 2>&1 &
         else
             if [ -n "$IN_RAM" ]; then
-                lockfile lockfail inram || { echo "Already running! ($_LOCKPID)"; exit 1; }
+                lockfile lockfail inram || { echo "Already running! ($_lockpid)"; exit 1; }
 
                 if [ ! -f /opt/etc/init.d/rc.unslung ]; then
                     echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
 
-                    TIMEOUT="$WAIT_LIMIT"
-                    while [ "$TIMEOUT" -ge 0 ]; do
-                        [ "$TIMEOUT" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..."; sleep 60; }
+                    timeout="$WAIT_LIMIT"
+                    while [ "$timeout" -ge 0 ]; do
+                        [ "$timeout" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..."; sleep 60; }
 
                         [ -f /opt/etc/init.d/rc.unslung ] && break # already mounted?
                         entware_in_ram && break # successfull?
 
-                        TIMEOUT=$((TIMEOUT-1))
+                        timeout=$((timeout-1))
                     done
 
-                    [ "$TIMEOUT" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
+                    [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$script_name" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
                 fi
 
                 lockfile unlock inram
             else
                 if ! is_entware_mounted; then
-                    for DIR in /tmp/mnt/*; do
-                        if [ -d "$DIR/entware" ]; then
-                            entware start "$DIR/entware"
+                    for dir in /tmp/mnt/*; do
+                        if [ -d "$dir/entware" ]; then
+                            entware start "$dir/entware"
                             break
                         fi
                     done
                 else
-                    [ -z "$LAST_ENTWARE_DEVICE" ] && exit
+                    [ -z "$last_entware_device" ] && exit
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
 
-                    TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
+                    target_path="$(mount | grep "$last_entware_device" | head -n 1 | awk '{print $3}')"
 
-                    if [ -z "$TARGET_PATH" ]; then # device/mount is gone
+                    if [ -z "$target_path" ]; then # device/mount is gone
                         entware stop
                     fi
                 fi
@@ -449,40 +451,40 @@ case "$1" in
                 "add")
                     is_entware_mounted && exit
 
-                    TARGET_PATH="$(mount | grep "$DEVICENAME" | head -n 1 | awk '{print $3}')"
+                    target_path="$(mount | grep "$DEVICENAME" | head -n 1 | awk '{print $3}')"
 
-                    if [ -d "$TARGET_PATH/entware" ]; then
-                        entware start "$TARGET_PATH/entware"
+                    if [ -d "$target_path/entware" ]; then
+                        entware start "$target_path/entware"
                     fi
                 ;;
                 "remove")
-                    if [ "$LAST_ENTWARE_DEVICE" = "$DEVICENAME" ]; then
+                    if [ "$last_entware_device" = "$DEVICENAME" ]; then
                         entware stop
                     fi
                 ;;
                 *)
-                    logger -st "$SCRIPT_TAG" "Unknown hotplug action: $ACTION ($DEVICENAME)"
+                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
                     exit 1
                 ;;
             esac
 
-            sh "$SCRIPT_PATH" run
+            sh "$script_path" run
         fi
     ;;
     "start")
         if [ -z "$IN_RAM" ]; then
-            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            if [ -x "$script_dir/cron-queue.sh" ]; then
+                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
             else
-                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+                cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
 
-        sh "$SCRIPT_PATH" run
+        sh "$script_path" run
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
 
         lockfile kill inram
         lockfile kill
@@ -490,40 +492,40 @@ case "$1" in
         entware stop
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     "install")
         is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing"; exit 1; }
 
-        for ARG in "$@"; do
-            [ "$ARG" = "install" ] && continue
-            ARG_FIRST="$(echo "$ARG" | cut -c1)"
+        for arg in "$@"; do
+            [ "$arg" = "install" ] && continue
+            arg_first="$(echo "$arg" | cut -c1)"
 
-            if [ "$ARG" = "alt" ]; then
+            if [ "$arg" = "alt" ]; then
                 ALTERNATIVE=true
-            elif [ "$ARG_FIRST" = "/" ] || [ "$ARG_FIRST" = "." ]; then
-                TARGET_PATH="$ARG"
+            elif [ "$arg_first" = "/" ] || [ "$arg_first" = "." ]; then
+                target_path="$arg"
             else
-                ARCHITECTURE=$ARG
+                ARCHITECTURE=$arg
             fi
         done
 
-        if [ -z "$TARGET_PATH" ]; then
-            for DIR in /tmp/mnt/*; do
-                if [ -d "$DIR" ] && mount | grep "/dev" | grep -q "$DIR"; then
-                    TARGET_PATH="$DIR"
+        if [ -z "$target_path" ]; then
+            for dir in /tmp/mnt/*; do
+                if [ -d "$dir" ] && mount | grep "/dev" | grep -q "$dir"; then
+                    target_path="$dir"
                     break
                 fi
             done
 
-            [ -z "$TARGET_PATH" ] && { echo "Target path not provided"; exit 1; }
+            [ -z "$target_path" ] && { echo "Target path not provided"; exit 1; }
 
-            echo "Detected mounted storage: $TARGET_PATH"
+            echo "Detected mounted storage: $target_path"
         fi
 
-        [ ! -d "$TARGET_PATH" ] && { echo "Target path does not exist: $TARGET_PATH"; exit 1; }
-        [ -f "$TARGET_PATH/entware/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $TARGET_PATH/entware"; exit; }
+        [ ! -d "$target_path" ] && { echo "Target path does not exist: $target_path"; exit 1; }
+        [ -f "$target_path/entware/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $target_path/entware"; exit; }
 
         if [ -z "$ARCHITECTURE" ]; then
             PLATFORM=$(uname -m)
@@ -566,13 +568,13 @@ case "$1" in
 
         case "$ARCHITECTURE" in
             "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
-                INSTALL_URL="http://$BASE_URL/$ARCHITECTURE/installer"
+                install_url="http://$BASE_URL/$ARCHITECTURE/installer"
             ;;
             #"mipsel"|"armv5"|"armv7"|"x86-32"|"x86-64")
-            #    INSTALL_URL="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
+            #    install_url="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
             #;;
             #"mips")
-            #    INSTALL_URL="http://pkg.entware.net/binaries/mipsel/installer"
+            #    install_url="http://pkg.entware.net/binaries/mipsel/installer"
             #;;
             *)
                 echo "Unsupported architecture: $ARCHITECTURE";
@@ -580,10 +582,10 @@ case "$1" in
             ;;
         esac
 
-        [ "$USE_HTTPS" = true ] && INSTALL_URL="$(echo "$INSTALL_URL" | sed 's/http:/https:/')"
+        [ "$USE_HTTPS" = true ] && install_url="$(echo "$install_url" | sed 's/http:/https:/')"
 
         echo
-        echo "Will install Entware to $TARGET_PATH from $INSTALL_URL"
+        echo "Will install Entware to $target_path from $install_url"
         [ "$ALTERNATIVE" = true ] && echo "Using alternative install (separated users from the system)"
 
         if [ -z "$IN_RAM" ] && [ "$(readlink -f /proc/$$/fd/0 2> /dev/null)" != "/dev/null" ]; then
@@ -599,12 +601,12 @@ case "$1" in
 
         echo "Checking and creating required directories..."
 
-        [ ! -d "$TARGET_PATH/entware" ] && mkdir -v "$TARGET_PATH/entware"
-        mount --bind "$TARGET_PATH/entware" /opt && echo "Mounted $TARGET_PATH/entware on /opt"
+        [ ! -d "$target_path/entware" ] && mkdir -v "$target_path/entware"
+        mount --bind "$target_path/entware" /opt && echo "Mounted $target_path/entware on /opt"
 
-        for DIR in bin etc lib/opkg tmp var/lock; do
-            if [ ! -d "/opt/$DIR" ]; then
-                mkdir -pv /opt/$DIR
+        for dir in bin etc lib/opkg tmp var/lock; do
+            if [ ! -d "/opt/$dir" ]; then
+                mkdir -pv /opt/$dir
             fi
         done
 
@@ -613,20 +615,20 @@ case "$1" in
         echo "Installing package manager..."
 
         if [ ! -f /opt/bin/opkg ]; then
-            curl -fsS "$INSTALL_URL/opkg" -o /opt/bin/opkg
+            curl -fsS "$install_url/opkg" -o /opt/bin/opkg
             chmod 755 /opt/bin/opkg
-            echo "'$INSTALL_URL/opkg' -> '/opt/bin/opkg'"
+            echo "'$install_url/opkg' -> '/opt/bin/opkg'"
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
             if [ -f /jffs/entware/etc/opkg.conf ]; then
                 ln -sv /jffs/entware/etc/opkg.conf /opt/etc/opkg.conf
             else
-                curl -fsS "$INSTALL_URL/opkg.conf" -o /opt/etc/opkg.conf
-                echo "'$INSTALL_URL/opkg.conf' -> '/opt/etc/opkg.conf'"
+                curl -fsS "$install_url/opkg.conf" -o /opt/etc/opkg.conf
+                echo "'$install_url/opkg.conf' -> '/opt/etc/opkg.conf'"
 
-                [ "$BASE_URL" != "$DEFAULT_BASE_URL" ] && sed -i "s#$DEFAULT_BASE_URL:#$BASE_URL:#g" /opt/etc/opkg.conf
-                [ "$USE_HTTPS" = true ] && sed -i 's/http:/https:/g' /opt/etc/opkg.conf
+                [ "$BASE_URL" != "$default_base_url" ] && sed "s#$default_base_url:#$BASE_URL:#g" -i /opt/etc/opkg.conf
+                [ "$USE_HTTPS" = true ] && sed 's/http:/https:/g' -i /opt/etc/opkg.conf
             fi
         fi
 
@@ -643,11 +645,11 @@ case "$1" in
 
         echo "Checking and copying required files..."
 
-        for FILE in passwd group shells shadow gshadow; do
-            if [ "$ALTERNATIVE" != true ] && [ -f "/etc/$FILE" ]; then
-                ln -sfv "/etc/$FILE" "/opt/etc/$FILE"
+        for file in passwd group shells shadow gshadow; do
+            if [ "$ALTERNATIVE" != true ] && [ -f "/etc/$file" ]; then
+                ln -sfv "/etc/$file" "/opt/etc/$file"
             else
-                [ -f "/opt/etc/$FILE.1" ] && cp -v "/opt/etc/$FILE.1" "/opt/etc/$FILE"
+                [ -f "/opt/etc/$file.1" ] && cp -v "/opt/etc/$file.1" "/opt/etc/$file"
             fi
         done
 

@@ -17,11 +17,10 @@
 #jacklul-asuswrt-scripts-update=force-dns.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 DNS_SERVER="" # when left empty will use DNS server set in DHCP DNS1 (or router's address if that field is empty)
 DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use router's address, set to "block" to block IPv6 DNS traffic
@@ -39,106 +38,109 @@ VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applyin
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
 RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
+    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
-CHAIN_DNAT="FORCEDNS"
-CHAIN_DOT="FORCEDNS_DOT"
-CHAIN_BLOCK="FORCEDNS_BLOCK"
-FOR_IPTABLES="iptables"
-ROUTER_IP="$(nvram get lan_ipaddr)"
-ROUTER_IP6="$(nvram get ipv6_rtr_addr)"
-
 if [ -z "$DNS_SERVER" ]; then
-    DHCP_DNS1="$(nvram get dhcp_dns1_x)"
+    dhcp_dns1="$(nvram get dhcp_dns1_x)"
 
-    if [ -n "$DHCP_DNS1" ]; then
-        DNS_SERVER="$DHCP_DNS1"
+    if [ -n "$dhcp_dns1" ]; then
+        DNS_SERVER="$dhcp_dns1"
     else
-        DNS_SERVER="$ROUTER_IP"
+        DNS_SERVER="$router_ip"
     fi
 fi
 
+readonly CHAIN_DNAT="FORCEDNS"
+readonly CHAIN_DOT="FORCEDNS_DOT"
+readonly CHAIN_BLOCK="FORCEDNS_BLOCK"
+
+router_ip="$(nvram get lan_ipaddr)"
+router_ip6="$(nvram get ipv6_rtr_addr)"
+for_iptables="iptables"
+
 if [ "$(nvram get ipv6_service)" != "disabled" ]; then
-    FOR_IPTABLES="$FOR_IPTABLES ip6tables"
+    for_iptables="$for_iptables ip6tables"
 
     if [ -z "$DNS_SERVER6" ]; then
-        DNS_SERVER6="$ROUTER_IP6"
+        DNS_SERVER6="$router_ip6"
     elif [ "$DNS_SERVER6" = "block" ]; then
         DNS_SERVER6=""
     fi
 fi
 
 lockfile() { #LOCKFILE_START#
-    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
-    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=100
-    _FD_MAX=200
+    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
+
+    _lockfile="/var/lock/script-$script_name.lock"
+    _pidfile="/var/run/script-$script_name.pid"
+    _fd=100
+    _fd_max=200
 
     if [ -n "$2" ]; then
-        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
-        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+        _lockfile="/var/lock/script-$script_name-$2.lock"
+        _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
 
-    [ ! -d /var/lock ] && mkdir -p /var/lock
-    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
+    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _LOCKPID=
-    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+    _lockpid=
+    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_FD" ]; do
-                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
-                _FD=$((_FD+1))
+            while [ -f "/proc/$$/fd/$_fd" ]; do
+                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
+                _fd=$((_fd+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
-            eval exec "$_FD>$_LOCKFILE"
+            eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _LOCK_WAITED=0
-                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                    _lockwait=0
+                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                        if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
                 ;;
                 "lockfail")
-                    flock -nx "$_FD" || return 1
+                    flock -nx "$_fd" || return 1
                 ;;
                 "lockexit")
-                    flock -nx "$_FD" || exit 1
+                    flock -nx "$_fd" || exit 1
                 ;;
             esac
 
-            echo $$ > "$_PIDFILE"
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+            echo $$ > "$_pidfile"
+            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
-            flock -u "$_FD"
-            rm -f "$_LOCKFILE" "$_PIDFILE"
+            flock -u "$_fd"
+            rm -f "$_lockfile" "$_pidfile"
             trap - INT TERM EXIT
         ;;
         "check")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
             return 1
         ;;
     esac
@@ -146,8 +148,6 @@ lockfile() { #LOCKFILE_START#
 
 interface_exists() {
     if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
-        _INTERFACE_GLOB="$(printf "%s" "$1" | head -c -1)"
-
         if ip link show | grep ": $1" | grep -q "mtu"; then
             return 0
         fi
@@ -160,87 +160,87 @@ interface_exists() {
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
-    for _IPTABLES in $FOR_IPTABLES; do
+    for _iptables in $for_iptables; do
         case "$1" in
             "add")
-                if ! $_IPTABLES -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-                    _FORWARD_START="$($_IPTABLES -nvL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
-                    _FORWARD_START_PLUS="$((_FORWARD_START+1))"
+                if ! $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
+                    _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
+                    _forward_start_plus="$((_forward_start+1))"
 
-                    $_IPTABLES -N "$CHAIN_DOT"
+                    $_iptables -N "$CHAIN_DOT"
 
-                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -I FORWARD "$_FORWARD_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
-                        _FORWARD_START_PLUS="$((_FORWARD_START_PLUS+1))"
+                    for _target_interface in $TARGET_INTERFACES; do
+                        $_iptables -I FORWARD "$_forward_start_plus" -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+                        _forward_start_plus="$((_forward_start_plus+1))"
                     done
                 fi
 
-                if ! $_IPTABLES -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
-                    _PREROUTING_START="$($_IPTABLES -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER" | tail -1 | awk '{print $1}')"
-                    _PREROUTING_START_PLUS="$((_PREROUTING_START+1))"
+                if ! $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
+                    _prerouting_start="$($_iptables -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER" | tail -1 | awk '{print $1}')"
+                    _prerouting_start_plus="$((_prerouting_start+1))"
 
-                    $_IPTABLES -t nat -N "$CHAIN_DNAT"
+                    $_iptables -t nat -N "$CHAIN_DNAT"
 
-                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
-                        $_IPTABLES -t nat -I PREROUTING "$_PREROUTING_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
-                        _PREROUTING_START_PLUS="$((_PREROUTING_START_PLUS+2))"
+                    for _target_interface in $TARGET_INTERFACES; do
+                        $_iptables -t nat -I PREROUTING "$_prerouting_start_plus" -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
+                        $_iptables -t nat -I PREROUTING "$_prerouting_start_plus" -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
+                        _prerouting_start_plus="$((_prerouting_start_plus+2))"
                     done
                 fi
 
-                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_IPTABLES -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
-                    if [ "$_IPTABLES" = "ip6tables" ]; then
-                        _ROUTER_IP="$ROUTER_IP6"
+                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
+                    if [ "$_iptables" = "ip6tables" ]; then
+                        _router_ip="$router_ip6"
                     else
-                        _ROUTER_IP="$ROUTER_IP"
+                        _router_ip="$router_ip"
                     fi
 
-                    _INPUT_START="$($_IPTABLES -nvL INPUT --line-numbers | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
-                    _INPUT_START_PLUS="$((_INPUT_START+1))"
+                    _input_start="$($_iptables -nvL INPUT --line-numbers | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
+                    _input_start_plus="$((_input_start+1))"
 
-                    $_IPTABLES -N "$CHAIN_BLOCK"
+                    $_iptables -N "$CHAIN_BLOCK"
 
-                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
-                        $_IPTABLES -I INPUT "$_INPUT_START_PLUS" -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
-                        _INPUT_START_PLUS="$((_INPUT_START_PLUS+2))"
+                    for _target_interface in $TARGET_INTERFACES; do
+                        $_iptables -I INPUT "$_input_start_plus" -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
+                        $_iptables -I INPUT "$_input_start_plus" -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
+                        _input_start_plus="$((_input_start_plus+2))"
                     done
                 fi
             ;;
             "remove")
-                if $_IPTABLES -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -D FORWARD -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+                if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
+                    for _target_interface in $TARGET_INTERFACES; do
+                        $_iptables -D FORWARD -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
                     done
 
-                    $_IPTABLES -F "$CHAIN_DOT"
-                    $_IPTABLES -X "$CHAIN_DOT"
+                    $_iptables -F "$CHAIN_DOT"
+                    $_iptables -X "$CHAIN_DOT"
                 fi
 
-                if $_IPTABLES -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
-                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
-                        $_IPTABLES -t nat -D PREROUTING -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
+                if $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
+                    for _target_interface in $TARGET_INTERFACES; do
+                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
+                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
                     done
 
-                    $_IPTABLES -t nat -F "$CHAIN_DNAT"
-                    $_IPTABLES -t nat -X "$CHAIN_DNAT"
+                    $_iptables -t nat -F "$CHAIN_DNAT"
+                    $_iptables -t nat -X "$CHAIN_DNAT"
                 fi
 
-                if $_IPTABLES -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
-                    if [ "$_IPTABLES" = "ip6tables" ]; then
-                        _ROUTER_IP="$ROUTER_IP6"
+                if $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
+                    if [ "$_iptables" = "ip6tables" ]; then
+                        _router_ip="$router_ip6"
                     else
-                        _ROUTER_IP="$ROUTER_IP"
+                        _router_ip="$router_ip"
                     fi
 
-                    for _TARGET_INTERFACE in $TARGET_INTERFACES; do
-                        $_IPTABLES -D INPUT -i "$_TARGET_INTERFACE" -p udp -m udp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
-                        $_IPTABLES -D INPUT -i "$_TARGET_INTERFACE" -p tcp -m tcp --dport 53 -d "$_ROUTER_IP" -j "$CHAIN_BLOCK"
+                    for _target_interface in $TARGET_INTERFACES; do
+                        $_iptables -D INPUT -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
+                        $_iptables -D INPUT -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
                     done
 
-                    $_IPTABLES -F "$CHAIN_BLOCK"
-                    $_IPTABLES -X "$CHAIN_BLOCK"
+                    $_iptables -F "$CHAIN_BLOCK"
+                    $_iptables -X "$CHAIN_BLOCK"
                 fi
             ;;
         esac
@@ -248,77 +248,77 @@ iptables_chains() {
 }
 
 iptables_rules() {
-    [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Target DNS server is not set"; exit 1; }
+    [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Target DNS server is not set"; exit 1; }
 
-    _DNS_SERVER="$2"
-    _DNS_SERVER6="$3"
+    _dns_server="$2"
+    _dns_server6="$3"
 
     case "$1" in
         "add")
-            _ACTION="-A"
+            _action="-A"
         ;;
         "remove")
-            _ACTION="-D"
+            _action="-D"
         ;;
     esac
 
-    for _IPTABLES in $FOR_IPTABLES; do
-        _BLOCK_ROUTER_DNS="$BLOCK_ROUTER_DNS"
+    for _iptables in $for_iptables; do
+        _block_router_dns="$BLOCK_ROUTER_DNS"
 
-        if [ "$_IPTABLES" = "ip6tables" ]; then
+        if [ "$_iptables" = "ip6tables" ]; then
             if [ -z "$DNS_SERVER6" ]; then
-                $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -j REJECT
-                $_IPTABLES "$_ACTION" "$CHAIN_DOT" -j REJECT
+                $_iptables -t nat "$_action" "$CHAIN_DNAT" -j REJECT
+                $_iptables "$_action" "$CHAIN_DOT" -j REJECT
                 continue
             fi
 
-            _SET_DNS_SERVER="$_DNS_SERVER6"
-            _PERMIT_IP="$PERMIT_IP6"
-            _ROUTER_IP="$ROUTER_IP6"
+            _set_dns_server="$_dns_server6"
+            _permit_ip="$PERMIT_IP6"
+            _router_ip="$router_ip6"
         else
-            _SET_DNS_SERVER="$_DNS_SERVER"
-            _PERMIT_IP="$PERMIT_IP"
-            _ROUTER_IP="$ROUTER_IP"
+            _set_dns_server="$_dns_server"
+            _permit_ip="$PERMIT_IP"
+            _router_ip="$router_ip"
         fi
 
-        [ "$_ROUTER_IP" = "$_SET_DNS_SERVER" ] && _BLOCK_ROUTER_DNS=false
+        [ "$_router_ip" = "$_set_dns_server" ] && _block_router_dns=false
 
         if [ -n "$PERMIT_MAC" ]; then
-            for MAC in $(echo "$PERMIT_MAC" | tr ',' ' '); do
-                MAC="$(echo "$MAC" | awk '{$1=$1};1')"
+            for _mac in $(echo "$PERMIT_MAC" | tr ',' ' '); do
+                _mac="$(echo "$_mac" | awk '{$1=$1};1')"
 
-                $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -m mac --mac-source "$MAC" -j RETURN
-                $_IPTABLES "$_ACTION" "$CHAIN_DOT" -m mac --mac-source "$MAC" -j RETURN
-                [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m mac --mac-source "$MAC" -j RETURN
+                $_iptables -t nat "$_action" "$CHAIN_DNAT" -m mac --mac-source "$_mac" -j RETURN
+                $_iptables "$_action" "$CHAIN_DOT" -m mac --mac-source "$_mac" -j RETURN
+                [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -m mac --mac-source "$_mac" -j RETURN
             done
         fi
 
-        if [ "${_PERMIT_IP#*"-"}" != "$_PERMIT_IP" ]; then # IP ranges found
-            for IP in $(echo "$_PERMIT_IP" | tr ',' ' '); do
-                IP="$(echo "$IP" | awk '{$1=$1};1')"
+        if [ "${_permit_ip#*"-"}" != "$_permit_ip" ]; then # IP ranges found
+            for _ip in $(echo "$_permit_ip" | tr ',' ' '); do
+                _ip="$(echo "$_ip" | awk '{$1=$1};1')"
 
-                if [ "${IP#*"-"}" != "$IP" ]; then # IP range entry
-                    $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -m iprange --src-range "$IP" -j RETURN
-                    $_IPTABLES "$_ACTION" "$CHAIN_DOT" -m iprange --src-range "$IP" -j RETURN
-                    [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -m iprange --src-range "$IP" -j RETURN
+                if [ "${IP#*"-"}" != "$_ip" ]; then # IP range entry
+                    $_iptables -t nat "$_action" "$CHAIN_DNAT" -m iprange --src-range "$_ip" -j RETURN
+                    $_iptables "$_action" "$CHAIN_DOT" -m iprange --src-range "$_ip" -j RETURN
+                    [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -m iprange --src-range "$_ip" -j RETURN
                 else # single IP entry
-                    $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -s "$IP" -j RETURN
-                    $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$IP" -j RETURN
-                    [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$IP" -j RETURN
+                    $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_ip" -j RETURN
+                    $_iptables "$_action" "$CHAIN_DOT" -s "$_ip" -j RETURN
+                    [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_ip" -j RETURN
                 fi
             done
         else # no IP ranges found, conveniently iptables accept IPs separated by commas
-            $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -s "$_PERMIT_IP" -j RETURN
-            $_IPTABLES "$_ACTION" "$CHAIN_DOT" -s "$_PERMIT_IP" -j RETURN
-            [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -s "$_PERMIT_IP" -j RETURN
+            $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_permit_ip" -j RETURN
+            $_iptables "$_action" "$CHAIN_DOT" -s "$_permit_ip" -j RETURN
+            [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_permit_ip" -j RETURN
         fi
 
-        [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -d "$_ROUTER_IP" -j RETURN
+        [ "$_block_router_dns" = true ] && $_iptables -t nat "$_action" "$CHAIN_DNAT" -d "$_router_ip" -j RETURN
 
-        $_IPTABLES -t nat "$_ACTION" "$CHAIN_DNAT" -j DNAT --to-destination "$_SET_DNS_SERVER"
-        $_IPTABLES "$_ACTION" "$CHAIN_DOT" ! -d "$_SET_DNS_SERVER" -j REJECT
+        $_iptables -t nat "$_action" "$CHAIN_DNAT" -j DNAT --to-destination "$_set_dns_server"
+        $_iptables "$_action" "$CHAIN_DOT" ! -d "$_set_dns_server" -j REJECT
 
-        [ "$_BLOCK_ROUTER_DNS" = true ] && $_IPTABLES "$_ACTION" "$CHAIN_BLOCK" -j REJECT
+        [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -j REJECT
     done
 }
 
@@ -333,15 +333,15 @@ rules_exist() {
 }
 
 firewall_rules() {
-    [ -z "$TARGET_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Target interfaces are not set"; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logger -st "$script_name" "Target interfaces are not set"; exit 1; }
 
     lockfile lockwait
 
-    _RULES_MODIFIED=0
+    _rules_modified=0
     case "$1" in
         "add")
             if ! rules_exist "$DNS_SERVER"; then
-                _RULES_MODIFIED=1
+                _rules_modified=1
 
                 iptables_chains remove
 
@@ -349,17 +349,17 @@ firewall_rules() {
                     iptables_chains add
                     iptables_rules add "$DNS_SERVER" "$DNS_SERVER6"
 
-                    _DNS_SERVER="$DNS_SERVER"
-                    [ -n "$DNS_SERVER6" ] && _DNS_SERVER=" $DNS_SERVER6"
+                    _dns_server="$DNS_SERVER"
+                    [ -n "$DNS_SERVER6" ] && _dns_server=" $DNS_SERVER6"
 
-                    logger -st "$SCRIPT_TAG" "Forcing DNS server(s): $_DNS_SERVER"
+                    logger -st "$script_name" "Forcing DNS server(s): $_dns_server"
                 fi
             fi
         ;;
         "remove")
             if [ -n "$FALLBACK_DNS_SERVER" ]; then
                 if ! rules_exist "$FALLBACK_DNS_SERVER"; then
-                    _RULES_MODIFIED=-1
+                    _rules_modified=-1
 
                     iptables_chains remove
 
@@ -367,15 +367,15 @@ firewall_rules() {
                         iptables_chains add
                         iptables_rules add "$FALLBACK_DNS_SERVER" "$FALLBACK_DNS_SERVER6"
 
-                        _FALLBACK_DNS_SERVER="$FALLBACK_DNS_SERVER"
-                        [ -n "$FALLBACK_DNS_SERVER6" ] && _FALLBACK_DNS_SERVER=" $FALLBACK_DNS_SERVER6"
+                        _fallback_dns_server="$FALLBACK_DNS_SERVER"
+                        [ -n "$FALLBACK_DNS_SERVER6" ] && _fallback_dns_server=" $FALLBACK_DNS_SERVER6"
 
-                        logger -st "$SCRIPT_TAG" "Forcing fallback DNS server(s): $_FALLBACK_DNS_SERVER"
+                        logger -st "$script_name" "Forcing fallback DNS server(s): $_fallback_dns_server"
                     fi
                 fi
             else
                 if rules_exist "$DNS_SERVER" || rules_exist "$FALLBACK_DNS_SERVER"; then
-                    _RULES_MODIFIED=-1
+                    _rules_modified=-1
 
                     iptables_chains remove
                 fi
@@ -383,7 +383,7 @@ firewall_rules() {
         ;;
     esac
 
-    [ -n "$EXECUTE_COMMAND" ] && [ "$_RULES_MODIFIED" -ne 0 ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ "$_rules_modified" -ne 0 ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }
@@ -402,34 +402,34 @@ case "$1" in
         if [ -n "$FALLBACK_DNS_SERVER" ]; then
             firewall_rules remove
         else
-            logger -st "$SCRIPT_TAG" "Fallback DNS server(s) not set!"
+            logger -st "$script_name" "Fallback DNS server(s) not set!"
         fi
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && logger -st "$SCRIPT_TAG" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
+        [ -f "/usr/sbin/helper.sh" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
 
-        [ -z "$DNS_SERVER" ] && { logger -st "$SCRIPT_TAG" "Unable to start - target DNS server is not set"; exit 1; }
+        [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Unable to start - target DNS server is not set"; exit 1; }
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then
-            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            if [ -x "$script_dir/cron-queue.sh" ]; then
+                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
             else
-                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+                cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
 
         FALLBACK_DNS_SERVER="" # prevent changing to fallback instead of removing everything...
         firewall_rules remove
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|fallback"

@@ -8,82 +8,84 @@
 #jacklul-asuswrt-scripts-update=cron-queue.sh
 #shellcheck disable=SC2155,SC2009
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 QUEUE_FILE="/tmp/cron_queue" # where to store the queue
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 lockfile() { #LOCKFILE_START#
-    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
-    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=100
-    _FD_MAX=200
+    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
+
+    _lockfile="/var/lock/script-$script_name.lock"
+    _pidfile="/var/run/script-$script_name.pid"
+    _fd=100
+    _fd_max=200
 
     if [ -n "$2" ]; then
-        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
-        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+        _lockfile="/var/lock/script-$script_name-$2.lock"
+        _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
 
-    [ ! -d /var/lock ] && mkdir -p /var/lock
-    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
+    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _LOCKPID=
-    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+    _lockpid=
+    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_FD" ]; do
-                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
-                _FD=$((_FD+1))
+            while [ -f "/proc/$$/fd/$_fd" ]; do
+                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
+                _fd=$((_fd+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
-            eval exec "$_FD>$_LOCKFILE"
+            eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _LOCK_WAITED=0
-                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                    _lockwait=0
+                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                        if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
                 ;;
                 "lockfail")
-                    flock -nx "$_FD" || return 1
+                    flock -nx "$_fd" || return 1
                 ;;
                 "lockexit")
-                    flock -nx "$_FD" || exit 1
+                    flock -nx "$_fd" || exit 1
                 ;;
             esac
 
-            echo $$ > "$_PIDFILE"
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+            echo $$ > "$_pidfile"
+            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
-            flock -u "$_FD"
-            rm -f "$_LOCKFILE" "$_PIDFILE"
+            flock -u "$_fd"
+            rm -f "$_lockfile" "$_pidfile"
             trap - INT TERM EXIT
         ;;
         "check")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
             return 1
         ;;
     esac
@@ -99,16 +101,16 @@ case "$1" in
         lockfile unlock
     ;;
     "add"|"remove"|"delete"|"a"|"r"|"d")
-        ADD="$1"
-        [ "$1" = "a" ] && ADD=add
+        add="$1"
+        [ "$1" = "a" ] && add=add
 
         [ -z "$2" ] && { echo "Entry ID not set"; exit 1; }
-        { [ -z "$3" ] && [ "$ADD" = "add" ] ; } && { echo "Entry command not set"; exit 1; }
+        { [ -z "$3" ] && [ "$add" = "add" ] ; } && { echo "Entry command not set"; exit 1; }
 
         lockfile lockwait
 
         [ -f "$QUEUE_FILE" ] && sed "/#$(echo "$2" | sed 's/[]\/$*.^&[]/\\&/g')#$/d" -i "$QUEUE_FILE"
-        [ "$ADD" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
+        [ "$add" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
 
         lockfile unlock
     ;;
@@ -129,14 +131,14 @@ case "$1" in
         exit 1
     ;;
     "start")
-        cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+        cru a "$script_name" "*/1 * * * * $script_path run"
     ;;
     "stop")
-        cru d "$SCRIPT_NAME"
+        cru d "$script_name"
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart|add|remove|list|check"

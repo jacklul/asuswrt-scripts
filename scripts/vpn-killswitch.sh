@@ -10,122 +10,123 @@
 #jacklul-asuswrt-scripts-update=vpn-killswitch.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 BRIDGE_INTERFACES="br+" # the bridge interface to set rules for, by default affects all "br" interfaces (which also includes guest network bridge), separated by spaces
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
+    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
-CHAIN="VPN_KILLSWITCH"
-FOR_IPTABLES="iptables"
+readonly CHAIN="VPN_KILLSWITCH"
 
-[ "$(nvram get ipv6_service)" != "disabled" ] && FOR_IPTABLES="$FOR_IPTABLES ip6tables"
+for_iptables="iptables"
+[ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
 lockfile() { #LOCKFILE_START#
-    _LOCKFILE="/var/lock/script-$SCRIPT_NAME.lock"
-    _PIDFILE="/var/run/script-$SCRIPT_NAME.pid"
-    _FD=100
-    _FD_MAX=200
+    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
+
+    _lockfile="/var/lock/script-$script_name.lock"
+    _pidfile="/var/run/script-$script_name.pid"
+    _fd=100
+    _fd_max=200
 
     if [ -n "$2" ]; then
-        _LOCKFILE="/var/lock/script-$SCRIPT_NAME-$2.lock"
-        _PIDFILE="/var/run/script-$SCRIPT_NAME-$2.lock"
+        _lockfile="/var/lock/script-$script_name-$2.lock"
+        _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _FD="$3" && _FD_MAX="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _FD_MAX="$4"
+    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
+    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
 
-    [ ! -d /var/lock ] && mkdir -p /var/lock
-    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
+    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _LOCKPID=
-    [ -f "$_PIDFILE" ] && _LOCKPID="$(cat "$_PIDFILE")"
+    _lockpid=
+    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_FD" ]; do
-                #echo "File descriptor $_FD is already in use ($(readlink -f "/proc/$$/fd/$_FD"))"
-                _FD=$((_FD+1))
+            while [ -f "/proc/$$/fd/$_fd" ]; do
+                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
+                _fd=$((_fd+1))
 
-                [ "$_FD" -gt "$_FD_MAX" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
             done
 
-            eval exec "$_FD>$_LOCKFILE"
+            eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _LOCK_WAITED=0
-                    while ! flock -nx "$_FD"; do #flock -x "$_FD"
+                    _lockwait=0
+                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_LOCK_WAITED" -ge 60 ]; then
+                        if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
                 ;;
                 "lockfail")
-                    flock -nx "$_FD" || return 1
+                    flock -nx "$_fd" || return 1
                 ;;
                 "lockexit")
-                    flock -nx "$_FD" || exit 1
+                    flock -nx "$_fd" || exit 1
                 ;;
             esac
 
-            echo $$ > "$_PIDFILE"
-            trap 'flock -u $_FD; rm -f "$_LOCKFILE" "$_PIDFILE"; exit $?' INT TERM EXIT
+            echo $$ > "$_pidfile"
+            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
-            flock -u "$_FD"
-            rm -f "$_LOCKFILE" "$_PIDFILE"
+            flock -u "$_fd"
+            rm -f "$_lockfile" "$_pidfile"
             trap - INT TERM EXIT
         ;;
         "check")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_LOCKPID" ] && [ -f "/proc/$_LOCKPID/stat" ] && kill -9 "$_LOCKPID" && return 0
+            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
             return 1
         ;;
     esac
 } #LOCKFILE_END#
 
 get_wan_interface() {
-    _INTERFACE="$(nvram get wan0_ifname)"
+    _interface="$(nvram get wan0_ifname)"
 
-    if [ "$(nvram get wan0_gw_ifname)" != "$_INTERFACE" ]; then
-        _INTERFACE=$(nvram get wan0_gw_ifname)
+    if [ "$(nvram get wan0_gw_ifname)" != "$_interface" ]; then
+        _interface=$(nvram get wan0_gw_ifname)
     fi
 
     if [ -n "$(nvram get wan0_pppoe_ifname)" ]; then
-        _INTERFACE="$(nvram get wan0_pppoe_ifname)"
+        _interface="$(nvram get wan0_pppoe_ifname)"
     fi
 
-    [ -z "$_INTERFACE" ] && { logger -st "$SCRIPT_TAG" "Couldn't get WAN interface name"; exit 1; }
+    [ -z "$_interface" ] && { logger -st "$script_name" "Couldn't get WAN interface name"; exit 1; }
 
-    echo "$_INTERFACE"
+    echo "$_interface"
 }
 
 verify_bridge_interfaces() {
     if echo "$BRIDGE_INTERFACES" | grep -q "br+"; then
         BRIDGE_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
     else
-        for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
-            if ! ip link show | grep ": $_BRIDGE_INTERFACE" | grep -q "mtu"; then
-                logger -st "$SCRIPT_TAG" "Couldn't find matching bridge interface for $_BRIDGE_INTERFACE"
+        for _bridge_interface in $BRIDGE_INTERFACES; do
+            if ! ip link show | grep ": $_bridge_interface" | grep -q "mtu"; then
+                logger -st "$script_name" "Couldn't find matching bridge interface for $_bridge_interface"
                 exit 0
             fi
         done
@@ -133,51 +134,51 @@ verify_bridge_interfaces() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$SCRIPT_TAG" "Bridge interfaces are not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$script_name" "Bridge interfaces are not set"; exit 1; }
 
     lockfile lockwait
 
-    _RULES_MODIFIED=0
-    for _IPTABLES in $FOR_IPTABLES; do
+    _rules_modified=0
+    for _iptables in $for_iptables; do
         case "$1" in
             "add")
-                if ! $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
-                    _RULES_MODIFIED=1
+                if ! $_iptables -nL "$CHAIN" > /dev/null 2>&1; then
+                    _rules_modified=1
 
-                    $_IPTABLES -N "$CHAIN"
-                    $_IPTABLES -I "$CHAIN" -j REJECT
+                    $_iptables -N "$CHAIN"
+                    $_iptables -I "$CHAIN" -j REJECT
 
-                    _WAN_INTERFACE="$(get_wan_interface)"
+                    _wan_interface="$(get_wan_interface)"
                     verify_bridge_interfaces
 
-                    for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
-                        $_IPTABLES -I FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
+                    for _bridge_interface in $BRIDGE_INTERFACES; do
+                        $_iptables -I FORWARD -i "$_bridge_interface" -o "$_wan_interface" -j "$CHAIN"
 
-                        logger -st "$SCRIPT_TAG" "Enabled VPN Kill-switch on bridge interface: $_BRIDGE_INTERFACE"
+                        logger -st "$script_name" "Enabled VPN Kill-switch on bridge interface: $_bridge_interface"
                     done
                 fi
             ;;
             "remove")
-                if $_IPTABLES -nL "$CHAIN" > /dev/null 2>&1; then
-                    _RULES_MODIFIED=-1
+                if $_iptables -nL "$CHAIN" > /dev/null 2>&1; then
+                    _rules_modified=-1
 
-                    _WAN_INTERFACE="$(get_wan_interface)"
+                    _wan_interface="$(get_wan_interface)"
                     verify_bridge_interfaces
 
-                    for _BRIDGE_INTERFACE in $BRIDGE_INTERFACES; do
-                        $_IPTABLES -D FORWARD -i "$_BRIDGE_INTERFACE" -o "$_WAN_INTERFACE" -j "$CHAIN"
+                    for _bridge_interface in $BRIDGE_INTERFACES; do
+                        $_iptables -D FORWARD -i "$_bridge_interface" -o "$_wan_interface" -j "$CHAIN"
 
-                        logger -st "$SCRIPT_TAG" "Disabled VPN Kill-switch on bridge interface: $_BRIDGE_INTERFACE"
+                        logger -st "$script_name" "Disabled VPN Kill-switch on bridge interface: $_bridge_interface"
                     done
 
-                    $_IPTABLES -F "$CHAIN"
-                    $_IPTABLES -X "$CHAIN"
+                    $_iptables -F "$CHAIN"
+                    $_iptables -X "$CHAIN"
                 fi
             ;;
         esac
     done
 
-    [ -n "$EXECUTE_COMMAND" ] && [ "$_RULES_MODIFIED" -ne 0 ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ "$_rules_modified" -ne 0 ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }
@@ -188,24 +189,24 @@ case "$1" in
     ;;
     "start")
         if [ "$RUN_EVERY_MINUTE" = true ]; then
-            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            if [ -x "$script_dir/cron-queue.sh" ]; then
+                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
             else
-                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+                cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
 
         firewall_rules add
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
 
         firewall_rules remove
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"

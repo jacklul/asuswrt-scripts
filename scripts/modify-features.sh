@@ -7,72 +7,71 @@
 #jacklul-asuswrt-scripts-update=modify-features.sh
 #shellcheck disable=SC2155
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-readonly SCRIPT_CONFIG="$SCRIPT_DIR/$SCRIPT_NAME.conf"
-readonly SCRIPT_TAG="$(basename "$SCRIPT_PATH")"
+readonly script_path="$(readlink -f "$0")"
+readonly script_name="$(basename "$script_path" .sh)"
+readonly script_dir="$(dirname "$script_path")"
+readonly script_config="$script_dir/$script_name.conf"
 
 FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
 RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false), empty means false when service-event.sh is available but otherwise true
 
-if [ -f "$SCRIPT_CONFIG" ]; then
+if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
-    . "$SCRIPT_CONFIG"
+    . "$script_config"
 fi
 
 if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$SCRIPT_DIR/service-event.sh" ] && RUN_EVERY_MINUTE=true
+    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
 fi
 
 rc_support() {
     case "$1" in
         "modify")
             if [ ! -f /tmp/rc_support.bak ]; then
-                RC_SUPPORT="$(nvram get rc_support)"
-                echo "$RC_SUPPORT" > /tmp/rc_support.bak
+                rc_support="$(nvram get rc_support)"
+                echo "$rc_support" > /tmp/rc_support.bak
             else
-                RC_SUPPORT="$(cat /tmp/rc_support.bak)"
+                rc_support="$(cat /tmp/rc_support.bak)"
             fi
 
             if [ -f /tmp/rc_support.last ]; then
-                RC_SUPPORT_LAST="$(cat /tmp/rc_support.last)"
+                rc_support_last="$(cat /tmp/rc_support.last)"
             fi
 
-            [ "$(nvram get rc_support)" = "$RC_SUPPORT_LAST" ] && exit
+            [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit
 
-            for FEATURE_TO_REMOVE in $FEATURES_REMOVE; do
-                if echo "$RC_SUPPORT" | grep -q "$FEATURE_TO_REMOVE"; then
-                    RC_SUPPORT="$(echo "$RC_SUPPORT" | sed "s/$FEATURE_TO_REMOVE//g")"
+            for feature_to_remove in $FEATURES_REMOVE; do
+                if echo "$rc_support" | grep -q "$feature_to_remove"; then
+                    rc_support="$(echo "$rc_support" | sed "s/$feature_to_remove//g")"
                 fi
             done
 
-            for FEATURE_TO_ADD in $FEATURES_ADD; do
-                if ! echo "$RC_SUPPORT" | grep -q "$FEATURE_TO_ADD"; then
-                    RC_SUPPORT="$RC_SUPPORT $FEATURE_TO_ADD"
+            for feature_to_add in $FEATURES_ADD; do
+                if ! echo "$rc_support" | grep -q "$feature_to_add"; then
+                    rc_support="$rc_support $feature_to_add"
                 fi
             done
 
-            RC_SUPPORT="$(echo "$RC_SUPPORT" | tr -s ' ')"
+            rc_support="$(echo "$rc_support" | tr -s ' ')"
 
-            echo "$RC_SUPPORT" > /tmp/rc_support.last
+            echo "$rc_support" > /tmp/rc_support.last
 
-            nvram set rc_support="$RC_SUPPORT"
+            nvram set rc_support="$rc_support"
 
-            logger -st "$SCRIPT_TAG" "Modified rc_support"
+            logger -st "$script_name" "Modified rc_support"
         ;;
         "restore")
             rm -f /tmp/rc_support.last
 
             if [ -f /tmp/rc_support.bak ]; then
-                RC_SUPPORT="$(cat /tmp/rc_support.bak)"
+                rc_support="$(cat /tmp/rc_support.bak)"
 
-                nvram set rc_support="$RC_SUPPORT"
+                nvram set rc_support="$rc_support"
 
-                logger -st "$SCRIPT_TAG" "Restored original rc_support"
+                logger -st "$script_name" "Restored original rc_support"
             else
-                logger -st "$SCRIPT_TAG" "Could not find /tmp/rc_support.bak - cannot restore original rc_support!"
+                logger -st "$script_name" "Could not find /tmp/rc_support.bak - cannot restore original rc_support!"
             fi
         ;;
     esac
@@ -86,28 +85,28 @@ case "$1" in
     ;;
     "start")
         if [ -z "$FEATURES_REMOVE" ] || [ -z "$FEATURES_ADD" ]; then
-            logger -st "$SCRIPT_TAG" "Configuration is not set"
+            logger -st "$script_name" "Configuration is not set"
         fi
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then
-            if [ -x "$SCRIPT_DIR/cron-queue.sh" ]; then
-                sh "$SCRIPT_DIR/cron-queue.sh" add "$SCRIPT_NAME" "$SCRIPT_PATH run"
+            if [ -x "$script_dir/cron-queue.sh" ]; then
+                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
             else
-                cru a "$SCRIPT_NAME" "*/1 * * * * $SCRIPT_PATH run"
+                cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
 
         rc_support modify
     ;;
     "stop")
-        [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
-        cru d "$SCRIPT_NAME"
+        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+        cru d "$script_name"
 
         rc_support restore
     ;;
     "restart")
-        sh "$SCRIPT_PATH" stop
-        sh "$SCRIPT_PATH" start
+        sh "$script_path" stop
+        sh "$script_path" start
     ;;
     *)
         echo "Usage: $0 run|start|stop|restart"
