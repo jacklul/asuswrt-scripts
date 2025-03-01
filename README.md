@@ -4,7 +4,7 @@ This is a collection of custom scripts for AsusWRT firmware that can be used to 
 
 Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on non-AX routers and on older versions of the firmware.
 
-Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525-gd35b8fe** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
+Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
 
 **A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com) and [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki). Scripts that are based on existing resource have the original credited in the header.**
 
