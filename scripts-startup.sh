@@ -35,13 +35,13 @@ scripts() {
         if [ -x "$_ENTRY" ]; then
             case "$_ACTION" in
                 "start")
-                    logger -s -t "$SCRIPT_TAG" "Starting $_ENTRY..."
+                    logger -st "$SCRIPT_TAG" "Starting $_ENTRY..."
                 ;;
                 "stop")
-                    logger -s -t "$SCRIPT_TAG" "Stopping $_ENTRY..."
+                    logger -st "$SCRIPT_TAG" "Stopping $_ENTRY..."
                 ;;
                 "restart")
-                    logger -s -t "$SCRIPT_TAG" "Restarting $_ENTRY..."
+                    logger -st "$SCRIPT_TAG" "Restarting $_ENTRY..."
                 ;;
                 *)
                     echo "Unknown action: $_ACTION"
@@ -56,7 +56,7 @@ scripts() {
 case "$1" in
     "start")
         if [ ! -f "$CHECK_FILE" ]; then
-            logger -s -t "$SCRIPT_TAG" "Starting custom scripts ($SCRIPTS_DIR)..."
+            logger -st "$SCRIPT_TAG" "Starting custom scripts ($SCRIPTS_DIR)..."
 
             date "+%Y-%m-%d %H:%M:%S" > $CHECK_FILE
 
@@ -66,14 +66,14 @@ case "$1" in
         fi
     ;;
     "stop")
-        logger -s -t "$SCRIPT_TAG" "Stopping custom scripts ($SCRIPTS_DIR)..."
+        logger -st "$SCRIPT_TAG" "Stopping custom scripts ($SCRIPTS_DIR)..."
 
         rm -f "$CHECK_FILE"
 
         scripts stop
     ;;
     "restart")
-        logger -s -t "$SCRIPT_TAG" "Restarting custom scripts ($SCRIPTS_DIR)..."
+        logger -st "$SCRIPT_TAG" "Restarting custom scripts ($SCRIPTS_DIR)..."
 
         scripts restart
     ;;
