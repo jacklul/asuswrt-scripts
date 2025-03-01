@@ -2,6 +2,7 @@
 # /opt/etc/init.d/override-rc.func
 # This script allows your overrides (see S00overrides) to easily change
 # init.d variables like ENABLED, ARGS or PREARGS.
+# This script requires procps-ng-ps package to be installed.
 #
 # Additionally it allows you to set few additional settings in the overrides:
 #  NICE=      - niceness of the process

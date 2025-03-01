@@ -1,7 +1,6 @@
 #!/bin/sh
 # /opt/bin/process-affinities
 # List all processes and their CPU affinities
-# This will require installation of procps-ng-ps package
 
 [ ! -f /opt/bin/ps ] && { echo "Install 'procps-ng-ps' package!"; exit 1; }
 
