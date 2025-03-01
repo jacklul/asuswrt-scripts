@@ -158,6 +158,13 @@ retry_command() {
 init_opt() {
     [ -z "$1" ] && { echo "Target path not provided"; exit 1; }
 
+    # Wait for app_init_run.sh to finish before messing with /opt mount
+    timeout=60
+    while /bin/ps w | grep -q "[a]pp_init_run.sh" && [ "$timeout" -ge 0 ]; do
+        sleep 1
+        timeout=$((timeout-1))
+    done
+
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted && ! umount /opt; then
             logger -st "$script_name" "Failed to unmount /opt"
