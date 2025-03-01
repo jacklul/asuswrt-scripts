@@ -248,8 +248,6 @@ iptables_chains() {
 }
 
 iptables_rules() {
-    [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Target DNS server is not set"; exit 1; }
-
     _dns_server="$2"
     _dns_server6="$3"
 
@@ -333,6 +331,7 @@ rules_exist() {
 }
 
 firewall_rules() {
+    [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Target DNS server is not set"; exit 1; }
     [ -z "$TARGET_INTERFACES" ] && { logger -st "$script_name" "Target interfaces are not set"; exit 1; }
 
     lockfile lockwait
@@ -390,8 +389,6 @@ firewall_rules() {
 
 case "$1" in
     "run")
-        [ -z "$DNS_SERVER" ] && exit
-
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
             firewall_rules remove
         else
