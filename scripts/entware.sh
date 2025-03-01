@@ -396,43 +396,47 @@ entware() {
 
 case "$1" in
     "run")
-        if [ -n "$IN_RAM" ]; then
-            lockfile lockfail inram || { echo "Already running! ($_LOCKPID)"; exit 1; }
+        if is_started_by_system && [ "$2" != "nohup" ]; then
+            nohup "$SCRIPT_PATH" run nohup > /dev/null 2>&1 &
+        else
+            if [ -n "$IN_RAM" ]; then
+                lockfile lockfail inram || { echo "Already running! ($_LOCKPID)"; exit 1; }
 
-            if [ ! -f /opt/etc/init.d/rc.unslung ]; then
-                echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
+                if [ ! -f /opt/etc/init.d/rc.unslung ]; then
+                    echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
 
-                TIMEOUT="$WAIT_LIMIT"
-                while [ "$TIMEOUT" -ge 0 ]; do
-                    [ "$TIMEOUT" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..."; sleep 60; }
+                    TIMEOUT="$WAIT_LIMIT"
+                    while [ "$TIMEOUT" -ge 0 ]; do
+                        [ "$TIMEOUT" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..."; sleep 60; }
 
-                    [ -f /opt/etc/init.d/rc.unslung ] && break # already mounted?
-                    entware_in_ram && break # successfull?
+                        [ -f /opt/etc/init.d/rc.unslung ] && break # already mounted?
+                        entware_in_ram && break # successfull?
 
-                    TIMEOUT=$((TIMEOUT-1))
-                done
+                        TIMEOUT=$((TIMEOUT-1))
+                    done
 
-                [ "$TIMEOUT" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
+                    [ "$TIMEOUT" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$SCRIPT_TAG" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
+                fi
 
                 lockfile unlock inram
-            fi
-        else
-            if ! is_entware_mounted; then
-                for DIR in /tmp/mnt/*; do
-                    if [ -d "$DIR/entware" ]; then
-                        entware start "$DIR/entware"
-                        break
-                    fi
-                done
             else
-                [ -z "$LAST_ENTWARE_DEVICE" ] && exit
-                # this currently has been disabled due to some caveats...
-                #[ -z "$IN_RAM" ] && backup_initd_scripts
+                if ! is_entware_mounted; then
+                    for DIR in /tmp/mnt/*; do
+                        if [ -d "$DIR/entware" ]; then
+                            entware start "$DIR/entware"
+                            break
+                        fi
+                    done
+                else
+                    [ -z "$LAST_ENTWARE_DEVICE" ] && exit
+                    # this currently has been disabled due to some caveats...
+                    #[ -z "$IN_RAM" ] && backup_initd_scripts
 
-                TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
+                    TARGET_PATH="$(mount | grep "$LAST_ENTWARE_DEVICE" | head -n 1 | awk '{print $3}')"
 
-                if [ -z "$TARGET_PATH" ]; then # device/mount is gone
-                    entware stop
+                    if [ -z "$TARGET_PATH" ]; then # device/mount is gone
+                        entware stop
+                    fi
                 fi
             fi
         fi
@@ -474,11 +478,7 @@ case "$1" in
             fi
         fi
 
-        if is_started_by_system; then
-            nohup "$SCRIPT_PATH" run > /dev/null 2>&1 &
-        else
-            sh "$SCRIPT_PATH" run
-        fi
+        sh "$SCRIPT_PATH" run
     ;;
     "stop")
         [ -x "$SCRIPT_DIR/cron-queue.sh" ] && sh "$SCRIPT_DIR/cron-queue.sh" remove "$SCRIPT_NAME"
