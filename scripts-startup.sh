@@ -58,9 +58,11 @@ case "$1" in
         if [ ! -f "$CHECK_FILE" ]; then
             logger -s -t "$SCRIPT_TAG" "Starting custom scripts ($SCRIPTS_DIR)..."
 
-            date > $CHECK_FILE
+            date "+%Y-%m-%d %H:%M:%S" > $CHECK_FILE
 
             scripts start
+        else
+            echo "Scripts were already started at $(cat "$CHECK_FILE")"
         fi
     ;;
     "stop")
