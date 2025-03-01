@@ -9,24 +9,24 @@
 # Receiving 'stop' here is unlikely, possibly only when unmounting from the web UI
 #
 
-TARGET_SCRIPT="/jffs/scripts-startup.sh" # https://github.com/jacklul/asuswrt-scripts bootstrap
-SYSLOG_TAG="$(basename "$0")"
+command="/jffs/scripts-startup.sh start" # https://github.com/jacklul/asuswrt-scripts startup script by default
+tag="$(basename "$0")"
 
 case "$1" in
     "start")
-        NVRAM_SCRIPT="$(nvram get script_usbmount)"
+        nvram_script="$(nvram get script_usbmount)"
 
-        if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$SYSLOG_TAG" "Executing command in 'script_usbmount' NVRAM variable"
-            eval "$NVRAM_SCRIPT"
+        if [ -n "$nvram_script" ]; then
+            logger -t "$tag" "Executing command: $nvram_script"
+            eval "$nvram_script"
         else
             if [ -x /jffs/scripts/usb-mount-script ]; then
-                TARGET_SCRIPT=/jffs/scripts/usb-mount-script
+                command=/jffs/scripts/usb-mount-script
             fi
 
-            if [ -x "$TARGET_SCRIPT" ]; then
-                logger -t "$SYSLOG_TAG" "Executing '$TARGET_SCRIPT' script with 'start' argument"
-                "$TARGET_SCRIPT" start
+            if [ -x "$command" ]; then
+                logger -t "$tag" "Executing command: $command"
+                eval "$command"
             fi
         fi
 
@@ -52,19 +52,19 @@ case "$1" in
         } >/dev/null 2>&1 &
     ;;
     "stop")
-        NVRAM_SCRIPT="$(nvram get script_usbumount)"
+        nvram_script="$(nvram get script_usbumount)"
 
-        if [ -n "$NVRAM_SCRIPT" ]; then
-            logger -t "$SYSLOG_TAG" "Executing command in 'script_usbumount' NVRAM variable"
-            eval "$NVRAM_SCRIPT"
+        if [ -n "$nvram_script" ]; then
+            logger -t "$tag" "Executing command: $nvram_script"
+            eval "$nvram_script"
         else
             if [ -x /jffs/scripts/usb-umount-script ]; then
-                TARGET_SCRIPT=/jffs/scripts/usb-umount-script
+                command=/jffs/scripts/usb-umount-script
             fi
 
-            if [ -x "$TARGET_SCRIPT" ]; then
-                logger -t "$SYSLOG_TAG" "Executing '$TARGET_SCRIPT' script with 'stop' argument"
-                "$TARGET_SCRIPT" stop
+            if [ -x "$command" ]; then
+                logger -t "$tag" "Executing command: $command"
+                eval "$command"
             fi
         fi
     ;;

@@ -3,7 +3,7 @@
 This is my current workaround for **Asus routers** that no longer execute command in `script_usbmount` NVRAM variable on USB mount.  
 The variable is being cleaned by `asd` (**Asus Security Daemon**).
 
-_Last updated: **26-02-2025**_
+_Last updated: **01-03-2025**_
 
 ## How to use this?
 
