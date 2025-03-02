@@ -45,50 +45,53 @@ fi
 [ -n "$NEW_PRECMD" ] && PRECMD="$NEW_PRECMD"
 [ -n "$NEW_POSTCMD" ] && POSTCMD="$NEW_POSTCMD"
 
-# Handle negative AFFINITY setting
-if echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
-    init_affinity="$(taskset -p 1 | sed 's/.*: //')"
+# Apply those only when starting or restarting
+if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
+    # Handle negative AFFINITY setting
+    if echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
+        init_affinity="$(taskset -p 1 | sed 's/.*: //')"
 
-    # Convert to decimal
-    init_affinity=$((0x$init_affinity))
+        # Convert to decimal
+        init_affinity=$((0x$init_affinity))
 
-    # Make sure variable holds only numbers
-    if echo "$init_affinity" | grep -q '^[0-9]\+$'; then
-        # Convert to absolute value
-        AFFINITY=${AFFINITY#-}
+        # Make sure variable holds only numbers
+        if echo "$init_affinity" | grep -q '^[0-9]\+$'; then
+            # Convert to absolute value
+            AFFINITY=${AFFINITY#-}
 
-        # Substract the value 
-        AFFINITY=$((init_affinity - AFFINITY))
+            # Substract the value 
+            AFFINITY=$((init_affinity - AFFINITY))
 
-        if [ "$AFFINITY" -ge 1 ]; then
-            # Convert to hexadecimal
-            AFFINITY=$(printf '%x\n' "$AFFINITY")
-        else # Values below 1 are invalid
-            echo "Invalid value for CPU affinity: $AFFINITY" >&2
+            if [ "$AFFINITY" -ge 1 ]; then
+                # Convert to hexadecimal
+                AFFINITY=$(printf '%x\n' "$AFFINITY")
+            else # Values below 1 are invalid
+                echo "Invalid value for CPU affinity: $AFFINITY" >&2
+                AFFINITY=
+            fi
+        else
+            echo "Failed to get CPU affinity of the init process (PID 1)" >&2
             AFFINITY=
         fi
-    else
-        echo "Failed to get CPU affinity of the init process (PID 1)" >&2
-        AFFINITY=
     fi
-fi
 
-# Apply niceness
-if [ -n "$NICE" ]; then
-    pid_nice="$(ps -p $$ -o ni | tail -n 1 | sed 's/ //g' | grep -E '^[0-9]+$')"
-    [ "$pid_nice" -ne "$NICE" ] && renice -n "$NICE" -p $$ > /dev/null && echo "Set niceness to $NICE"
-fi
+    # Apply niceness
+    if [ -n "$NICE" ]; then
+        pid_nice="$(ps -p $$ -o ni | tail -n 1 | sed 's/ //g' | grep -E '^[0-9]+$')"
+        [ "$pid_nice" -ne "$NICE" ] && renice -n "$NICE" -p $$ > /dev/null && echo "Set niceness to $NICE"
+    fi
 
-# Apply CPU affinity
-if [ -n "$AFFINITY" ]; then
-    pid_affinity="$(taskset -p $$ | sed 's/.*: //' | sed 's/ //g' | grep -E '^[0-9]+$')"
-    [ "$pid_affinity" -ne "$AFFINITY" ] && taskset -p "$AFFINITY" $$ > /dev/null && echo "Set CPU affinity to $AFFINITY"
-fi
+    # Apply CPU affinity
+    if [ -n "$AFFINITY" ]; then
+        pid_affinity="$(taskset -p $$ | sed 's/.*: //' | sed 's/ //g' | grep -E '^[0-9]+$')"
+        [ "$pid_affinity" -ne "$AFFINITY" ] && taskset -p "$AFFINITY" $$ > /dev/null && echo "Set CPU affinity to $AFFINITY"
+    fi
 
-# Apply umask
-if [ -n "$UMASK" ]; then
-    pid_umask="$(cat /proc/$$/status | grep Umask | awk '{print $2}')"
-    [ "$pid_umask" -ne "$UMASK" ] && umask "$UMASK" > /dev/null && echo "Set umask to $UMASK"
+    # Apply umask
+    if [ -n "$UMASK" ]; then
+        pid_umask="$(cat /proc/$$/status | grep Umask | awk '{print $2}')"
+        [ "$pid_umask" -ne "$UMASK" ] && umask "$UMASK" > /dev/null && echo "Set umask to $UMASK"
+    fi
 fi
 
 # Make sure CALLER is not empty - fixes empty value in "Started xxx from ." message in syslog
