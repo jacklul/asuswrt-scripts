@@ -150,7 +150,7 @@ case "$1" in
         new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
         current_version="${buildno}_${extendno}"
 
-        if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$new_version" ]; }; then
+        if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$new_version" ] ; }; then
             send_notification "$new_version"
 
             echo "$new_version" > "$CACHE_FILE"

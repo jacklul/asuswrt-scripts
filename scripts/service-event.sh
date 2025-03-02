@@ -61,11 +61,23 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
+            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+                _lockpid=
+            fi
+
+            case "$1" in
+                "lockfail"|"lockexit")
+                    if [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ]; then
+                        [ "$1" = "lockfail" ] && return 1
+                        exit 1
+                    fi
+                ;;
+            esac
+
             while [ -f "/proc/$$/fd/$_fd" ]; do
-                #echo "File descriptor $_fd is already in use ($(readlink -f "/proc/$$/fd/$_fd"))"
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to find available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -73,7 +85,7 @@ lockfile() { #LOCKFILE_START#
             case "$1" in
                 "lockwait")
                     _lockwait=0
-                    while ! flock -nx "$_fd"; do #flock -x "$_fd"
+                    while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
                         if [ "$_lockwait" -ge 60 ]; then
                             echo "Failed to acquire a lock after 60 seconds"

@@ -57,7 +57,7 @@ case "$1" in
             force=true
         fi
 
-        if [ -n "$force" ] || { [ -n "$wan_ip" ] && [ "$wan_ip" != "$last_wan_ip" ]; }; then
+        if [ -n "$force" ] || { [ -n "$wan_ip" ] && [ "$wan_ip" != "$last_wan_ip" ] ; }; then
             run_ddns_update
         fi
     ;;
