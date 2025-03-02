@@ -8,7 +8,12 @@ echo "$installed" | while read -r package; do
     name="$(echo "$package" | awk '{print $1}')"
 
     if opkg status "$name" | grep -q "install user installed"; then
-        echo "$package"
+        if [ "$1" = "list" ]; then
+            printf "%s " "$name"
+        else
+            echo "$package"
+        fi
     fi
 done
-IFS=""
+IFS=
+[ "$1" = "list" ] && printf "\n"
