@@ -6,6 +6,9 @@
 # Note that automatic download of Rclone binary stores it in /tmp directory - make sure you have enough free RAM!
 # This script will detect if Rclone was installed through Entware and set RCLONE_PATH automatically when left empty
 #
+# Based on:
+#  https://github.com/jacklul/rclone-backup
+#
 
 #jacklul-asuswrt-scripts-update=rclone-backup.sh
 #shellcheck disable=SC2155
@@ -16,21 +19,23 @@ readonly script_dir="$(dirname "$script_path")"
 readonly script_config="$script_dir/$script_name.conf"
 
 REMOTE="remote:" # remote to use
-PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose" # optional parameters
+PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose --log-file=/tmp/rclone.log" # optional parameters
+CRON="0 6 * * 7" # schedule as cron string
 CONFIG_FILE="/jffs/rclone.conf" # Rclone configuration file
 FILTER_FILE="/jffs/rclone.list" # Rclone filter/list file
 SCRIPT_PRE="/jffs/rclone-pre.sh" # execute a command before running rclone command
 SCRIPT_POST="/jffs/rclone-post.sh" # execute a command after running rclone command
 RCLONE_PATH="" # path to Rclone binary
-LOG_FILE="/tmp/rclone.log" # log file
-NVRAMTXT_FILE="/tmp/nvram.txt" # file to dump 'nvram show' result to, empty means don't dump
-NVRAMCFG_FILE="/tmp/nvram.cfg" # file to 'nvram save' to, empty means don't save
-CRON="0 6 * * 7" # schedule as cron string
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
 fi
+
+# we removed these, inform user of the change @TODO Remove it someday...
+[ -n "$NVRAMTXT_FILE" ] && logger -st "$script_name" "NVRAMTXT_FILE is deprecated, use '/jffs/rclone-pre.sh' script instead"
+[ -n "$NVRAMCFG_FILE" ] && logger -st "$script_name" "NVRAMCFG_FILE is deprecated, use '/jffs/rclone-pre.sh' script instead"
+[ -n "$LOG_FILE" ] && logger -st "$script_name" "LOG_FILE is deprecated, add '--log-file=' to PARAMETERS instead"
 
 case "$1" in
     "run")
@@ -69,21 +74,11 @@ case "$1" in
             . "$SCRIPT_PRE"
         fi
 
-        logger -st "$script_name" "Creating backup..."
-
-        [ -n "$NVRAMTXT_FILE" ] && nvram show > "$NVRAMTXT_FILE" 2> /dev/null
-        [ -n "$NVRAMCFG_FILE" ] && nvram save "$NVRAMCFG_FILE" 2> /dev/null
-
-        if [ -n "$LOG_FILE" ]; then
-            echo "" > "$LOG_FILE"
-            PARAMETERS="--log-file=$LOG_FILE $PARAMETERS"
-        fi
+        logger -st "$script_name" "Backing up now..."
 
         #shellcheck disable=SC2086
         "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" $PARAMETERS
         status="$?"
-
-        rm -f "$NVRAMTXT_FILE" "$NVRAMCFG_FILE"
 
         if [ -n "$SCRIPT_POST" ] && [ -x "$SCRIPT_POST" ]; then
             logger -st "$script_name" "Executing script '$SCRIPT_POST'..."
@@ -101,14 +96,9 @@ case "$1" in
         fi
 
         if [ "$status" -eq 0 ]; then
-            logger -st "$script_name" "Backup completed successfully"
+            logger -st "$script_name" "Finished successfully"
         else
-            if [ -n "$LOG_FILE" ]; then
-                logger -st "$script_name" "There was an error while running backup, check '$LOG_FILE' for details"
-            else
-                logger -st "$script_name" "There was an error while running backup"
-            fi
-
+            logger -st "$script_name" "Finished with error code $status"
             exit 1
         fi
     ;;
