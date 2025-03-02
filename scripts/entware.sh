@@ -628,7 +628,7 @@ case "$1" in
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
-            if [ -f /jffs/entware/etc/opkg.conf ]; then
+            if [ -n "$IN_RAM" ] && [ -f /jffs/entware/etc/opkg.conf ]; then
                 ln -sv /jffs/entware/etc/opkg.conf /opt/etc/opkg.conf
             else
                 curl -fsS "$install_url/opkg.conf" -o /opt/etc/opkg.conf
