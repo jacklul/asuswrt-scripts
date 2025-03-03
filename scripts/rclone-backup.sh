@@ -54,7 +54,7 @@ case "$1" in
             if opkg update && opkg install rclone; then
                 RCLONE_PATH="/opt/bin/rclone"
 
-                if mount | grep "on /opt " | grep -q "tmpfs"; then
+                if mount | grep -F "on /opt " | grep -Fq "tmpfs"; then
                     entware_on_tmpfs=1
                 fi
             else
@@ -62,7 +62,7 @@ case "$1" in
             fi
         fi
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logger -st "$script_name" "WAN network is not connected"; exit 1; }
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
         [ ! -f "$FILTER_FILE" ] && { logger -st "$script_name" "Could not find filter file: $FILTER_FILE"; exit 1; }
         [ ! -f "$RCLONE_PATH" ] && { logger -st "$script_name" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }

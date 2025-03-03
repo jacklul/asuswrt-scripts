@@ -53,7 +53,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -69,7 +69,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -79,8 +79,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -140,7 +140,7 @@ case "$1" in
     "run")
         lockfile lockfail || { echo "Already running! ($_lockpid)"; exit 1; }
 
-        if ! grep -q "file" /proc/swaps; then
+        if ! grep -Fq "file" /proc/swaps; then
             [ -z "$SWAP_FILE" ] && find_swap_file
 
             if [ -n "$SWAP_FILE" ] && [ -d "$(dirname "$SWAP_FILE")" ] && [ ! -f "$SWAP_FILE" ]; then
@@ -168,37 +168,30 @@ case "$1" in
         if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
             case "$ACTION" in
                 "add")
-                    grep -q "file" /proc/swaps && exit 0 # do nothing if swap is already enabled
+                    grep -Fq "file" /proc/swaps && exit 0 # do nothing if swap is already enabled
 
                     timeout=60
-                    while ! df | grep -q "/dev/$DEVICENAME" && [ "$timeout" -ge 0 ]; do
+                    while ! df | grep -Fq "/dev/$DEVICENAME" && [ "$timeout" -ge 0 ]; do
                         [ "$timeout" -lt 60 ] && { echo "Device is not yet mounted, waiting 5 seconds..."; sleep 5; }
                         timeout=$((timeout-5))
                     done
 
-                    if df | grep -q "/dev/$DEVICENAME"; then
+                    if df | grep -Fq "/dev/$DEVICENAME"; then
                         sh "$script_path" run
                         exit
                     fi
 
-                    [ "$timeout" -le 0 ] && echo "Device /dev/$DEVICENAME did not mount within 60 seconds"
+                    [ "$timeout" -le 0 ] && logger -st "$script_name" "Device /dev/$DEVICENAME did not mount within 60 seconds"
                 ;;
                 "remove")
                     # officially multiple swap files are not supported but try to handle it...
-                    swap_files=$(grep 'file' /proc/swaps | awk '{print $1}')
+                    swap_files=$(grep -F 'file' /proc/swaps | awk '{print $1}')
 
                     for swap_file in $swap_files; do
-                        # in theory this should not work as df won't return unmounted filesystems?
-                        swap_file_device="$(df "$swap_file" | tail -1 | awk '{print $1}')"
-
-                        if [ "$swap_file_device" = "/dev/$DEVICENAME" ]; then
+                        if [ ! -e "$swap_file" ]; then
                             disable_swap "$swap_file"
                         fi
                     done
-                ;;
-                *)
-                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
-                    exit 1
                 ;;
             esac
         fi
@@ -216,6 +209,7 @@ case "$1" in
         touch "$SWAP_FILE"
         dd if=/dev/zero of="$SWAP_FILE" bs=1k count="$SWAP_SIZE"
         mkswap "$SWAP_FILE"
+        chmod 640 "$SWAP_FILE"
 
         set +e
     ;;
@@ -239,7 +233,7 @@ case "$1" in
 
         [ -z "$SWAP_FILE" ] && find_swap_file
 
-        if [ -n "$SWAP_FILE" ] && grep -q "$SWAP_FILE" /proc/swaps; then
+        if [ -n "$SWAP_FILE" ] && grep -Fq "$SWAP_FILE" /proc/swaps; then
             disable_swap "$SWAP_FILE"
         fi
     ;;

@@ -25,6 +25,14 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+is_merlin_firmware && merlin=true
 wan_ip=""
 last_wan_ip=""
 [ -f "$CACHE_FILE" ] && last_wan_ip="$(cat "$CACHE_FILE")"
@@ -45,7 +53,7 @@ run_ddns_update() {
 
 case "$1" in
     "run")
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
 
         if [ "$IPECHO_URL" = "nvram" ]; then
             wan_ip="$(nvram get wan0_ipaddr)"
@@ -65,7 +73,7 @@ case "$1" in
         run_ddns_update
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
+        [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
 
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
         inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$script_name" "Unable to start - Inadyn config is not valid"; exit 1; }

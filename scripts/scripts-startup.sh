@@ -5,6 +5,7 @@
 # Only scripts containing "start") or start) will be interacted with
 #
 
+#jacklul-asuswrt-scripts-update=scripts-startup.sh
 #shellcheck disable=SC2155
 
 readonly script_path="$(readlink -f "$0")"
@@ -12,42 +13,70 @@ readonly script_name="$(basename "$script_path" .sh)"
 readonly script_dir="$(dirname "$script_path")"
 readonly script_config="$script_dir/$script_name.conf"
 
-SCRIPTS_DIR="/jffs/scripts"
+SCRIPTS_DIR="$script_dir"
 CHECK_FILE="/tmp/scripts_started"
+PRIORITIES="service-event.sh hotplug-event.sh custom-configs.sh cron-queue.sh"
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
 fi
 
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+call_action() {
+    _entry="$1"
+    _action="$2"
+
+    case "$_action" in
+        "start")
+            logger -st "$script_name" "Starting '$_entry'..."
+        ;;
+        "stop")
+            logger -st "$script_name" "Stopping '$_entry'..."
+        ;;
+        "restart")
+            logger -st "$script_name" "Restarting '$_entry'..."
+        ;;
+        *)
+            echo "Unknown action: $_action"
+            return
+    esac
+
+    /bin/sh "$_entry" "$_action" 
+}
+
 scripts() {
-    readonly _ACTION="$1"
+    _action="$1"
 
     [ ! -d "$SCRIPTS_DIR" ] && return
 
-    for _ENTRY in "$SCRIPTS_DIR"/*.sh; do
-        _ENTRY="$(readlink -f "$_ENTRY")"
+    if [ -n "$PRIORITIES" ] && [ "$_action" = "start" ]; then
+        for _entry in $PRIORITIES; do
+            if [ -x "$SCRIPTS_DIR/$_entry" ]; then
+                call_action "$SCRIPTS_DIR/$_entry" start
+            fi
+        done
+    fi
 
-        [ "$_ENTRY" = "$script_path" ] && continue # do not interact with itself, just in case
-        { ! grep -q "\"start\")" "$_ENTRY" && ! grep -q "start)" "$_ENTRY" ; } && continue
+    for _entry in "$SCRIPTS_DIR"/*.sh; do
+        _entry="$(readlink -f "$_entry")"
 
-        if [ -x "$_ENTRY" ]; then
-            case "$_ACTION" in
-                "start")
-                    logger -st "$script_name" "Starting $_ENTRY..."
-                ;;
-                "stop")
-                    logger -st "$script_name" "Stopping $_ENTRY..."
-                ;;
-                "restart")
-                    logger -st "$script_name" "Restarting $_ENTRY..."
-                ;;
-                *)
-                    echo "Unknown action: $_ACTION"
-                    return
-            esac
+        # Do not start priority scripts again
+        if [ "$_action" = "start" ] && echo "$PRIORITIES" | grep -Fq "$(basename "$_entry")"; then
+            continue
+        fi
 
-            /bin/sh "$_ENTRY" "$_ACTION"
+        [ "$_entry" = "$script_path" ] && continue # do not interact with itself, just in case
+        { ! grep -Fq "\"start\")" "$_entry" && ! grep -Fq "start)" "$_entry" ; } && continue # require 'start' case
+
+        if [ -x "$_entry" ]; then
+            call_action "$_entry" "$_action"
         fi
     done
 }
@@ -79,7 +108,7 @@ case "$1" in
     "install")
         mkdir -pv "$SCRIPTS_DIR"
 
-        if [ -f "/usr/sbin/helper.sh" ]; then # could also be [ "$(uname -o)" = "ASUSWRT-Merlin" ] ?
+        if is_merlin_firmware; then
             cat <<EOT
 You should not be using this script on Asuswrt-Merlin!
 Please start individual scripts from /jffs/scripts/services-start instead!
@@ -94,22 +123,22 @@ EOT
             case $REPLY in
                 [Yy]*)
                     if [ ! -f /jffs/scripts/services-start ]; then
-                    echo "Creating /jffs/scripts/services-start"
+                        echo "Creating /jffs/scripts/services-start"
 
-                    cat <<EOT > /jffs/scripts/services-start
+                        cat <<EOT > /jffs/scripts/services-start
 #!/bin/sh
 
 EOT
-                    chmod 0755 /jffs/scripts/services-start
-                fi
+                        chmod 0755 /jffs/scripts/services-start
+                    fi
 
-                if ! grep -q "$script_path" /jffs/scripts/services-start; then
-                    echo "Adding script to /jffs/scripts/services-start"
+                    if ! grep -Fq "$script_path" /jffs/scripts/services-start; then
+                        echo "Adding script to /jffs/scripts/services-start"
 
-                    echo "$script_path start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
-                else
-                    echo "Script line already exists in /jffs/scripts/services-start"
-                fi
+                        echo "$script_path start & # jacklul/asuswrt-scripts" >> /jffs/scripts/services-start
+                    else
+                        echo "Script line already exists in /jffs/scripts/services-start"
+                    fi
                 ;;
             esac
         else
@@ -136,7 +165,7 @@ EOT
         fi
     ;;
     *)
-        echo "Usage: $0 start|stop|install"
+        echo "Usage: $0 start|stop|restart|install"
         exit 1
     ;;
 esac

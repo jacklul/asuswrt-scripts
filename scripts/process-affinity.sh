@@ -34,7 +34,7 @@ set_affinity() {
 
     _process_basename="$(basename "$1")"
 
-    if echo "$1" | grep -q "/"; then
+    if echo "$1" | grep -Fq "/"; then
         _process_path="$(readlink -f "$1")"
     else
         _process_path="$(readlink -f "$(which "$1")")"
@@ -83,11 +83,11 @@ process_affinity() {
 
         case $1 in
             "set")
-                if echo "$_process" | grep -q ":"; then
+                if echo "$_process" | grep -Fq ":"; then
                     _affinity="$(echo "$_process" | cut -d ':' -f 2 2> /dev/null)"
                     _process="$(echo "$_process" | cut -d ':' -f 1 2> /dev/null)"
 
-                    echo "$_process" | grep -q ":" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
+                    echo "$_process" | grep -Fq ":" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
                 fi
             ;;
             "unset")

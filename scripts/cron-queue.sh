@@ -44,7 +44,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -60,7 +60,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -70,8 +70,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -137,7 +137,7 @@ case "$1" in
         [ -z "$2" ] && { echo "Entry ID not provided"; exit 1; }
 
         if [ -f "$QUEUE_FILE" ]; then
-            grep -q "#$2#" "$QUEUE_FILE" && exit 0
+            grep -Fq "#$2#" "$QUEUE_FILE" && exit 0
         fi
 
         exit 1

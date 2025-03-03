@@ -51,7 +51,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -67,7 +67,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -77,8 +77,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -112,16 +112,13 @@ lockfile() { #LOCKFILE_START#
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     _ppid=$PPID
-
     while true; do
         [ -z "$_ppid" ] && break
         _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
-
-        grep -q "cron" "/proc/$_ppid/comm" && return 0
-        grep -q "hotplug" "/proc/$_ppid/comm" && return 0
+        grep -Fq "cron" "/proc/$_ppid/comm" && return 0
+        grep -Fq "hotplug" "/proc/$_ppid/comm" && return 0
         [ "$_ppid" -gt 1 ] || break
     done
-
     return 1
 } #ISSTARTEDBYSYSTEM_END#
 
@@ -149,8 +146,12 @@ case "$1" in
         done
 
         [ -n "$downloaded" ] && logger -st "$script_name" "Downloaded files from netboot.xyz:$downloaded"
-        #[ -n "$FAILED" ] && logger -st "$script_name" "Failed to downloaded files from netboot.xyz:$FAILED"
-        [ -z "$failed" ] && sh "$script_path" stop
+        #[ -n "$failed" ] && logger -st "$script_name" "Failed to downloaded files from netboot.xyz:$failed"
+
+        if [ -z "$failed" ]; then
+            [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+            cru d "$script_name"
+        fi
 
         lockfile unlock
     ;;

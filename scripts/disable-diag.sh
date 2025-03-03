@@ -28,6 +28,8 @@ case "$1" in
 
             nvram set enable_diag=0
             killall conn_diag amas_portstatus
+
+            logger -st "$script_name" "Disabled diagnostics process"
         fi
     ;;
     "start")

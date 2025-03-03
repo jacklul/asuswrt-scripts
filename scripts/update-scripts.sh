@@ -65,7 +65,7 @@ if [ -z "$1" ] || [ "$1" = "run" ]; then
             # hacky but works
             { sleep 1 && cat "/tmp/$script_name-download" > "$script_path"; } &
 
-            echo "Script has been updated, please re-run!"
+            echo "This script has been updated, please re-run!"
             exit 0
         fi
     fi
@@ -77,7 +77,7 @@ if [ -z "$1" ] || [ "$1" = "run" ]; then
         basename="$(basename "$entry")"
 
         [ "$entry" = "$script_path" ] && continue
-        ! grep -q "jacklul-asuswrt-scripts-update" "$entry" && continue
+        ! grep -Fq "jacklul-asuswrt-scripts-update" "$entry" && continue
 
         target_basename="$(grep -E '^#(\s+)?jacklul-asuswrt-scripts-update=' "$entry" | sed 's/.*jacklul-asuswrt-scripts-update=//')"
         [ -n "$target_basename" ] && basename=$target_basename

@@ -37,7 +37,7 @@ case "$1" in
                     [ -n "$tmp" ] && filepath=$tmp
                 fi
 
-                [ -f "$filepath" ] && mount | grep "$filepath" > /dev/null && continue
+                [ -f "$filepath" ] && mount | grep -F "$filepath" > /dev/null && continue
 
                 filename="$(basename "$filepath")"
                 fileext="${filename##*.}"
@@ -47,7 +47,7 @@ case "$1" in
                     filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
 
                     if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                        lsmod | grep -qF "$modulename" && modprobe -r "$modulename" && logger -st "$script_name" "Blocked kernel module: $process" && usleep 250000
+                        lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logger -st "$script_name" "Blocked kernel module: $process" && usleep 250000
                         mount -o bind /dev/null "$filepath"
                     fi
                 else

@@ -23,8 +23,10 @@ SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each syslog reading iteration
+CUSTOM_CHECKS=true # run additional checks (detect when interface config or firewall rules were recreated)
 
 # Chain names definitions, must be changed if they were modified in their scripts
+readonly CHAINS_CHECK="SERVICE_EVENT_CHECK"
 readonly CHAINS_FORCEDNS="FORCEDNS"
 readonly CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
 readonly CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
@@ -35,7 +37,14 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
-[ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+is_merlin_firmware && merlin=true
 
 lockfile() { #LOCKFILE_START#
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
@@ -61,7 +70,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -77,7 +86,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -87,8 +96,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -122,18 +131,60 @@ lockfile() { #LOCKFILE_START#
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     _ppid=$PPID
-
     while true; do
         [ -z "$_ppid" ] && break
         _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
-
-        grep -q "cron" "/proc/$_ppid/comm" && return 0
-        grep -q "hotplug" "/proc/$_ppid/comm" && return 0
+        grep -Fq "cron" "/proc/$_ppid/comm" && return 0
+        grep -Fq "hotplug" "/proc/$_ppid/comm" && return 0
         [ "$_ppid" -gt 1 ] || break
     done
-
     return 1
 } #ISSTARTEDBYSYSTEM_END#
+
+custom_checks() {
+    change_interface=false
+    change_firewall=false
+
+    if ! ip addr show dev lo | grep -Fq "inet 127.0.99.1/8 "; then
+        ip -4 addr add "127.0.99.1/8" dev lo
+        change_interface=true
+    fi
+
+    if ! iptables -nL "SERVICE_EVENT_CHECK" > /dev/null 2>&1; then
+        iptables -N "SERVICE_EVENT_CHECK"
+        change_firewall=true
+    fi
+
+    #_wan0_state=""
+    #_wan1_state=""
+    #_wan0_state_new="$(nvram get wan0_state_t)"
+    #_wan1_state_new="$(nvram get wan1_state_t)"
+    #if [ "$_wan0_state" != "$_wan0_state_new" ] || [ "$_wan1_state" != "$_wan1_state_new" ]; then
+    #    _wan0_state="$_wan0_state_new"
+    #    _wan1_state="$_wan1_state_new"
+    #    change_interface=true
+    #fi
+
+    if [ "$1" != "init" ] && { [ "$change_interface" = true ] || [ "$change_firewall" = true ] ; }; then
+        return 1
+    fi
+
+    return 0
+}
+
+trigger_event() {
+    _action="$1"
+    _target="$2"
+
+    if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
+        logger -st "$script_name" "Running script (args: '${_action}' '${_target}') [custom check]"
+    else
+        logger -st "$script_name" "Running script (args: '${_action}' '${_target}')"
+    fi
+
+    sh "$script_path" event "$_action" "$_target" "$3" &
+    [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$_action" "$_target" &
+}
 
 service_monitor() {
     [ ! -f "$SYSLOG_FILE" ] && { logger -st "$script_name" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
@@ -151,7 +202,11 @@ service_monitor() {
         last_line="$((last_line+1))"
     fi
 
+    [ "$CUSTOM_CHECKS" = true ] && custom_checks init
+
     while true; do
+        events_triggered=false
+
         total_lines="$(wc -l < "$SYSLOG_FILE")"
         if [ "$total_lines" -lt "$((last_line-1))" ]; then
             logger -st "$script_name" "Log file has been rotated, resetting line pointer..."
@@ -182,10 +237,8 @@ service_monitor() {
                                 event_action="$(echo "$event" | cut -d'_' -f1)"
                                 event_target="$(echo "$event" | cut -d'_' -f2- | cut -d' ' -f1)"
 
-                                logger -st "$script_name" "Running script (args: '${event_action}' '${event_target}')"
-
-                                sh "$script_path" event "$event_action" "$event_target" &
-                                [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$event_action" "$event_target" &
+                                trigger_event "$event_action" "$event_target"
+                                events_triggered=true
                             fi
                         done
                         IFS=$oldifs
@@ -194,6 +247,16 @@ service_monitor() {
             else
                 total_lines="$(echo "$new_lines" | wc -l)"
                 last_line="$((last_line+total_lines))"
+            fi
+        fi
+
+        if [ "$CUSTOM_CHECKS" = true ] && [ "$events_triggered" = false ] && ! custom_checks; then
+            if [ "$change_interface" = true ]; then
+                trigger_event "restart" "net" "ccheck"
+            fi
+
+            if [ "$change_firewall" = true ]; then
+                trigger_event "restart" "firewall" "ccheck"
             fi
         fi
 
@@ -209,7 +272,8 @@ service_monitor() {
 
 case "$1" in
     "run")
-        [ -n "$MERLIN" ] && exit # Do not run on Asuswrt-Merlin firmware
+        [ -n "$merlin" ] && exit # Do not run on Asuswrt-Merlin firmware
+        lockfile check && { echo "Already running! ($_lockpid)"; exit 1; }
 
         if is_started_by_system && [ "$2" != "nohup" ]; then
             nohup "$script_path" run nohup > /dev/null 2>&1 &
@@ -218,6 +282,12 @@ case "$1" in
         fi
     ;;
     "event")
+        if [ "$4" = "ccheck" ]; then
+            lockfile lockfail "event_${2}_${3}" || { logger -st "$script_name" "This event is already being processed (args: '$2' '$3')"; exit 1; }
+        else
+            lockfile lockwait "event_${2}_${3}"
+        fi
+
         # $2 = event, $3 = target
         case "$3" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
@@ -227,8 +297,9 @@ case "$1" in
                     [ -x "$script_dir/force-dns.sh" ] ||
                     [ -x "$script_dir/samba-masquerade.sh" ]
                 then
-                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                        timer=60; while { # wait till our chains disappear
+                    if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
+                        timer=30; while { # wait till our chains disappear
+                            iptables -nL "$CHAINS_CHECK" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
                             iptables -nL "$CHAINS_FORCEDNS" -t nat > /dev/null 2>&1 ||
@@ -245,7 +316,7 @@ case "$1" in
                     [ -x "$script_dir/samba-masquerade.sh" ] && sh "$script_dir/samba-masquerade.sh" run &
                 fi
 
-                sh "$script_path" event restart custom_configs &
+                sh "$script_path" event restart custom_configs "$4" &
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if
@@ -253,7 +324,7 @@ case "$1" in
                     [ -x "$script_dir/extra-ip.sh" ] ||
                     [ -x "$script_dir/dynamic-dns.sh" ]
                 then
-                    if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
+                    if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
                         timer=10; while { # wait until wan goes down
                             { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
                             { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
@@ -262,7 +333,7 @@ case "$1" in
                             sleep 1
                         done
 
-                        timer=60; while { # wait until wan goes up
+                        timer=30; while { # wait until wan goes up
                             [ "$(nvram get wan0_state_t)" != "2" ] &&
                             [ "$(nvram get wan1_state_t)" != "2" ];
                         } && [ "$timer" -ge 0 ]; do
@@ -277,9 +348,9 @@ case "$1" in
                 fi
 
                 # most services here also restart firewall and/or wireless and/or recreate configs so execute these too
-                sh "$script_path" event restart wireless &
-                sh "$script_path" event restart firewall &
-                #sh "$script_path" event restart custom_configs & # this is already executed by 'restart firewall' event
+                sh "$script_path" event restart wireless "$4" &
+                sh "$script_path" event restart firewall "$4" &
+                #sh "$script_path" event restart custom_configs "$4" & # this is already executed by 'restart firewall' event
             ;;
             "wireless")
                 # probably a good idea to run this just in case
@@ -290,8 +361,8 @@ case "$1" in
                     if [ -f /tmp/rc_support.last ]; then
                         rc_support_last="$(cat /tmp/rc_support.last 2> /dev/null)"
 
-                        if [ -z "$MERLIN" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                            timer=60; while { # wait till rc_support is modified
+                        if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
+                            timer=30; while { # wait till rc_support is modified
                                 [ "$(nvram get rc_support)" = "$rc_support_last" ]
                             } && [ "$timer" -ge 0 ]; do
                                 timer=$((timer-1))
@@ -308,7 +379,7 @@ case "$1" in
                 [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" run &
             ;;
             "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
-                if [ -x "$script_dir/custom-configs.sh" ] && [ -z "$MERLIN" ]; then # Do not run custom-configs on Asuswrt-Merlin firmware as that functionality is already built-in
+                if [ -x "$script_dir/custom-configs.sh" ] && [ -z "$merlin" ]; then # Do not run custom-configs on Asuswrt-Merlin firmware as that functionality is already built-in
                     { sleep 5 && sh "$script_dir/custom-configs.sh" run; } &
                 fi
             ;;
@@ -317,14 +388,15 @@ case "$1" in
         # these do not follow the naming scheme ("ACTION_SERVICE")
         case "${2}_${3}" in
             "ipsec_set"|"ipsec_start"|"ipsec_restart")
-                sh "$script_path" event restart firewall
+                sh "$script_path" event restart firewall "$4" &
             ;;
         esac
 
+        lockfile unlock "event_${2}_${3}"
         exit
     ;;
     "start")
-        if [ -n "$MERLIN" ]; then # use service-event-end on Asuswrt-Merlin firmware
+        if [ -n "$merlin" ]; then # use service-event-end on Asuswrt-Merlin firmware
             if [ ! -f /jffs/scripts/service-event-end ]; then
                 cat <<EOT > /jffs/scripts/service-event-end
 #!/bin/sh
@@ -333,7 +405,7 @@ EOT
                 chmod 0755 /jffs/scripts/service-event-end
             fi
 
-            if ! grep -q "$script_path" /jffs/scripts/service-event-end; then
+            if ! grep -Fq "$script_path" /jffs/scripts/service-event-end; then
                 echo "$script_path event \"\$1\" \"\$2\" & # jacklul/asuswrt-scripts" >> /jffs/scripts/service-event-end
             fi
         else

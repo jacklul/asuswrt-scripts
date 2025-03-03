@@ -4,12 +4,11 @@
 # This script will be executed by the router on mount/unmount event
 # It will first look for the script to execute in script_usbmount/script_usbumount NVRAM variable
 # Then it will look for usb-mount-script/usb-umount-script script in /jffs/scripts
-# It will launch /jffs/scripts-startup.sh if none of the above are available
+# It will launch scripts-startup.sh on mount if none of the above are available
 #
 # Receiving 'stop' here is unlikely, possibly only when unmounting from the web UI
 #
 
-command="/jffs/scripts-startup.sh start" # https://github.com/jacklul/asuswrt-scripts startup script by default
 tag="$(basename "$0")"
 
 case "$1" in
@@ -17,17 +16,18 @@ case "$1" in
         nvram_script="$(nvram get script_usbmount)"
 
         if [ -n "$nvram_script" ]; then
-            logger -t "$tag" "Executing command: $nvram_script"
-            eval "$nvram_script"
-        else
-            if [ -x /jffs/scripts/usb-mount-script ]; then
-                command=/jffs/scripts/usb-mount-script
-            fi
+            command="$nvram_script"
+        elif [ -x /jffs/scripts/usb-mount-script ]; then
+            command=/jffs/scripts/usb-mount-script
+        elif [ -x "/jffs/scripts/scripts-startup.sh" ]; then
+            command="/jffs/scripts/scripts-startup.sh start"
+        elif [ -x "/jffs/scripts-startup.sh" ]; then
+            command="/jffs/scripts-startup.sh start"
+        fi
 
-            if [ -x "$command" ]; then
-                logger -t "$tag" "Executing command: $command"
-                eval "$command"
-            fi
+        if [ -n "$command" ]; then
+            logger -t "$tag" "Executing command: $command"
+            eval "$command"
         fi
 
         # This allows the USB drive to be unplugged and then plugged back in and retriggering this script again,
@@ -55,17 +55,14 @@ case "$1" in
         nvram_script="$(nvram get script_usbumount)"
 
         if [ -n "$nvram_script" ]; then
-            logger -t "$tag" "Executing command: $nvram_script"
-            eval "$nvram_script"
-        else
-            if [ -x /jffs/scripts/usb-umount-script ]; then
-                command=/jffs/scripts/usb-umount-script
-            fi
+            command="$nvram_script"
+        elif [ -x /jffs/scripts/usb-umount-script ]; then
+            command=/jffs/scripts/usb-umount-script
+        fi
 
-            if [ -x "$command" ]; then
-                logger -t "$tag" "Executing command: $command"
-                eval "$command"
-            fi
+        if [ -n "$command" ]; then
+            logger -t "$tag" "Executing command: $command"
+            eval "$command"
         fi
     ;;
 esac

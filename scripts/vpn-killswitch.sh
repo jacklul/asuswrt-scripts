@@ -19,6 +19,18 @@ BRIDGE_INTERFACES="br+" # the bridge interface to set rules for, by default affe
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
 RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+# Disable on Merlin when service-event.sh is available (service-event-end runs it)
+if is_merlin_firmware && [ -x "$script_dir/service-event.sh" ]; then
+    RUN_EVERY_MINUTE=false
+fi
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -57,7 +69,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -73,7 +85,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -83,8 +95,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -133,13 +145,13 @@ get_wan_interface() {
 }
 
 verify_bridge_interfaces() {
-    if echo "$BRIDGE_INTERFACES" | grep -q "br+"; then
+    if echo "$BRIDGE_INTERFACES" | grep -Fq "br+"; then
         BRIDGE_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
     else
         for _bridge_interface in $BRIDGE_INTERFACES; do
-            if ! ip link show | grep ": $_bridge_interface" | grep -q "mtu"; then
+            if ! ip link show | grep -F ": $_bridge_interface" | grep -Fq "mtu"; then
                 logger -st "$script_name" "Couldn't find matching bridge interface for $_bridge_interface"
-                exit 0
+                exit 1
             fi
         done
     fi

@@ -14,20 +14,32 @@ readonly script_config="$script_dir/$script_name.conf"
 
 EXTRA_IPS="" # extra IP addresses to add, in format br0=192.168.1.254/24, multiple entries separated by space
 EXTRA_IPS6="" # extra IPv6 addresses to add, in format br0=2001:db8::1/64, multiple entries separated by space
-RUN_EVERY_MINUTE= # verify that the addresses are still set (true/false), empty means false when service-event.sh is available but otherwise true
+RUN_EVERY_MINUTE=true # verify that the addresses are still set (true/false), recommended to keep it enabled even when service-event.sh is available
+
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+# Disable on Merlin when service-event.sh is available (service-event-end runs it)
+if is_merlin_firmware && [ -x "$script_dir/service-event.sh" ]; then
+    RUN_EVERY_MINUTE=false
+fi
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
 fi
 
-if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
-fi
-
 # we did some changes, inform user of the change @TODO Remove it someday...
 [ -n "$EXTRA_IP" ] && [ -z "$EXTRA_IPS" ] && echo "EXTRA_IP variable has been renamed into EXTRA_IPS and expects different format!"
 [ -n "$EXTRA_IP6" ] && [ -z "$EXTRA_IPS6" ]  && echo "EXTRA_IP6 variable has been renamed into EXTRA_IPS6 and expects different format!"
+
+if [ -z "$RUN_EVERY_MINUTE" ]; then
+    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
+fi
 
 extra_ip() {
     { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logger -st "$script_name" "Extra IP addresses are not set"; exit 1; }
@@ -36,11 +48,11 @@ extra_ip() {
         _interface=
         _address=
 
-        if echo "$_extra_ip" | grep -q "="; then
+        if echo "$_extra_ip" | grep -Fq "="; then
             _address="$(echo "$_extra_ip" | cut -d '=' -f 2 2> /dev/null)"
             _interface="$(echo "$_extra_ip" | cut -d '=' -f 1 2> /dev/null)"
 
-            echo "$_address" | grep -q "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
+            echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
             { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { echo "List element is invalid: $_interface $_address"; exit 1; }
         else
             echo "Variable EXTRA_IPS has invalid value"
@@ -49,13 +61,13 @@ extra_ip() {
 
         case "$1" in
             "add")
-                if ! ip addr show dev "$_interface" | grep -q "inet $_address "; then
+                if ! ip addr show dev "$_interface" | grep -Fq "inet $_address"; then
                     ip -4 addr add "$_address" brd + dev "$_interface"
                     logger -st "$script_name" "Added IPv4 address $_address to interface $_interface"
                 fi
             ;;
             "remove")
-                if ip addr show dev "$_interface" | grep -q "inet $_address "; then
+                if ip addr show dev "$_interface" | grep -Fq "inet $_address"; then
                     ip -4 addr delete "$_address" dev "$_interface"
                     logger -st "$script_name" "Removed IPv4 address $_address from interface $_interface"
                 fi
@@ -67,11 +79,11 @@ extra_ip() {
         _interface=
         _address=
 
-        if echo "$_extra_ip6" | grep -q "="; then
+        if echo "$_extra_ip6" | grep -Fq "="; then
             _address="$(echo "$_extra_ip6" | cut -d '=' -f 2 2> /dev/null)"
             _interface="$(echo "$_extra_ip6" | cut -d '=' -f 1 2> /dev/null)"
 
-            echo "$_address" | grep -q "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
+            echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
             { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { echo "List element is invalid: $_interface $_address"; exit 1; }
         else
             echo "Variable EXTRA_IPS6 has invalid value"
@@ -80,13 +92,13 @@ extra_ip() {
 
         case "$1" in
             "add")
-                if [ -n "$_address" ] && ! ip addr show dev "$_interface" | grep -q "inet6 $_address "; then
+                if [ -n "$_address" ] && ! ip addr show dev "$_interface" | grep -Fq "inet6 $_address"; then
                     ip -6 addr add "$_address" brd + dev "$_interface"
                     logger -st "$script_name" "Added IPv6 address $_address to interface $_interface"
                 fi
             ;;
             "remove")
-                if [ -n "$_address" ] && ip addr show dev "$_interface" | grep -q "inet6 $_address "; then
+                if [ -n "$_address" ] && ip addr show dev "$_interface" | grep -Fq "inet6 $_address"; then
                     ip -6 addr delete "$_address" dev "$_interface"
                     logger -st "$script_name" "Removed IPv6 address $_address from interface $_interface"
                 fi

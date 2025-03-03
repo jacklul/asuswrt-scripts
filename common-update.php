@@ -3,7 +3,7 @@
 
 define('DS', DIRECTORY_SEPARATOR);
 
-$markers = ['LOCKFILE', 'ISSTARTEDBYSYSTEM'];
+$markers = ['LOCKFILE', 'ISSTARTEDBYSYSTEM', 'ISMERLINFIRMWARE'];
 $target_dirs = [__DIR__ . DS . 'scripts', __DIR__ . DS . 'extras'];
 $source_file = __DIR__ . DS . 'common.sh';
 

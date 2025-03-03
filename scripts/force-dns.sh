@@ -38,6 +38,20 @@ VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applyin
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
 RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
 
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+is_merlin_firmware && merlin=true
+
+# Disable on Merlin when service-event.sh is available (service-event-end runs it)
+if [ -n "$merlin" ] && [ -x "$script_dir/service-event.sh" ]; then
+    RUN_EVERY_MINUTE=false
+fi
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -99,7 +113,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -115,7 +129,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -125,8 +139,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -160,10 +174,10 @@ lockfile() { #LOCKFILE_START#
 
 interface_exists() {
     if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
-        if ip link show | grep ": $1" | grep -q "mtu"; then
+        if ip link show | grep -F ": $1" | grep -Fq "mtu"; then
             return 0
         fi
-    elif ip link show | grep " $1:" | grep -q "mtu"; then
+    elif ip link show | grep -F " $1:" | grep -Fq "mtu"; then
         return 0
     fi
 
@@ -415,7 +429,7 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -f "/usr/sbin/helper.sh" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
+        [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
 
         [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Unable to start - target DNS server is not set"; exit 1; }
 

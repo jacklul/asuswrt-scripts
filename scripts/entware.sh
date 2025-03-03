@@ -24,6 +24,7 @@ BASE_URL="bin.entware.net" # Base Entware URL, can be changed if you wish to use
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only)
 CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was mounted on
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
+REQUIRE_NTP=true # require time to be synchronized to start
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
@@ -62,7 +63,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -78,7 +79,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -88,8 +89,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -123,21 +124,18 @@ lockfile() { #LOCKFILE_START#
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     _ppid=$PPID
-
     while true; do
         [ -z "$_ppid" ] && break
         _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
-
-        grep -q "cron" "/proc/$_ppid/comm" && return 0
-        grep -q "hotplug" "/proc/$_ppid/comm" && return 0
+        grep -Fq "cron" "/proc/$_ppid/comm" && return 0
+        grep -Fq "hotplug" "/proc/$_ppid/comm" && return 0
         [ "$_ppid" -gt 1 ] || break
     done
-
     return 1
 } #ISSTARTEDBYSYSTEM_END#
 
 is_entware_mounted() {
-    if mount | grep -q "on /opt "; then
+    if mount | grep -Fq "on /opt "; then
         return 0
     else
         return 1
@@ -185,7 +183,7 @@ init_opt() {
 
         if mount --bind "$1" /opt; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
-                _mount_device="$(mount | grep "on /opt " | tail -n 1 | awk '{print $1}')"
+                _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$CACHE_FILE"
             fi
 
@@ -240,7 +238,7 @@ backup_initd_scripts() {
 
 symlink_data() {
     if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
-        echo "Symlinking data from /jffs/entware..."
+        logger -st "$script_name" "Symlinking data from /jffs/entware..."
 
         find /jffs/entware -type f -exec sh -c '
             echo "$1" | grep -q "\.copythisfile$" && exit
@@ -354,19 +352,14 @@ entware_in_ram() {
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
             logger -st "$script_name" "Installing Entware in /tmp/entware..."
 
-            echo "---------- Installation started at $(date) ----------" >> "$INSTALL_LOG"
+            echo "---------- Installation started at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
 
             if ! sh "$script_path" install /tmp >> "$INSTALL_LOG" 2>&1; then
                 logger -st "$script_name" "Installation failed, check '$INSTALL_LOG' for details"
-
-                # Prevent cron job from retrying failed install, if scheduled
-                [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
-                cru d "$script_name"
-
                 return 1
             fi
 
-            echo "---------- Installation finished at $(date) ----------" >> "$INSTALL_LOG"
+            echo "---------- Installation finished at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
 
             logger -st "$script_name" "Installation successful"
         fi
@@ -380,7 +373,7 @@ entware_in_ram() {
             logger -st "$script_name" "Failed to start services, check '$INSTALL_LOG' for details"
         fi
 
-        echo "---------- Services started at $(date) ----------" >> "$INSTALL_LOG"
+        echo "---------- Services started at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
     fi
 
     return 0
@@ -417,11 +410,17 @@ entware() {
 
 case "$1" in
     "run")
+        { [ "$REQUIRE_NTP" = true ] && [ "$(nvram get ntp_ready)" != "1" ] ; } && { echo "Time is not synchronized"; exit 1; }
+
         if is_started_by_system && [ "$2" != "nohup" ]; then
             nohup "$script_path" run nohup > /dev/null 2>&1 &
         else
             if [ -n "$IN_RAM" ]; then
                 lockfile lockfail inram || { echo "Already running! ($_lockpid)"; exit 1; }
+
+                # Disable the cron job now as we will be running in a loop
+                [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
+                cru d "$script_name"
 
                 if [ ! -f /opt/etc/init.d/rc.unslung ]; then
                     echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
@@ -453,7 +452,7 @@ case "$1" in
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
 
-                    target_path="$(mount | grep "$last_entware_device" | head -n 1 | awk '{print $3}')"
+                    target_path="$(mount | grep -F "$last_entware_device" | head -n 1 | awk '{print $3}')"
 
                     if [ -z "$target_path" ]; then # device/mount is gone
                         entware stop
@@ -470,7 +469,7 @@ case "$1" in
                 "add")
                     is_entware_mounted && exit
 
-                    target_path="$(mount | grep "$DEVICENAME" | head -n 1 | awk '{print $3}')"
+                    target_path="$(mount | grep -F "$DEVICENAME" | head -n 1 | awk '{print $3}')"
 
                     if [ -d "$target_path/entware" ]; then
                         entware start "$target_path/entware"
@@ -481,22 +480,16 @@ case "$1" in
                         entware stop
                     fi
                 ;;
-                *)
-                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
-                    exit 1
-                ;;
             esac
 
             sh "$script_path" run
         fi
     ;;
     "start")
-        if [ -z "$IN_RAM" ]; then
-            if [ -x "$script_dir/cron-queue.sh" ]; then
-                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-            else
-                cru a "$script_name" "*/1 * * * * $script_path run"
-            fi
+        if [ -x "$script_dir/cron-queue.sh" ]; then
+            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
+        else
+            cru a "$script_name" "*/1 * * * * $script_path run"
         fi
 
         sh "$script_path" run
@@ -532,7 +525,7 @@ case "$1" in
 
         if [ -z "$target_path" ]; then
             for dir in /tmp/mnt/*; do
-                if [ -d "$dir" ] && mount | grep "/dev" | grep -q "$dir"; then
+                if [ -d "$dir" ] && mount | grep -F "/dev" | grep -Fq "$dir"; then
                     target_path="$dir"
                     break
                 fi
@@ -544,7 +537,7 @@ case "$1" in
         fi
 
         [ ! -d "$target_path" ] && { echo "Target path does not exist: $target_path"; exit 1; }
-        [ -f "$target_path/entware/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $target_path/entware"; exit; }
+        [ -f "$target_path/entware/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $target_path/entware"; exit 1; }
 
         if [ -z "$ARCHITECTURE" ]; then
             PLATFORM=$(uname -m)

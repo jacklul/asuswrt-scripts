@@ -42,13 +42,13 @@ rc_support() {
             [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit
 
             for feature_to_remove in $FEATURES_REMOVE; do
-                if echo "$rc_support" | grep -q "$feature_to_remove"; then
+                if echo "$rc_support" | grep -Fq "$feature_to_remove"; then
                     rc_support="$(echo "$rc_support" | sed "s/$feature_to_remove//g")"
                 fi
             done
 
             for feature_to_add in $FEATURES_ADD; do
-                if ! echo "$rc_support" | grep -q "$feature_to_add"; then
+                if ! echo "$rc_support" | grep -Fq "$feature_to_add"; then
                     rc_support="$rc_support $feature_to_add"
                 fi
             done

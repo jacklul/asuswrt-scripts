@@ -53,7 +53,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -69,7 +69,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -79,8 +79,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -145,12 +145,12 @@ setup_inteface() {
                 ifconfig "$2" up
             fi
 
-            if ! brctl show "$BRIDGE_INTERFACE" | grep -q "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
+            if ! brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
                 logger -st "$script_name" "Added interface $2 to bridge $BRIDGE_INTERFACE"
             fi
         ;;
         "remove")
-            if brctl show "$BRIDGE_INTERFACE" | grep -q "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
+            if brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
                 logger -st "$script_name" "Removed interface $2 from bridge $BRIDGE_INTERFACE"
             fi
 
@@ -176,7 +176,7 @@ case "$1" in
 
             interface="$(basename "$interface")"
 
-            if ! echo "$bridge_members" | grep -q "$interface"; then
+            if ! echo "$bridge_members" | grep -Fq "$interface"; then
                 setup_inteface add "$interface"
             fi
         done
@@ -189,10 +189,6 @@ case "$1" in
                 ;;
                 "remove")
                     setup_inteface remove "$DEVICENAME"
-                ;;
-                *)
-                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
-                    exit 1
                 ;;
             esac
         fi

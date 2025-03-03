@@ -1,6 +1,7 @@
-+ /tmp/nvram.txt
 + /jffs/**.conf
 + /jffs/**.sh
++ /tmp/nvram.txt
++ /tmp/nvram.cfg
 
 # Exclude everything else
 - **

@@ -30,11 +30,17 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
-[ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
 
+is_merlin_firmware && merlin=true
 persistent_state="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
 
-if [ -n "$persistent_state" ] && [ -n "$MERLIN" ]; then
+if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
     persistent_state=""
     logger -st "$script_name" "Persistent LED state is only supported on Asuswrt-Merlin firmware"
 fi
@@ -49,7 +55,7 @@ set_wl_leds() {
         _interface="$(basename "$_interface")"
         _status="$(wl -i "$_interface" status 2> /dev/null)"
 
-        if echo "$_status" | grep -q "2.4GHz" || echo "$_status" | grep -q "5GHz"; then
+        if echo "$_status" | grep -Fq "2.4GHz" || echo "$_status" | grep -Fq "5GHz"; then
             wl -i "$_interface" leddc $_state
         fi
     done
@@ -67,7 +73,7 @@ loop_led_ctrl() {
 switch_leds() {
     case "$1" in
         "on")
-            if [ -n "$MERLIN" ]; then
+            if [ -n "$merlin" ]; then
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
             else
@@ -80,7 +86,7 @@ switch_leds() {
             logger -st "$script_name" "LEDs are now ON$persistent_state"
         ;;
         "off")
-            if [ -n "$MERLIN" ]; then
+            if [ -n "$merlin" ]; then
                 nvram set led_disable=1
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
@@ -105,13 +111,13 @@ case "$1" in
     ;;
     "run")
         if [ -n "$ON_HOUR" ] && [ -n "$ON_MINUTE" ] && [ -n "$OFF_HOUR" ] && [ -n "$OFF_MINUTE" ]; then
-            TIMEOUT=60
-            while [ "$(nvram get ntp_ready)" = 0 ] && [ "$TIMEOUT" -ge 0 ]; do
-                TIMEOUT=$((TIMEOUT-1))
+            timeout=60
+            while [ "$(nvram get ntp_ready)" = "0" ] && [ "$timeout" -ge 0 ]; do
+                timeout=$((timeout-1))
                 sleep 1
             done
 
-            if [ "$(nvram get ntp_ready)" = 1 ]; then
+            if [ "$(nvram get ntp_ready)" = "1" ]; then
                 on="$(date --date="$ON_HOUR:$ON_MINUTE" +%s)"
                 off="$(date --date="$OFF_HOUR:$OFF_MINUTE" +%s)"
                 now="$(date +%s)"
@@ -123,20 +129,20 @@ case "$1" in
                 fi
 
                 if [ "$set_leds_on" = 1 ]; then
-                    if [ -n "$MERLIN" ]; then
+                    if [ -n "$merlin" ]; then
                         [ "$(nvram get led_disable)" = 1 ] && sh "$script_path" off
                     else
                         sh "$script_path" off
                     fi
                 elif [ "$set_leds_on" = 0 ]; then
-                    if [ -n "$MERLIN" ]; then
+                    if [ -n "$merlin" ]; then
                         [ "$(nvram get led_disable)" = 0 ] && sh "$script_path" on
                     else
                         sh "$script_path" on
                     fi
                 fi
             else
-                logger -st "$script_name" "NTP not synchronized after 60 seconds, LEDs will switch state with cron"
+                logger -st "$script_name" "Time is not synchronized after 60 seconds, LEDs will switch state with cron"
             fi
         fi
     ;;
@@ -156,7 +162,7 @@ case "$1" in
         cru d "${script_name}-On"
         cru d "${script_name}-Off"
 
-        if [ -n "$MERLIN" ] && [ "$(nvram get led_disable)" = 1 ]; then
+        if [ -n "$merlin" ] && [ "$(nvram get led_disable)" = 1 ]; then
             PERSISTENT=true
             switch_leds on
         fi

@@ -48,7 +48,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -64,7 +64,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -74,8 +74,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -144,7 +144,7 @@ setup_mount() {
         "add")
             [ ! -b "$_device" ] && return
 
-            if ! mount | grep -q "$_mountpoint"; then
+            if ! mount | grep -Fq "$_mountpoint"; then
                 mkdir -p "$_mountpoint"
 
                 #shellcheck disable=SC2086
@@ -157,8 +157,8 @@ setup_mount() {
             fi
         ;;
         "remove")
-            if mount | grep -q "$_mountpoint"; then
-                if [ "$(mount | grep -c "$_device")" -gt 1 ]; then
+            if mount | grep -Fq "$_mountpoint"; then
+                if [ "$(mount | grep -Fc "$_device")" -gt 1 ]; then
                     logger -st "$script_name" "Unable to unmount '$_mountpoint' - device '$_device' is used by another mount"
                 else
                     if umount "$_mountpoint"; then
@@ -199,10 +199,6 @@ case "$1" in
                 ;;
                 "remove")
                     setup_mount remove "$DEVICENAME"
-                ;;
-                *)
-                    logger -st "$script_name" "Unknown hotplug action: $ACTION ($DEVICENAME)"
-                    exit 1
                 ;;
             esac
         fi

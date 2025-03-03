@@ -56,6 +56,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
 
         # Make sure variable holds only numbers
         if echo "$init_affinity" | grep -q '^[0-9]\+$'; then
+
             # Convert to absolute value
             AFFINITY=${AFFINITY#-}
 
@@ -78,19 +79,25 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     # Apply niceness
     if [ -n "$NICE" ]; then
         pid_nice="$(ps -p $$ -o ni | tail -n 1 | sed 's/ //g' | grep -E '^[0-9]+$')"
-        [ "$pid_nice" -ne "$NICE" ] && renice -n "$NICE" -p $$ > /dev/null && echo "Set niceness to $NICE"
+        if [ "$pid_nice" -ne "$NICE" ] && renice -n "$NICE" -p $$ > /dev/null; then
+            [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
+        fi
     fi
 
     # Apply CPU affinity
     if [ -n "$AFFINITY" ]; then
         pid_affinity="$(taskset -p $$ | sed 's/.*: //' | sed 's/ //g' | grep -E '^[0-9]+$')"
-        [ "$pid_affinity" -ne "$AFFINITY" ] && taskset -p "$AFFINITY" $$ > /dev/null && echo "Set CPU affinity to $AFFINITY"
+        if [ "$pid_affinity" -ne "$AFFINITY" ] && taskset -p "$AFFINITY" $$ > /dev/null; then
+            [ -n "$VERBOSE" ] && echo "Set CPU affinity to $AFFINITY"
+        fi
     fi
 
     # Apply umask
     if [ -n "$UMASK" ]; then
         pid_umask="$(cat /proc/$$/status | grep Umask | awk '{print $2}')"
-        [ "$pid_umask" -ne "$UMASK" ] && umask "$UMASK" > /dev/null && echo "Set umask to $UMASK"
+        if [ "$pid_umask" -ne "$UMASK" ] && umask "$UMASK" > /dev/null; then
+            [ -n "$VERBOSE" ] && echo "Set umask to $UMASK"
+        fi
     fi
 fi
 

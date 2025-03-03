@@ -45,16 +45,13 @@ curl_binary="curl"
 
 is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
     _ppid=$PPID
-
     while true; do
         [ -z "$_ppid" ] && break
         _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
-
-        grep -q "cron" "/proc/$_ppid/comm" && return 0
-        grep -q "hotplug" "/proc/$_ppid/comm" && return 0
+        grep -Fq "cron" "/proc/$_ppid/comm" && return 0
+        grep -Fq "hotplug" "/proc/$_ppid/comm" && return 0
         [ "$_ppid" -gt 1 ] || break
     done
-
     return 1
 } #ISSTARTEDBYSYSTEM_END#
 
@@ -79,8 +76,8 @@ send_telegram_message() {
 
     _result=$($curl_binary -fsS --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=$_message" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
 
-    if ! echo "$_result" | grep -q '"ok":true'; then
-        if echo "$_result" | grep -q '"ok":'; then
+    if ! echo "$_result" | grep -Fq '"ok":true'; then
+        if echo "$_result" | grep -Fq '"ok":'; then
             logger -st "$script_name" "Telegram API error: $_result"
         else
             logger -st "$script_name" "Connection to Telegram API failed: $_result"
@@ -157,7 +154,7 @@ case "$1" in
         fi
     ;;
     "test")
-        if { is_started_by_system && cru l | grep -q "#$script_name-test#"; } || [ "$2" = "now" ]; then
+        if { is_started_by_system && cru l | grep -Fq "#$script_name-test#"; } || [ "$2" = "now" ]; then
             logger -st "$script_name" "Testing notification..."
 
             cru d "$script_name-test"

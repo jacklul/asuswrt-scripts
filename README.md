@@ -30,9 +30,10 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as
 ### Run these commands to install the startup script:
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts-startup.sh" -o /jffs/scripts-startup.sh
-chmod +x /jffs/scripts-startup.sh
-sh /jffs/scripts-startup.sh install
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/scripts-startup.sh" -o /jffs/scripts/scripts-startup.sh
+chmod +x /jffs/scripts/scripts-startup.sh
+sh /jffs/scripts/scripts-startup.sh install
+# symlink will be created /jffs/scripts-startup.sh -> /jffs/scripts/scripts-startup.sh
 ```
 
 Then you can proceed to install scripts that you want to use from the [section below](#available-scripts).
@@ -88,8 +89,9 @@ Then you can proceed to install scripts that you want to use from the [section b
 > Configuration variables are defined on top of each script - peek into the script to see what's available to change!
 
 > [!TIP]
-> You can rename the scripts and add prefixes to them (such as `010-force-dns.sh`) to control the order in which they start.
-> Don't worry about <a href="#user-content-update-scriptssh">update-scripts.sh</a> as it will still be able to update them!
+> You can rename the scripts and add prefixes to them (such as `010-force-dns.sh`) to control the order in which they start.  
+> Don't worry about <a href="#user-content-update-scriptssh">update-scripts.sh</a> as it will still be able to update them!  
+> **Do not rename `cron-queue.sh` as scripts are using it directly!**
 
 > [!TIP]
 > For better organization, you can put the scripts in `/jffs/scripts/jacklul-asuswrt-scripts` directory and set `SCRIPTS_DIR=/jffs/scripts/jacklul-asuswrt-scripts` in `/jffs/scripts-startup.conf`.

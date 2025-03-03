@@ -44,7 +44,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -60,7 +60,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -70,8 +70,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -109,7 +109,7 @@ hotplug_config() {
     case "$1" in
         "modify")
             if [ -f /etc/hotplug2.rules ]; then
-                grep -q "$script_path" /etc/hotplug2.rules && return # already modified
+                grep -Fq "$script_path" /etc/hotplug2.rules && return # already modified
 
                 [ ! -f /etc/hotplug2.rules.bak ] && mv /etc/hotplug2.rules /etc/hotplug2.rules.bak
 
@@ -151,7 +151,7 @@ EOT
 
 case "$1" in
     "run")
-        if ! grep -q "$script_path" /etc/hotplug2.rules; then
+        if ! grep -Fq "$script_path" /etc/hotplug2.rules; then
             hotplug_config modify
         fi
     ;;
@@ -182,7 +182,6 @@ case "$1" in
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
 
         lockfile unlock event "$2"
-
         exit
     ;;
     "start")

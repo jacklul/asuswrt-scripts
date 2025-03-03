@@ -31,9 +31,9 @@ get_temperatures() {
         _interface="$(basename "$_interface")"
         _status="$(wl -i "$_interface" status 2> /dev/null)"
 
-        if echo "$_status" | grep -q "2.4GHz"; then
+        if echo "$_status" | grep -Fq "2.4GHz"; then
             _eth_24g="$_interface"
-        elif echo "$_status" | grep -q "5GHz"; then
+        elif echo "$_status" | grep -Fq "5GHz"; then
             _eth_5g="$_interface"
         fi
 

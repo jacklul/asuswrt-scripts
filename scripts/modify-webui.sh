@@ -20,7 +20,14 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
-[ -f "/usr/sbin/helper.sh" ] && MERLIN="1"
+is_merlin_firmware() { #ISMERLINFIRMWARE_START#
+    if [ -f "/usr/sbin/helper.sh" ]; then
+        return 0
+    fi
+    return 1
+} #ISMERLINFIRMWARE_END#
+
+is_merlin_firmware && merlin=true
 
 # these two sed_* functions are taken/based on https://github.com/RMerl/asuswrt-merlin.ng/blob/master/release/src/router/others/helper.sh
 sed_quote() {
@@ -63,7 +70,7 @@ sed_and_check() {
 cpu_temperature() {
     case "$1" in
         "set")
-            if ! mount | grep -q /www/cpu_ram_status.asp; then
+            if ! mount | grep -Fq /www/cpu_ram_status.asp; then
                 [ ! -f "$TMP_WWW_PATH/cpu_ram_status.asp" ] && cp -f /www/cpu_ram_status.asp "$TMP_WWW_PATH/cpu_ram_status.asp"
 
                 echo "cpuTemp = '<%get_cpu_temperature();%>';" >> "$TMP_WWW_PATH/cpu_ram_status.asp"
@@ -71,7 +78,7 @@ cpu_temperature() {
                 mount --bind "$TMP_WWW_PATH/cpu_ram_status.asp" /www/cpu_ram_status.asp
             fi
 
-            if ! mount | grep -q /www/device-map/router_status.asp; then
+            if ! mount | grep -Fq /www/device-map/router_status.asp; then
                 mkdir -p "$TMP_WWW_PATH/device-map"
                 [ ! -f "$TMP_WWW_PATH/device-map/router_status.asp" ] && cp -f /www/device-map/router_status.asp "$TMP_WWW_PATH/device-map/router_status.asp"
 
@@ -84,12 +91,12 @@ cpu_temperature() {
             fi
         ;;
         "unset")
-            if mount | grep -q /www/cpu_ram_status.asp; then
+            if mount | grep -Fq /www/cpu_ram_status.asp; then
                 umount /www/cpu_ram_status.asp
                 rm -f "$TMP_WWW_PATH/cpu_ram_status.asp"
             fi
 
-            if mount | grep -q /www/device-map/router_status.asp; then
+            if mount | grep -Fq /www/device-map/router_status.asp; then
                 umount /www/device-map/router_status.asp
                 rm -f "$TMP_WWW_PATH/device-map/router_status.asp"
             fi
@@ -100,7 +107,7 @@ cpu_temperature() {
 guest_wifi_qr_code() {
     case "$1" in
         "set")
-            if ! mount | grep -q /www/Guest_network.asp; then
+            if ! mount | grep -Fq /www/Guest_network.asp; then
                 [ ! -f "$TMP_WWW_PATH/Guest_network.asp" ] && cp -f /www/Guest_network.asp "$TMP_WWW_PATH/Guest_network.asp"
 
                 sed_and_check after '<script type="text/javascript" src="js/httpApi.js"></script>' '<script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>' "$TMP_WWW_PATH/Guest_network.asp"
@@ -113,7 +120,7 @@ guest_wifi_qr_code() {
             fi
         ;;
         "unset")
-            if mount | grep -q /www/Guest_network.asp; then
+            if mount | grep -Fq /www/Guest_network.asp; then
                 umount /www/Guest_network.asp
                 rm -f "$TMP_WWW_PATH/Guest_network.asp"
             fi
@@ -124,7 +131,7 @@ guest_wifi_qr_code() {
 notrendmicro_support() {
     case "$1" in
         "set")
-            if ! mount | grep -q /www/state.js; then
+            if ! mount | grep -Fq /www/state.js; then
                 [ ! -f "$TMP_WWW_PATH/state.js" ] && cp -f /www/state.js "$TMP_WWW_PATH/state.js"
 
                 sed_and_check after 'var lyra_hide_support = isSupport("lyra_hide")' 'var notrendmicro_support = isSupport("notrendmicro");' "$TMP_WWW_PATH/state.js"
@@ -132,11 +139,11 @@ notrendmicro_support() {
                 mount --bind "$TMP_WWW_PATH/state.js" /www/state.js
             fi
 
-            if ! mount | grep -q /www/require/modules/menuTree.js; then
+            if ! mount | grep -Fq /www/require/modules/menuTree.js; then
                 mkdir -p "$TMP_WWW_PATH/require/modules"
                 [ ! -f "$TMP_WWW_PATH/require/modules/menuTree.js" ] && cp -f /www/require/modules/menuTree.js "$TMP_WWW_PATH/require/modules/menuTree.js"
 
-                inetspeed_tab="$(grep 'url: "AdaptiveQoS_InternetSpeed\.asp' /www/require/modules/menuTree.js | tail -n 1)"
+                inetspeed_tab="$(grep -F 'url: "AdaptiveQoS_InternetSpeed.asp' /www/require/modules/menuTree.js | tail -n 1)"
 
                 if [ -n "$inetspeed_tab" ]; then
                     sed_and_check replace '{url: "AdaptiveQoS_InternetSpeed.asp"' '//{url: "AdaptiveQoS_InternetSpeed.asp"' "$TMP_WWW_PATH/require/modules/menuTree.js"
@@ -147,7 +154,7 @@ notrendmicro_support() {
 
                 sed_and_check before 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_PATH/require/modules/menuTree.js"
 
-                if [ -n "$MERLIN" ]; then
+                if [ -n "$merlin" ]; then
                     cp -f "$TMP_WWW_PATH/require/modules/menuTree.js" /tmp/menuTree.js
                     mount --bind /tmp/menuTree.js /www/require/modules/menuTree.js
                 else
@@ -156,14 +163,14 @@ notrendmicro_support() {
             fi
         ;;
         "unset")
-            [ -n "$MERLIN" ] && { logger -st "$script_name" "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - restart required!"; return; }
+            [ -n "$merlin" ] && { logger -st "$script_name" "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - reboot is required!"; return; }
 
-            if mount | grep -q /www/state.js; then
+            if mount | grep -Fq /www/state.js; then
                 umount /www/state.js
                 rm -f "$TMP_WWW_PATH/state.js"
             fi
 
-            if mount | grep -q /www/require/modules/menuTree.js; then
+            if mount | grep -Fq /www/require/modules/menuTree.js; then
                 umount /www/require/modules/menuTree.js
                 rm -f "$TMP_WWW_PATH/require/modules/menuTree.js"
             fi
@@ -174,7 +181,7 @@ notrendmicro_support() {
 https_lanport_allow_443() {
     case "$1" in
         "set")
-            if ! mount | grep -q /www/Advanced_System_Content.asp; then
+            if ! mount | grep -Fq /www/Advanced_System_Content.asp; then
                 [ ! -f "$TMP_WWW_PATH/Advanced_System_Content.asp" ] && cp -f /www/Advanced_System_Content.asp "$TMP_WWW_PATH/Advanced_System_Content.asp"
 
                 sed_and_check replace '&& !validator.range(document.form.https_lanport, 1024, 65535) &&' "&& (document.form.https_lanport.value != 443 && !validator.range(document.form.https_lanport, 1024, 65535)) &&" "$TMP_WWW_PATH/Advanced_System_Content.asp"
@@ -183,7 +190,7 @@ https_lanport_allow_443() {
             fi
         ;;
         "unset")
-            if mount | grep -q /www/Advanced_System_Content.asp; then
+            if mount | grep -Fq /www/Advanced_System_Content.asp; then
                 umount /www/Advanced_System_Content.asp
                 rm -f "$TMP_WWW_PATH/Advanced_System_Content.asp"
             fi

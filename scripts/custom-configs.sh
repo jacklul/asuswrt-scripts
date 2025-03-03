@@ -42,7 +42,7 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$_lockpid" ] && ! grep -q "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
+            if [ -n "$_lockpid" ] && ! grep -Fq "$script_name" "/proc/$_lockpid/cmdline" 2> /dev/null; then
                 _lockpid=
             fi
 
@@ -58,7 +58,7 @@ lockfile() { #LOCKFILE_START#
             while [ -f "/proc/$$/fd/$_fd" ]; do
                 _fd=$((_fd+1))
 
-                [ "$_fd" -gt "$_fd_max" ] && { echo "Failed to acquire a lock - no available file descriptor"; exit 1; }
+                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "Failed to acquire a lock - no free file descriptors available"; exit 1; }
             done
 
             eval exec "$_fd>$_lockfile"
@@ -68,8 +68,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd" && { [ -z "$_lockpid" ] || [ -f "/proc/$_lockpid/stat" ] ; }; do #flock -x "$_fd"
                         sleep 1
-                        if [ "$_lockwait" -ge 60 ]; then
-                            echo "Failed to acquire a lock after 60 seconds"
+                        if [ "$_lockwait" -ge 90 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after waiting 90 seconds"
                             exit 1
                         fi
                     done
@@ -115,7 +115,7 @@ restart_process() {
     [ -z "$1" ] && { echo "Process name not provided"; exit 1; }
 
     _started=
-    for _pid in $(/bin/ps w | grep "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
+    for _pid in $(/bin/ps w | grep -F "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
         [ ! -f "/proc/$_pid/cmdline" ] && continue
         _cmdline="$(tr "\0" " " < "/proc/$_pid/cmdline")"
 
@@ -237,75 +237,9 @@ commit_new_file() {
     cp -f "$1.new" "$1"
 }
 
-modify_service_config_file() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ -z "$2" ] && { echo "Process match expression not provided"; exit 1; }
-    [ -z "$3" ] && { echo "Process binary name not provided"; exit 1; }
-    # $4 = custom /jffs/configs/[NAME.conf]
-
-    if /bin/ps w | grep -v "grep" | grep -q "$2" && [ -f "$1" ] && ! grep -q "Modified by $script_name script" "$1"; then
-        if [ -n "$4" ]; then
-            modify_config_file "$1" "$4"
-        else
-            modify_config_file "$1"
-        fi
-
-        run_postconf_script "$1"
-
-        if [ -f "$1.new" ] && [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
-            add_modified_mark "$1.new"
-
-            if is_config_file_modified "$1"; then
-                commit_new_file "$1"
-
-                case "$3" in
-                    "avahi-daemon")
-                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logger -st "$script_name" "Restarted process: avahi-daemon"
-                    ;;
-                    "samba")
-                        restart_process nmbd
-                        restart_process smbd
-                    ;;
-                    "ipsec")
-                        ipsec restart > /dev/null 2>&1
-                    ;;
-                    "mcpd")
-                        killall -SIGKILL /bin/mcpd 2> /dev/null
-                        nohup /bin/mcpd > /dev/null 2>&1 &
-                    ;;
-                    *)
-                        restart_process "$3"
-                    ;;
-                esac
-            fi
-        fi
-    fi
-}
-
-restore_service_config_file() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ -z "$2" ] && { echo "Process match expression not provided"; exit 1; }
-    [ -z "$3" ] && { echo "Service name not provided"; exit 1; }
-
-    if /bin/ps w | grep -v "grep" | grep -q "$2" && [ -f "$1.new" ]; then
-        case "$3" in
-            "ipsec")
-                service "ipsec_restart" > /dev/null
-            ;;
-            *)
-                service "restart_$3" > /dev/null
-            ;;
-        esac
-
-        rm -f "$1.new"
-
-        logger -st "$script_name" "Restarted service: $3"
-    fi
-}
-
 modify_etc_files() {
     for _file in $ETC_FILES; do
-        if [ -f "/etc/$_file" ] && ! grep -q "Modified by $script_name script" "/etc/$_file"; then
+        if [ -f "/etc/$_file" ] && ! grep -Fq "Modified by $script_name script" "/etc/$_file"; then
             [ ! -f "/etc/$_file.bak" ] && cp "/etc/$_file" "/etc/$_file.bak"
 
             modify_config_file "/etc/$_file"
@@ -328,6 +262,110 @@ restore_etc_files() {
     done
 }
 
+modify_service_config_file() {
+    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$2" ] && { echo "Process name not provided"; exit 1; }
+    # $3 = custom /jffs/configs/[NAME.conf]
+
+    _match="$2"
+    case "$2" in
+        "samba")
+            _match="nmbd\|smbd"
+        ;;
+    esac
+
+    if /bin/ps w | grep -v "grep" | grep -q "$_match" && [ -f "$1" ] && ! grep -Fq "Modified by $script_name script" "$1"; then
+        if [ -n "$3" ]; then
+            modify_config_file "$1" "$3"
+        else
+            modify_config_file "$1"
+        fi
+
+        run_postconf_script "$1"
+
+        if [ -f "$1.new" ] && [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
+            add_modified_mark "$1.new"
+
+            if is_config_file_modified "$1"; then
+                commit_new_file "$1"
+
+                case "$2" in
+                    "avahi-daemon")
+                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logger -st "$script_name" "Restarted process: avahi-daemon"
+                    ;;
+                    "samba")
+                        restart_process nmbd
+                        restart_process smbd
+                    ;;
+                    "ipsec")
+                        ipsec restart > /dev/null 2>&1
+                    ;;
+                    "mcpd")
+                        killall -SIGKILL /bin/mcpd 2> /dev/null
+                        nohup /bin/mcpd > /dev/null 2>&1 &
+                    ;;
+                    *)
+                        restart_process "$2"
+                    ;;
+                esac
+            fi
+        fi
+    fi
+}
+
+restore_service_config_file() {
+    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$2" ] && { echo "Process/Service name not provided"; exit 1; }
+
+    _match="$2"
+    _service="$2"
+
+    case "$2" in
+        "mcpd")
+            _service="wan"
+        ;;
+        "miniupnpd")
+            _service="upnp"
+        ;;
+        "avahi-daemon")
+            _service="mdns"
+        ;;
+        "zebra"|"ripd")
+            _service="quagga"
+        ;;
+        "igmpproxy")
+            _service="wan_line"
+        ;;
+        "vsftpd")
+            _service="ftpd"
+        ;;
+        "samba")
+            _match="nmbd\|smbd"
+        ;;
+        "minidlna")
+            _service="dms"
+        ;;
+        "mt-daapd")
+            _service="mt_daapd"
+        ;;
+    esac
+
+    if /bin/ps w | grep -v "grep" | grep -q "$_match" && [ -f "$1.new" ]; then
+        case "$_service" in
+            "ipsec")
+                service "ipsec_restart" > /dev/null
+            ;;
+            *)
+                service "restart_${_service}" > /dev/null
+            ;;
+        esac
+
+        rm -f "$1.new"
+
+        logger -st "$script_name" "Restarted service: $_service"
+    fi
+}
+
 configs() {
     lockfile lockwait # not lockfail as multiple service restarts might queue this one up via service-event.sh
 
@@ -335,66 +373,66 @@ configs() {
         "modify")
             # services.c
             modify_etc_files # profile, hosts
-            modify_service_config_file "/etc/dnsmasq.conf" "dnsmasq" "dnsmasq"
-            modify_service_config_file "/etc/stubby/stubby.yml" "stubby" "stubby"
+            modify_service_config_file "/etc/dnsmasq.conf" "dnsmasq"
+            modify_service_config_file "/etc/stubby/stubby.yml" "stubby"
             # inadyn.conf - currently no way to support this as it is not running as daemon
-            modify_service_config_file "/var/mcpd.conf" "mcpd" "mcpd"
-            modify_service_config_file "/etc/upnp/config" "miniupnpd" "miniupnpd" "upnp"
-            modify_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon" "avahi-daemon"
+            modify_service_config_file "/var/mcpd.conf" "mcpd"
+            modify_service_config_file "/etc/upnp/config" "miniupnpd" "upnp"
+            modify_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon"
             # afpd.service, adisk.service, mt-daap.service - use avahi-daemon.postconf to modify these
-            modify_service_config_file "/etc/zebra.conf" "zebra" "zebra"
-            modify_service_config_file "/etc/ripd.conf" "ripd" "ripd"
-            modify_service_config_file "/tmp/torrc" "tor" "tor"
+            modify_service_config_file "/etc/zebra.conf" "zebra"
+            modify_service_config_file "/etc/ripd.conf" "ripd"
+            modify_service_config_file "/tmp/torrc" "tor"
 
             # wan.c
-            modify_service_config_file "/tmp/igmpproxy.conf" "igmpproxy" "igmpproxy"
+            modify_service_config_file "/tmp/igmpproxy.conf" "igmpproxy"
 
             # snmpd.c
-            modify_service_config_file "/tmp/snmpd.conf" "snmpd" "snmpd"
+            modify_service_config_file "/tmp/snmpd.conf" "snmpd"
 
             # usb.c
-            modify_service_config_file "/etc/vsftpd.conf" "vsftpd" "vsftpd"
-            modify_service_config_file "/etc/smb.conf" "nmbd\|smbd" "samba"
-            modify_service_config_file "/etc/minidlna.conf" "minidlna" "minidlna"
-            modify_service_config_file "/etc/mt-daapd.conf" "mt-daapd" "mt-daapd"
+            modify_service_config_file "/etc/vsftpd.conf" "vsftpd"
+            modify_service_config_file "/etc/smb.conf" "samba"
+            modify_service_config_file "/etc/minidlna.conf" "minidlna"
+            modify_service_config_file "/etc/mt-daapd.conf" "mt-daapd"
 
             # vpn.c
-            modify_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd" "pptpd"
+            modify_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd"
 
             # rc_ipsec.c
-            modify_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
+            modify_service_config_file "/etc/ipsec.conf" "ipsec"
         ;;
         "restore")
             # services.c
             restore_etc_files
-            restore_service_config_file "/etc/dnsmasq.conf" "dnsmasq" "dnsmasq"
-            restore_service_config_file "/etc/stubby/stubby.yml" "stubby" "stubby"
+            restore_service_config_file "/etc/dnsmasq.conf" "dnsmasq"
+            restore_service_config_file "/etc/stubby/stubby.yml" "stubby"
             # inadyn.conf
-            restore_service_config_file "/var/mcpd.conf" "mcpd" "wan"
-            restore_service_config_file "/etc/upnp/config" "miniupnpd" "upnp"
-            restore_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon" "mdns"
+            restore_service_config_file "/var/mcpd.conf" "mcpd"
+            restore_service_config_file "/etc/upnp/config" "miniupnpd"
+            restore_service_config_file "/tmp/avahi/avahi-daemon.conf" "avahi-daemon"
             # afpd.service, adisk.service, mt-daap.service
-            restore_service_config_file "/etc/zebra.conf" "zebra" "quagga"
-            restore_service_config_file "/etc/ripd.conf" "ripd" "quagga"
-            restore_service_config_file "/tmp/torrc" "tor" "tor"
+            restore_service_config_file "/etc/zebra.conf" "zebra"
+            restore_service_config_file "/etc/ripd.conf" "ripd"
+            restore_service_config_file "/tmp/torrc" "tor"
 
             # wan.c
-            restore_service_config_file "/tmp/igmpproxy.conf" "igmpproxy" "wan_line"
+            restore_service_config_file "/tmp/igmpproxy.conf" "igmpproxy"
 
             # snmpd.c
-            restore_service_config_file "/tmp/snmpd.conf" "snmpd" "snmpd"
+            restore_service_config_file "/tmp/snmpd.conf" "snmpd"
 
             # usb.c
-            restore_service_config_file "/etc/vsftpd.conf" "vsftpd" "ftpd"
-            restore_service_config_file "/etc/smb.conf" "nmbd\|smbd" "samba"
-            restore_service_config_file "/etc/minidlna.conf" "minidlna" "dms"
-            restore_service_config_file "/etc/mt-daapd.conf" "mt-daapd" "mt_daapd"
+            restore_service_config_file "/etc/vsftpd.conf" "vsftpd"
+            restore_service_config_file "/etc/smb.conf" "samba"
+            restore_service_config_file "/etc/minidlna.conf" "minidlna"
+            restore_service_config_file "/etc/mt-daapd.conf" "mt-daapd"
 
             # vpn.c
-            restore_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd" "pptpd"
+            restore_service_config_file "/tmp/pptpd/pptpd.conf" "pptpd"
 
             # rc_ipsec.c
-            restore_service_config_file "/etc/ipsec.conf" "ipsec" "ipsec"
+            restore_service_config_file "/etc/ipsec.conf" "ipsec"
         ;;
     esac
 
@@ -403,7 +441,7 @@ configs() {
 
 case "$1" in
     "run")
-        if { [ ! -x "$script_dir/cron-queue.sh" ] || ! "$script_dir/cron-queue.sh" check "$script_name" ; } && ! cru l | grep -q "#$script_name#"; then
+        if { [ ! -x "$script_dir/cron-queue.sh" ] || ! "$script_dir/cron-queue.sh" check "$script_name" ; } && ! cru l | grep -Fq "#$script_name#"; then
             exit # do not run if not started
         fi
 

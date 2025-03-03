@@ -29,9 +29,9 @@ case "$1" in
             nvram set wps_enable=0
             nvram set wps_enable_x=0
             nvram commit
+            service restart_wireless
 
             logger -st "$script_name" "WPS has been disabled"
-            service restart_wireless
         fi
     ;;
     "start")

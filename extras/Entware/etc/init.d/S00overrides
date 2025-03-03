@@ -12,7 +12,7 @@ case $1 in
                 if [ -x "/opt/etc/init.d/override-$b" ] && [ ! -L "$i" ]; then
                     mv -fv "$i" "$i.old"
                     chmod -x "$i.old"
-                    ln -sv "override-$b" "$i"
+                    ln -sv "/opt/etc/init.d/override-$b" "$i"
                 fi
             fi
         done
