@@ -145,23 +145,24 @@ custom_checks() {
     change_interface=false
     change_firewall=false
 
-    if ! ip addr show dev lo | grep -Fq "inet 127.0.99.1/8 "; then
-        ip -4 addr add "127.0.99.1/8" dev lo
+    _addr="127.83.69.33/8" # asci SE! - service event
+    _chain="SERVICE_EVENT_CHECK"
+
+    if ! ip addr show dev lo | grep -Fq "inet $_addr "; then
+        ip -4 addr add "$_addr" dev lo
         change_interface=true
     fi
 
-    if ! iptables -nL "SERVICE_EVENT_CHECK" > /dev/null 2>&1; then
-        iptables -N "SERVICE_EVENT_CHECK"
+    if ! iptables -nL "$_chain" > /dev/null 2>&1; then
+        iptables -N "$_chain"
         change_firewall=true
     fi
 
-    #_wan0_state=""
-    #_wan1_state=""
     #_wan0_state_new="$(nvram get wan0_state_t)"
     #_wan1_state_new="$(nvram get wan1_state_t)"
-    #if [ "$_wan0_state" != "$_wan0_state_new" ] || [ "$_wan1_state" != "$_wan1_state_new" ]; then
-    #    _wan0_state="$_wan0_state_new"
-    #    _wan1_state="$_wan1_state_new"
+    #if [ "$wan0_state" != "$_wan0_state_new" ] || [ "$wan1_state" != "$_wan1_state_new" ]; then
+    #    wan0_state="$_wan0_state_new"
+    #    wan1_state="$_wan1_state_new"
     #    change_interface=true
     #fi
 
