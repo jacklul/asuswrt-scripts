@@ -1,8 +1,8 @@
 #!/bin/sh
-# /opt/bin/process-affinities
 # List all processes and their CPU affinities
 
-[ ! -f /opt/bin/ps ] && { echo "Install 'procps-ng-ps' package!"; exit 1; }
+which taskset >/dev/null || { echo "Command 'taskset' not found!" >&2; exit 1; }
+[ -x /opt/bin/ps ] || { echo "Install 'procps-ng-ps' package!" >&2; exit 1; }
 
 pids=$(ps -e -o pid --no-headers)
 

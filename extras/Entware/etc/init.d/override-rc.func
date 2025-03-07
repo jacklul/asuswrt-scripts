@@ -16,7 +16,7 @@
 
 # Fail if original rc.func is not found
 original="/opt/etc/init.d/rc.func.old"
-[ ! -f "$original" ] && { echo "Not found: $original"; exit 1; }
+[ ! -f "$original" ] && { echo "Not found: $original" >&2; exit 1; }
 
 # Allow setting default values for extra settings through a config file
 if [ -f /opt/etc/init.d/rc.func.conf ]; then
@@ -45,10 +45,19 @@ fi
 [ -n "$NEW_PRECMD" ] && PRECMD="$NEW_PRECMD"
 [ -n "$NEW_POSTCMD" ] && POSTCMD="$NEW_POSTCMD"
 
+PATH="/opt/sbin:/opt/bin:$PATH"
+
+can_renice=true
+can_affinity=true
+
+[ -x /opt/bin/ps ] || { echo "Please install 'procps-ng-ps' package!" >&2; can_renice=false; }
+which renice >/dev/null || { echo "Command 'renice' not found!" >&2; can_renice=false; }
+which taskset >/dev/null || { echo "Command 'taskset' not found!" >&2; can_affinity=false; }
+
 # Apply those only when starting or restarting
 if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     # Handle negative AFFINITY setting
-    if echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
+    if [ "$can_affinity" = true ] && echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
         init_affinity="$(taskset -p 1 | sed 's/.*: //')"
 
         # Convert to decimal
@@ -77,7 +86,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     fi
 
     # Apply niceness
-    if [ -n "$NICE" ]; then
+    if [ "$can_renice" = true ] && [ -n "$NICE" ]; then
         pid_nice="$(ps -p $$ -o ni | tail -n 1 | sed 's/ //g' | grep -E '^[0-9]+$')"
         if [ "$pid_nice" -ne "$NICE" ] && renice -n "$NICE" -p $$ > /dev/null; then
             [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
@@ -85,7 +94,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     fi
 
     # Apply CPU affinity
-    if [ -n "$AFFINITY" ]; then
+    if [ "$can_affinity" = true ] && [ -n "$AFFINITY" ]; then
         pid_affinity="$(taskset -p $$ | sed 's/.*: //' | sed 's/ //g' | grep -E '^[0-9]+$')"
         if [ "$pid_affinity" -ne "$AFFINITY" ] && taskset -p "$AFFINITY" $$ > /dev/null; then
             [ -n "$VERBOSE" ] && echo "Set CPU affinity to $AFFINITY"

@@ -3,9 +3,10 @@
 # This script allows you to override the default startup scripts in /opt/etc/init.d
 # by creating a script with the name prefixed with "override-" in the same directory.
 
+#shellcheck disable=SC2044
 case $1 in
     start|restart)
-        for i in $(/opt/bin/find /opt/etc/init.d/ \( -name 'S*' -o -name 'rc.*' \)); do
+        for i in $(find /opt/etc/init.d/ -name 'S*' -o -name 'rc.*'); do
             if [ -f "$i" ]; then
                 b="$(basename "$i")"
 

@@ -1,8 +1,8 @@
 #!/bin/sh
-# /opt/bin/opkg-user-installed
 # Lists user-installed packages only
 
 installed="$(opkg list-installed)"
+
 IFS="$(printf '\n\b')"
 echo "$installed" | while read -r package; do
     name="$(echo "$package" | awk '{print $1}')"
@@ -16,4 +16,5 @@ echo "$installed" | while read -r package; do
     fi
 done
 IFS=
+
 [ "$1" = "list" ] && printf "\n"
