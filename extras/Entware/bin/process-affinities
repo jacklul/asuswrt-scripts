@@ -1,4 +1,5 @@
 #!/bin/sh
+# /opt/usr/bin/process-affinities
 # List all processes and their CPU affinities
 
 which taskset >/dev/null || { echo "Command 'taskset' not found!" >&2; exit 1; }

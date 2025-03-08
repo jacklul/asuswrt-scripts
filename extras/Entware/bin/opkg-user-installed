@@ -1,4 +1,5 @@
 #!/bin/sh
+# /opt/usr/bin/opkg-user-installed
 # Lists user-installed packages only
 
 installed="$(opkg list-installed)"
