@@ -5,18 +5,41 @@
 
 #shellcheck disable=SC2044
 case $1 in
-    start|restart)
+    start|restart|reconfigure)
         for i in $(find /opt/etc/init.d/ -name 'S*' -o -name 'rc.*'); do
             if [ -f "$i" ]; then
                 b="$(basename "$i")"
 
                 if [ -x "/opt/etc/init.d/override-$b" ] && [ ! -L "$i" ]; then
-                    mv -fv "$i" "$i.old"
+                    mv -f "$i" "$i.old"
                     chmod -x "$i.old"
-                    ln -sv "/opt/etc/init.d/override-$b" "$i"
+                    ln -s "/opt/etc/init.d/override-$b" "$i"
                 fi
             fi
         done
+    ;;
+    stop|kill)
+        for i in $(find /opt/etc/init.d/ -name 'S*' -o -name 'rc.*'); do
+            if [ -L "$i" ] && [ -f "$i.old" ]; then
+                rm -f "$i"
+                mv -f "$i.old" "$i"
+                chmod +x "$i"
+            fi
+        done
+    ;;
+    check)
+        for i in $(find /opt/etc/init.d/ -name 'S*' -o -name 'rc.*'); do
+            if [ -f "$i" ]; then
+                b="$(basename "$i")"
+
+                if [ -x "/opt/etc/init.d/override-$b" ] && [ ! -L "$i" ]; then
+                    echo "dead"
+                    exit 1
+                fi
+            fi
+        done
+
+        echo "alive"
     ;;
 esac
 
