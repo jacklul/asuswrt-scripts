@@ -56,8 +56,8 @@ lockfile() { #LOCKFILE_START#
                     _lockwait=0
                     while ! flock -nx "$_fd"; do # flock -x "$_fd" sometimes gets stuck
                         sleep 1
-                        if [ "$_lockwait" -ge 90 ]; then
-                            logger -st "$script_name" "Failed to acquire a lock after 90 seconds"
+                        if [ "$_lockwait" -ge 60 ]; then
+                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds"
                             exit 1
                         fi
                     done
