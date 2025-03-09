@@ -607,7 +607,7 @@ case "$1" in
 
         set -e
 
-        echo "Creating swap file..."
+        echo "Creating swap file... ($SWAP_SIZE KB)"
         touch "$SWAP_FILE"
         dd if=/dev/zero of="$SWAP_FILE" bs=1k count="$SWAP_SIZE"
         mkswap "$SWAP_FILE"
