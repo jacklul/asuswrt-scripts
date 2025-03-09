@@ -1,5 +1,5 @@
 #!/bin/sh
-# /opt/usr/sbin/eservice
+# /opt/usr/bin/eservice
 # This is a small helper script that makes
 # executing Entware's init.d scripts easier
 #
@@ -16,7 +16,6 @@ caller="$(basename "$0" .sh)"
 if [ -n "$action" ]; then
     case "$service" in
         start|stop|restart|check|kill|reconfigure)
-            echo "Swapping parameters"
             tmp="$service"
             service="$action"
             action="$tmp"
@@ -54,6 +53,10 @@ fi
 
 [ -z "$service" ] && { echo "Service not specified" >&2; exit 1; }
 [ -z "$action" ] && { echo "Action not specified" >&2; exit 1; }
+
+# Convenient aliases
+[ "$action" = "reload" ] && action="restart"
+[ "$action" = "status" ] && action="check"
 
 # Perform action on the service (if found)
 for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do

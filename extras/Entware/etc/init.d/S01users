@@ -43,6 +43,7 @@ case $1 in
     check)
         for new_user in $users; do
             if ! grep -q "$new_user:" /opt/etc/passwd; then
+                echo "User $new_user is missing"
                 echo "dead"
                 exit 1
             fi

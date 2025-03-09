@@ -33,6 +33,7 @@ case $1 in
                 b="$(basename "$i")"
 
                 if [ -x "/opt/etc/init.d/override-$b" ] && [ ! -L "$i" ]; then
+                    echo "Link for /opt/etc/init.d/override-$b is missing"
                     echo "dead"
                     exit 1
                 fi
