@@ -16,7 +16,7 @@ readonly script_dir="$(dirname "$script_path")"
 readonly script_config="$script_dir/$script_name.conf"
 
 SWAP_FILE="" # swap file path, like /tmp/mnt/USBDEVICE/swap.img, leave empty to search for it in /tmp/mnt/*/swap.img
-SWAP_SIZE=524288 # swap file size, changing after swap is created requires it to be manually removed, 524288 = 512MB
+SWAP_SIZE=1048576 # swap file size, changing after swap is created requires it to be manually removed, 1048576 = 1GB
 SWAPPINESS= # change the value of vm.swappiness (/proc/sys/vm/swappiness), if left empty it will not be changed
 RUN_EVERY_MINUTE= # check for new devices to mount swap on periodically (true/false), empty means false when hotplug-event.sh is available but otherwise true
 
