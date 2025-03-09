@@ -18,7 +18,7 @@ is_uid_in_use() {
 }
 
 case $1 in
-    start|restart)
+    start|restart|reconfigure)
         for new_user in $users; do
             if ! grep -q "$new_user:" /opt/etc/passwd; then
                 used_uids=$(cut -d: -f3 /opt/etc/passwd)
@@ -36,6 +36,19 @@ case $1 in
                 echo "$new_user:*::" >> /opt/etc/gshadow
             fi
         done
+    ;;
+    stop|kill)
+        # Nothing to do
+    ;;
+    check)
+        for new_user in $users; do
+            if ! grep -q "$new_user:" /opt/etc/passwd; then
+                echo "dead"
+                exit 1
+            fi
+        done
+
+        echo "alive"
     ;;
 esac
 
