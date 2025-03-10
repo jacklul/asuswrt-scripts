@@ -137,7 +137,7 @@ case "$1" in
             if [ -f "$SWAP_FILE" ]; then
                 if swapon "$SWAP_FILE" ; then
                     #shellcheck disable=SC2012
-                    logger -st "$script_name" "Enabled swap file '$SWAP_FILE' ($(ls -hs "$SWAP_FILE" | awk '{print $1}'))"
+                    logger -st "$script_name" "Enabled swap file '$SWAP_FILE' ($(/bin/ls -lh "$SWAP_FILE" | awk '{print $5}'))"
 
                     if [ -n "$SWAPPINESS" ]; then
                         echo "$SWAPPINESS" > /proc/sys/vm/swappiness
