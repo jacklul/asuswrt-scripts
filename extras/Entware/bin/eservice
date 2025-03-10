@@ -54,10 +54,6 @@ fi
 [ -z "$service" ] && { echo "Service not specified" >&2; exit 1; }
 [ -z "$action" ] && { echo "Action not specified" >&2; exit 1; }
 
-# Convenient aliases
-[ "$action" = "reload" ] && action="restart"
-[ "$action" = "status" ] && action="check"
-
 # Perform action on the service (if found)
 for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
     check="$(basename "$file")"
