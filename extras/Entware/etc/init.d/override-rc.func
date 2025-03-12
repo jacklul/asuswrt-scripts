@@ -35,15 +35,37 @@ if [ -f /opt/etc/init.d/rc.func.conf ]; then
     unset _nice _affinity _umask
 fi
 
-# Override variables
-[ -n "$NEW_ENABLED" ] && ENABLED="$NEW_ENABLED"
-[ -n "$NEW_CRITICAL" ] && CRITICAL="$NEW_CRITICAL"
-[ -n "$NEW_PROCS" ] && PROCS="$NEW_PROCS"
-[ -n "$NEW_ARGS" ] && ARGS="$NEW_ARGS"
-[ -n "$NEW_PREARGS" ] && PREARGS="$NEW_PREARGS"
-[ -n "$NEW_DESC" ] && DESC="$NEW_DESC"
-[ -n "$NEW_PRECMD" ] && PRECMD="$NEW_PRECMD"
-[ -n "$NEW_POSTCMD" ] && POSTCMD="$NEW_POSTCMD"
+# Override or modify the variables
+for var in ENABLED CRITICAL PROCS ARGS PREARGS DESC PRECMD POSTCMD; do
+    eval "_override=\${OVERRIDE_$var}"
+    eval "_append=\${APPEND_$var}"
+    eval "_prepend=\${PREPEND_$var}"
+
+    if [ -n "$_override" ]; then
+        eval "$var=\"$_override\""
+    else
+        if [ -n "$_append" ]; then
+            eval "$var=\"\$$var $_append\""
+        fi
+
+        if [ -n "$_prepend" ]; then
+            eval "$var=\"$_prepend \$$var\""
+        fi
+    fi
+done
+unset _override _append _prepend
+
+if [ -n "$OVERRIDE_RCFUNC_TEST" ]; then
+    echo "ENABLED = $ENABLED"
+    echo "CRITICAL = $CRITICAL"
+    echo "PROCS = $PROCS"
+    echo "ARGS = $ARGS"
+    echo "PREARGS = $PREARGS"
+    echo "DESC = $DESC"
+    echo "PRECMD = $PRECMD"
+    echo "POSTCMD = $POSTCMD"
+    exit
+fi
 
 PATH="/opt/sbin:/opt/bin:$PATH"
 
