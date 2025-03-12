@@ -1,5 +1,5 @@
 #!/bin/sh
-# /opt/usr/bin/opkg-orphaned
+# /opt/usr/sbin/opkg-orphaned
 # Lists orphaned packages only
 
 installed="$(opkg list-installed)"
