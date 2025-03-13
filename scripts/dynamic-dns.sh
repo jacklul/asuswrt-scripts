@@ -20,6 +20,8 @@ CACHE_FILE="/tmp/last_wan_ip" # where to cache last public IP
 IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr" (use "nvram2" for wan1), can use URL like "https://ipecho.net/plain" here or empty to not check
 IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL address
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"

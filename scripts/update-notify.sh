@@ -32,6 +32,8 @@ CUSTOM_COMMAND="" # command will receive the new firmware version as its first p
 CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
 CRON="0 */6 * * *" # schedule as cron string
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"

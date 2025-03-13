@@ -5,7 +5,7 @@
 #
 
 #jacklul-asuswrt-scripts-update=modify-webui.sh
-#shellcheck disable=SC2155,SC2016
+#shellcheck disable=SC2155,SC2016,SC2174
 
 readonly script_path="$(readlink -f "$0")"
 readonly script_name="$(basename "$script_path" .sh)"
@@ -14,6 +14,8 @@ readonly script_config="$script_dir/$script_name.conf"
 
 TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443" # list of tweaks to apply
 TMP_WWW_PATH="/tmp/$script_name/www" # directory to store modified files in
+
+umask 022 # set default umask
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090

@@ -16,6 +16,8 @@ FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
 RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false), empty means false when service-event.sh is available but otherwise true
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"

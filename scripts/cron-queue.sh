@@ -15,6 +15,8 @@ readonly script_config="$script_dir/$script_name.conf"
 
 QUEUE_FILE="/tmp/cron_queue" # where to store the queue
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -71,6 +73,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")

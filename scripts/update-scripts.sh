@@ -19,6 +19,8 @@ BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base down
 BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
 AUTOUPDATE=true # whenever to auto-update this script first or not
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"

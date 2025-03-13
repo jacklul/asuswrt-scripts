@@ -80,6 +80,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")

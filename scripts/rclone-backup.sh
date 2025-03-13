@@ -27,6 +27,8 @@ SCRIPT_PRE="/jffs/rclone-pre.sh" # execute a command before running rclone comma
 SCRIPT_POST="/jffs/rclone-post.sh" # execute a command after running rclone command
 RCLONE_PATH="" # path to Rclone binary
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"

@@ -19,6 +19,8 @@ FILES="netboot.xyz.efi netboot.xyz.kpxe" # what files to download, space separat
 DIRECTORY="/tmp/netboot.xyz" # where to save the files
 BASE_URL="https://boot.netboot.xyz/ipxe" # base download URL, without ending slash
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -78,6 +80,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
@@ -118,6 +121,7 @@ case "$1" in
 
         #logger -st "$script_name" "Downloading files from netboot.xyz..."
 
+        #shellcheck disable=SC2174
         [ ! -d "$DIRECTORY" ] && mkdir -p "$DIRECTORY"
 
         downloaded=""

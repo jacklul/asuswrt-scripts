@@ -18,6 +18,8 @@ readonly ETC_FILES="profile hosts" # /etc files we can modify
 readonly NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
 readonly NOPOSTCONF_FILES="/etc/profile" # files that cannot run postconf script
 
+umask 022 # set default umask
+
 lockfile() { #LOCKFILE_START#
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
 
@@ -69,6 +71,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")

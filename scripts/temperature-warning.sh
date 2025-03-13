@@ -16,6 +16,8 @@ TEMPERATURE_TARGET="80" # target temperature at which log the warning
 COOLDOWN=300 # how long to wait (seconds) before logging another warning
 CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"

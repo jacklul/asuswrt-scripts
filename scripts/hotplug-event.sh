@@ -15,6 +15,8 @@ readonly script_config="$script_dir/$script_name.conf"
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = subsystem, $2 = action)
 RUN_EVERY_MINUTE=false # verify that the hotplug configuration is modified (true/false), this usually should not be needed
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -71,6 +73,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")

@@ -32,6 +32,8 @@ readonly CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
 readonly CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
 readonly CHAINS_WGS_LANONLY="WGS_LANONLY"
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -97,6 +99,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")

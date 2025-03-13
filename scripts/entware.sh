@@ -26,6 +26,8 @@ CACHE_FILE="/tmp/last_entware_device" # where to store last device Entware was m
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
 REQUIRE_NTP=true # require time to be synchronized to start
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -90,6 +92,7 @@ lockfile() { #LOCKFILE_START#
             esac
 
             echo $$ > "$_pidfile"
+            chmod 644 "$_pidfile"
             trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
         ;;
         "unlock")
@@ -199,7 +202,8 @@ backup_initd_scripts() {
     if [ -d "/tmp/$script_name-init.d-backup" ]; then
         rm -rf "/tmp/$script_name-init.d-backup/*"
     else
-        mkdir -p "/tmp/$script_name-init.d-backup"
+        #shellcheck disable=SC2174
+        mkdir -p 755 "/tmp/$script_name-init.d-backup"
     fi
 
     # Copy rc.func, no modifications needed
@@ -605,7 +609,8 @@ case "$1" in
 
         for dir in bin etc lib/opkg tmp var/lock; do
             if [ ! -d "/opt/$dir" ]; then
-                mkdir -pv /opt/$dir
+                #shellcheck disable=SC2174
+                mkdir -pvm 755 /opt/$dir
             fi
         done
 

@@ -17,6 +17,8 @@ SCRIPTS_DIR="$script_dir"
 CHECK_FILE="/tmp/scripts_started"
 PRIORITIES="service-event.sh hotplug-event.sh custom-configs.sh cron-queue.sh"
 
+umask 022 # set default umask
+
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
@@ -106,7 +108,8 @@ case "$1" in
         scripts restart
     ;;
     "install")
-        mkdir -pv "$SCRIPTS_DIR"
+        #shellcheck disable=SC2174
+        mkdir -pvm 755 "$SCRIPTS_DIR"
 
         if is_merlin_firmware; then
             cat <<EOT
