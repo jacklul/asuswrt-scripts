@@ -1,0 +1,65 @@
+#!/bin/sh
+# /opt/etc/init.d/S00tmpfs
+# This script mounts the specified directories to temporary directories
+# to prevent unnecessary writes to the Entware storage device.
+
+mounts="/opt/var/lock /opt/var/log /opt/var/run" # Space separated list of directories to mount
+tmpfs_dir=/tmp/entware-tmpfs # Temporary directory to mount the directories to
+copy_stat=false # Copy permissions and ownership from the original directory? Requires 'coreutils-stat' package
+
+##################################################
+
+#shellcheck disable=SC2155
+readonly config="/opt/etc/init.d/$(basename "$0").conf"
+if [ -f "$config" ]; then
+    #shellcheck disable=SC1090
+    . "$config"
+fi
+
+case $1 in
+    start|restart|reconfigure)
+        [ ! -d "$tmpfs_dir" ] && mkdir -m 755 "$tmpfs_dir"
+
+        for mount in $mounts; do
+            if ! mount | grep -Fq "on $mount type"; then
+                path="${mount#/opt/}"
+
+                # if stat command is available, use it to copy the permissions and ownership
+                if [ -x /opt/bin/stat ] && [ "$copy_stat" = true ]; then
+                    IFS=" " read -r perms owner group <<EOF
+$(stat -c "%a %u %g" "$mount")
+EOF
+
+                    mount -o bind "$tmpfs_dir/$path" "$mount"
+
+                    chmod "$perms" "$tmpfs_dir/$path"
+                    chown "$owner:$group" "$tmpfs_dir/$path"
+                else # otherwise apply 755 permissions and root ownership
+                    #shellcheck disable=SC2174
+                    mkdir -pm 755 "$tmpfs_dir/$path"
+                    chown 0:0 "$tmpfs_dir/$path"
+
+                    mount -o bind "$tmpfs_dir/$path" "$mount"
+                fi
+            fi
+        done
+    ;;
+    stop|kill)
+        for mount in $mounts; do
+            if mount | grep -Fq "on $mount type"; then
+                umount "$mount"
+            fi
+        done
+    ;;
+    check)
+        for mount in $mounts; do
+            if ! mount | grep -Fq "on $mount type"; then
+                echo "Mount $mount is missing"
+                echo "dead"
+                exit 1
+            fi
+        done
+
+        echo "alive"
+    ;;
+esac

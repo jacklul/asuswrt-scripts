@@ -1,0 +1,20 @@
+#!/bin/sh
+# /opt/usr/bin/save-permissions
+# This script saves permissions and ownership of files and directories
+# to the file that can be later used by restore-permissions script.
+
+[ "$(id -u)" -ne 0 ] && { echo "This script must run as root."; exit 1; }
+[ -x /opt/bin/find ] || { echo "Install 'findutils' package!" >&2; exit 1; }
+[ -x /opt/bin/stat ] || { echo "Install 'coreutils-stat' package!" >&2; exit 1; }
+
+[ -z "$1" ] && { echo "Target directory not provided" >&2; exit 1; }
+[ -z "$2" ] && { echo "Output file not provided" >&2; exit 1; }
+[ ! -d "$1" ] && { echo "Target directory does not exist: $1" >&2; exit 1; }
+
+dir="$(readlink -f "$1")"
+
+set -e
+
+echo "" > "$2"
+/opt/bin/find "$dir" -exec /opt/bin/stat --format="%a %U %G %n" {} \; >> "$2"
+echo "Permissions have been saved to $2"

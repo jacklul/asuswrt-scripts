@@ -2,10 +2,17 @@
 # /opt/etc/init.d/S01users
 # This script allows easy creation of users for services that require them
 
-users="pihole unbound"
-min_uid=1001
+users="" # Space separated list of users to create
+min_uid=1001 # On AsusWRT users added from fileshare UI start at 501, 'asd' sometimes switches to UID 1000 so 1001 should be safe value to use
 
-# On AsusWRT users added from fileshare UI start at 501, 'asd' sometimes switches to UID 1000 so 1001 should be safe value to use
+##################################################
+
+#shellcheck disable=SC2155
+readonly config="/opt/etc/init.d/$(basename "$0").conf"
+if [ -f "$config" ]; then
+    #shellcheck disable=SC1090
+    . "$config"
+fi
 
 is_uid_in_use() {
     for _test_uid in $2; do
@@ -38,7 +45,7 @@ case $1 in
         done
     ;;
     stop|kill)
-        # Nothing to do
+        # Do nothing as processes might be already running as those users
     ;;
     check)
         for new_user in $users; do
