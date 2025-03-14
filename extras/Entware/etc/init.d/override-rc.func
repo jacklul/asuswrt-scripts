@@ -70,6 +70,11 @@ if [ -n "$OVERRIDE_RCFUNC_TEST" ]; then
     echo "DESC = $DESC"
     echo "PRECMD = $PRECMD"
     echo "POSTCMD = $POSTCMD"
+    echo "NICE = $NICE"
+    echo "IOCLASS = $IOCLASS"
+    echo "IOPRIO = $IOPRIO"
+    echo "AFFINITY = $AFFINITY"
+    echo "UMASK = $UMASK"
     exit
 fi
 
