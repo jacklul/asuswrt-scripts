@@ -279,7 +279,7 @@ iptables_rules() {
 
         if [ "$_iptables" = "ip6tables" ]; then
             if [ -z "$DNS_SERVER6" ]; then
-                $_iptables -t nat "$_action" "$CHAIN_DNAT" -j REJECT
+                $_iptables -t nat "$_action" "$CHAIN_DNAT" -j DNAT --to-destination 0.0.0.0
                 $_iptables "$_action" "$CHAIN_DOT" -j REJECT
                 continue
             fi
@@ -295,6 +295,11 @@ iptables_rules() {
 
         [ "$_router_ip" = "$_set_dns_server" ] && _block_router_dns=false
 
+        # When router is set as DNS server, add it to the list of allowed IPs if it's not there
+        if [ -n "$_permit_ip" ] && ! echo "$_permit_ip" | grep -Fq "$_router_ip"; then
+            _permit_ip="$_router_ip $_permit_ip"
+        fi
+
         if [ -n "$PERMIT_MAC" ]; then
             for _mac in $(echo "$PERMIT_MAC" | tr ',' ' '); do
                 _mac="$(echo "$_mac" | awk '{$1=$1};1')"
@@ -305,29 +310,31 @@ iptables_rules() {
             done
         fi
 
-        if [ "${_permit_ip#*"-"}" != "$_permit_ip" ]; then # IP ranges found
-            for _ip in $(echo "$_permit_ip" | tr ',' ' '); do
-                _ip="$(echo "$_ip" | awk '{$1=$1};1')"
+        if [ -n "$_permit_ip" ]; then
+            if [ "${_permit_ip#*"-"}" != "$_permit_ip" ]; then # IP ranges found
+                for _ip in $(echo "$_permit_ip" | tr ',' ' '); do
+                    _ip="$(echo "$_ip" | awk '{$1=$1};1')"
 
-                if [ "${IP#*"-"}" != "$_ip" ]; then # IP range entry
-                    $_iptables -t nat "$_action" "$CHAIN_DNAT" -m iprange --src-range "$_ip" -j RETURN
-                    $_iptables "$_action" "$CHAIN_DOT" -m iprange --src-range "$_ip" -j RETURN
-                    [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -m iprange --src-range "$_ip" -j RETURN
-                else # single IP entry
-                    $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_ip" -j RETURN
-                    $_iptables "$_action" "$CHAIN_DOT" -s "$_ip" -j RETURN
-                    [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_ip" -j RETURN
-                fi
-            done
-        else # no IP ranges found, conveniently iptables accept IPs separated by commas
-            $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_permit_ip" -j RETURN
-            $_iptables "$_action" "$CHAIN_DOT" -s "$_permit_ip" -j RETURN
-            [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_permit_ip" -j RETURN
+                    if [ "${_ip#*"-"}" != "$_ip" ]; then # IP range entry
+                        $_iptables -t nat "$_action" "$CHAIN_DNAT" -m iprange --src-range "$_ip" -j RETURN
+                        $_iptables "$_action" "$CHAIN_DOT" -m iprange --src-range "$_ip" -j RETURN
+                        [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -m iprange --src-range "$_ip" -j RETURN
+                    else # single IP entry
+                        $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_ip" -j RETURN
+                        $_iptables "$_action" "$CHAIN_DOT" -s "$_ip" -j RETURN
+                        [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_ip" -j RETURN
+                    fi
+                done
+            else # no IP ranges found, conveniently iptables accept IPs separated by commas
+                $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_permit_ip" -j RETURN
+                $_iptables "$_action" "$CHAIN_DOT" -s "$_permit_ip" -j RETURN
+                [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_permit_ip" -j RETURN
+            fi
         fi
 
         [ "$_block_router_dns" = true ] && $_iptables -t nat "$_action" "$CHAIN_DNAT" -d "$_router_ip" -j RETURN
 
-        $_iptables -t nat "$_action" "$CHAIN_DNAT" -j DNAT --to-destination "$_set_dns_server"
+        $_iptables -t nat "$_action" "$CHAIN_DNAT" ! -d "$_set_dns_server" -j DNAT --to-destination "$_set_dns_server"
         $_iptables "$_action" "$CHAIN_DOT" ! -d "$_set_dns_server" -j REJECT
 
         [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -j REJECT
@@ -336,7 +343,7 @@ iptables_rules() {
 
 rules_exist() {
     if iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1 && iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-        if iptables -t nat -C "$CHAIN_DNAT" -j DNAT --to-destination "$1" > /dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN_DNAT" ! -d "$1" -j DNAT --to-destination "$1" > /dev/null 2>&1; then
             return 0
         fi
     fi
