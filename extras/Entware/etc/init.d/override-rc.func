@@ -1,47 +1,83 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # /opt/etc/init.d/override-rc.func
+#
 # This script allows your overrides (see S00overrides) to easily change
 # init.d variables like ENABLED, ARGS or PREARGS.
-# This script requires procps-ng-ps package to be installed.
+# This script requires procps-ng-ps package to be installed to function.
 #
-# Additionally it allows you to set few additional settings in the overrides:
+# A better alternative to using override-SXXdaemon is Sxxdaemon.override which
+# will make the overrides continue to work even after daemon package is updated.
+#
+# You can use override_before() and override_after() hook functions to run
+# before and after original rc.func code.
+#
+# You can set few additional settings in the overrides:
 #  NICE=       - see renice(8) - set priority of the processes, negative values is higher priority, positive is lower, 0 is default
 #  IOCLASS=    - see ionice(1) - IO class of the process, 0 for none - based on nice (default), 1 for real-time, 2 for best-effort, 3 for idle
 #  IOPRIORITY= - see ionice(1) - IO priority of the process, (high) 0-7 (low) for real-time and best-effort only
 #  AFFINITY=   - see taskset(1) - set a process's CPU affinity, negative values substract from the init process's affinity
 #  UMASK=      - see umask(2) - set file mode creation mask before starting the process, not all programs will inherit it
 #
-# The value of AFFINITY should be hexadecimal accepted by the taskset command,
-# when using substraction it must be decimal instead (e.g. to substract 5th core you would set 16)
+# The value of AFFINITY should be hexadecimal accepted by the taskset command, when using
+# substraction it must be decimal instead (e.g. to substract 5th core you would set 16)
 
 #shellcheck disable=SC2034
 
 # Fail if original rc.func is not found
-original="/opt/etc/init.d/rc.func.old"
-[ ! -f "$original" ] && { echo "Not found: $original" >&2; exit 1; }
+_rcfunc_original="/opt/etc/init.d/rc.func.old"
+[ ! -f "$_rcfunc_original" ] && { echo "Not found: $_rcfunc_original" >&2; exit 1; }
+
+# Define hook functions
+override_before() { return; }
+override_after() { return; }
 
 # Allow setting default values for extra settings through a config file
-if [ -f /opt/etc/init.d/rc.func.conf ]; then
-    # Store current values before loading config
-    _nice="$NICE"
-    _ioclass="$IOCLASS"
-    _iopriority="$IOPRIO"
-    _affinity="$AFFINITY"
-    _umask="$UMASK"
+_rcfunc_config="/opt/etc/init.d/rc.func.conf"
+if [ -f "$_rcfunc_config" ]; then
+    # Backup current values
+    _rcfunc_enabled="$ENABLED"
+    _rcfunc_critical="$CRITICAL"
+    _rcfunc_procs="$PROCS"
+    _rcfunc_args="$ARGS"
+    _rcfunc_preargs="$PREARGS"
+    _rcfunc_desc="$DESC"
+    _rcfunc_precmd="$PRECMD"
+    _rcfunc_postcmd="$POSTCMD"
+    _rcfunc_nice="$NICE"
+    _rcfunc_ioclass="$IOCLASS"
+    _rcfunc_iopriority="$IOPRIO"
+    _rcfunc_affinity="$AFFINITY"
+    _rcfunc_umask="$UMASK"
 
-    #shellcheck disable=SC1091
-    . /opt/etc/init.d/rc.func.conf
+    #shellcheck disable=SC1090
+    . "$_rcfunc_config"
 
     # Restore non-empty values
-    [ -n "$_nice" ] && NICE="$_nice"
-    [ -n "$_ioclass" ] && IOCLASS="$_ioclass"
-    [ -n "$_iopriority" ] && IOPRIO="$_iopriority"
-    [ -n "$_affinity" ] && AFFINITY="$_affinity"
-    [ -n "$_umask" ] && UMASK="$_umask"
-    unset _nice _affinity _umask
+    [ -n "$_rcfunc_enabled" ] && ENABLED="$_rcfunc_enabled"
+    [ -n "$_rcfunc_critical" ] && CRITICAL="$_rcfunc_critical"
+    [ -n "$_rcfunc_procs" ] && PROCS="$_rcfunc_procs"
+    [ -n "$_rcfunc_args" ] && ARGS="$_rcfunc_args"
+    [ -n "$_rcfunc_preargs" ] && PREARGS="$_rcfunc_preargs"
+    [ -n "$_rcfunc_desc" ] && DESC="$_rcfunc_desc"
+    [ -n "$_rcfunc_precmd" ] && PRECMD="$_rcfunc_precmd"
+    [ -n "$_rcfunc_postcmd" ] && POSTCMD="$_rcfunc_postcmd"
+    [ -n "$_rcfunc_nice" ] && NICE="$_rcfunc_nice"
+    [ -n "$_rcfunc_ioclass" ] && IOCLASS="$_rcfunc_ioclass"
+    [ -n "$_rcfunc_iopriority" ] && IOPRIO="$_rcfunc_iopriority"
+    [ -n "$_rcfunc_affinity" ] && AFFINITY="$_rcfunc_affinity"
+    [ -n "$_rcfunc_umask" ] && UMASK="$_rcfunc_umask"
+
+    unset _rcfunc_enabled _rcfunc_critical _rcfunc_procs _rcfunc_args _rcfunc_preargs _rcfunc_desc _rcfunc_precmd _rcfunc_postcmd _rcfunc_nice _rcfunc_ioclass _rcfunc_iopriority _rcfunc_affinity _rcfunc_umask
 fi
 
-# Override or modify the variables
+# Source .override file if it exists
+_rcfunc_override="/opt/etc/init.d/$(basename "$0").override"
+if [ -f "$_rcfunc_override" ]; then
+    #shellcheck disable=SC1090
+    . "$_rcfunc_override"
+fi
+
+# Override or modify the variables (for use with override-SXXdaemon method)
 for var in ENABLED CRITICAL PROCS ARGS PREARGS DESC PRECMD POSTCMD; do
     eval "_override=\${OVERRIDE_$var}"
     eval "_append=\${APPEND_$var}"
@@ -61,6 +97,7 @@ for var in ENABLED CRITICAL PROCS ARGS PREARGS DESC PRECMD POSTCMD; do
 done
 unset _override _append _prepend
 
+# Show all values for debugging purposes
 if [ -n "$OVERRIDE_RCFUNC_TEST" ]; then
     echo "ENABLED = $ENABLED"
     echo "CRITICAL = $CRITICAL"
@@ -78,21 +115,22 @@ if [ -n "$OVERRIDE_RCFUNC_TEST" ]; then
     exit
 fi
 
+# Prioritize /opt binaries from this point
 PATH="/opt/sbin:/opt/bin:$PATH"
 
-can_renice=true
-can_ionice=true
-can_affinity=true
+_rcfunc_can_renice=true
+_rcfunc_can_ionice=true
+_rcfunc_can_affinity=true
 
-[ -x /opt/bin/ps ] || { echo "Please install 'procps-ng-ps' package!" >&2; can_renice=false; }
-which renice >/dev/null || { echo "Command 'renice' not found!" >&2; can_renice=false; }
-which ionice >/dev/null || { echo "Command 'ionice' not found!" >&2; can_ionice=false; }
-which taskset >/dev/null || { echo "Command 'taskset' not found!" >&2; can_affinity=false; }
+[ -x /opt/bin/ps ] || { echo "Please install 'procps-ng-ps' package!" >&2; _rcfunc_can_renice=false; }
+which renice >/dev/null 2>&1 || { echo "Command 'renice' not found!" >&2; _rcfunc_can_renice=false; }
+which ionice >/dev/null 2>&1 || { echo "Command 'ionice' not found!" >&2; _rcfunc_can_ionice=false; }
+which taskset >/dev/null 2>&1 || { echo "Command 'taskset' not found!" >&2; _rcfunc_can_affinity=false; }
 
 # Apply those only when starting or restarting
 if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     # Handle negative AFFINITY setting
-    if [ "$can_affinity" = true ] && echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
+    if [ "$_rcfunc_can_affinity" = true ] && echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
         init_affinity="$(taskset -p 1 | sed 's/.*: //')"
 
         # Convert to decimal
@@ -121,7 +159,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     fi
 
     # Apply priority
-    if [ "$can_renice" = true ] && [ -n "$NICE" ]; then
+    if [ "$_rcfunc_can_renice" = true ] && [ -n "$NICE" ]; then
         if renice -n "$NICE" -p $$ > /dev/null; then
             [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
         else
@@ -130,7 +168,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     fi
 
     # Apply IO class and priority
-    if [ "$can_ionice" = true ]; then
+    if [ "$_rcfunc_can_ionice" = true ]; then
         if [ -n "$IOCLASS" ]; then
             if ionice -c "$IOCLASS" -p $$ > /dev/null; then
                 [ -n "$VERBOSE" ] && echo "Set IO class to $IOCLASS"
@@ -149,7 +187,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     fi
 
     # Apply CPU affinity
-    if [ "$can_affinity" = true ] && [ -n "$AFFINITY" ]; then
+    if [ "$_rcfunc_can_affinity" = true ] && [ -n "$AFFINITY" ]; then
         if taskset -p "$AFFINITY" $$ > /dev/null; then
             [ -n "$VERBOSE" ] && echo "Set CPU affinity to $AFFINITY"
         else
@@ -167,11 +205,18 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     fi
 fi
 
-# Make sure CALLER is not empty - fixes empty value in "Started xxx from ." message in syslog
+# Store current arguments
+ACTION="$1"
 CALLER="$2"
+
+# Make sure CALLER is not empty - fixes empty value in "Started xxx from ." message in syslog
 [ -z "$CALLER" ] && CALLER=unknown  
 
+override_before "$ACTION" "$CALLER"
+
 # Override positional arguments and call the original script
-set -- "$1" "$CALLER"
+set -- "$ACTION" "$CALLER"
 #shellcheck disable=SC1090
-. "$original"
+. "$_rcfunc_original"
+
+override_after "$ACTION" "$CALLER"
