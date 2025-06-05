@@ -135,6 +135,7 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 custom_checks() {
     change_interface=false
     change_firewall=false
+    upgrade_running=false
 
     _addr="127.83.69.33/8" # asci SE! - service event
     _chain="SERVICE_EVENT_CHECK"
@@ -157,7 +158,11 @@ custom_checks() {
     #    change_interface=true
     #fi
 
-    if [ "$1" != "init" ] && { [ "$change_interface" = true ] || [ "$change_firewall" = true ] ; }; then
+    if [ -f /tmp/linux.zip ] && [ ! -f /tmp/linux.trx ] && [ -n "$(/bin/ps w | grep -F "[z]ip_webs_upgrade.sh" | awk '{print $1}')" ]; then
+        upgrade_running=true
+    fi
+
+    if [ "$1" != "init" ] && { [ "$change_interface" = true ] || [ "$change_firewall" = true ] || [ "$upgrade_running" = true ] ; }; then
         return 1
     fi
 
@@ -249,6 +254,10 @@ service_monitor() {
 
             if [ "$change_firewall" = true ]; then
                 trigger_event "restart" "firewall" "ccheck"
+            fi
+
+            if [ "$upgrade_running" = true ]; then
+                trigger_event "restart" "custom_upgrade" "ccheck"
             fi
         fi
 
@@ -375,12 +384,20 @@ case "$1" in
                     { sleep 5 && sh "$script_dir/custom-configs.sh" run; } &
                 fi
             ;;
+            "custom_upgrade") # triggered by custom check only
+                [ -x "$script_dir/rclone-backup.sh" ] && sh "$script_dir/rclone-backup.sh" stop &
+                [ -x "$script_dir/entware.sh" ] && sh "$script_dir/entware.sh" stop &
+                [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" stop &
+                [ -x "$script_dir/usb-mount.sh" ] && sh "$script_dir/usb-mount.sh" stop &
+            ;;
         esac
 
-        # these do not follow the naming scheme ("ACTION_SERVICE")
         case "${2}_${3}" in
-            "ipsec_set"|"ipsec_start"|"ipsec_restart")
+            "ipsec_set"|"ipsec_start"|"ipsec_restart") # these do not follow the naming scheme ("ACTION_SERVICE")
                 sh "$script_path" event restart firewall "$4" &
+            ;;
+            "stop_upgrade")
+                sh "$script_path" event restart custom_upgrade "$4" &
             ;;
         esac
 
