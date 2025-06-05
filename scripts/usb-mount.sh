@@ -170,7 +170,7 @@ setup_mount() {
 case "$1" in
     "run")
         for device in /dev/sd*; do
-            [ ! -b "$DEVICE" ] && continue
+            [ ! -b "$device" ] && continue
 
             devicename="$(basename "$device")"
 
