@@ -25,19 +25,19 @@ EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives
 SLEEP=1 # how to long to wait between each syslog reading iteration
 CUSTOM_CHECKS=true # run additional checks (detect when interface config or firewall rules were recreated)
 
-# Chain names definitions, must be changed if they were modified in their scripts
-readonly CHAINS_CHECK="SERVICE_EVENT_CHECK"
-readonly CHAINS_FORCEDNS="FORCEDNS"
-readonly CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
-readonly CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
-readonly CHAINS_WGS_LANONLY="WGS_LANONLY"
-
 umask 022 # set default umask
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
 fi
+
+# Chain names definitions, must be changed if they were modified in their scripts
+readonly CHAINS_CHECK="SERVICE_EVENT_CHECK"
+readonly CHAINS_FORCEDNS="FORCEDNS"
+readonly CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
+readonly CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
+readonly CHAINS_WGS_LANONLY="WGS_LANONLY"
 
 is_merlin_firmware() { #ISMERLINFIRMWARE_START#
     if [ -f "/usr/sbin/helper.sh" ]; then
