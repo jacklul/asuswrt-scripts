@@ -138,7 +138,7 @@ custom_checks() {
     upgrade_running=false
 
     _addr="127.83.69.33/8" # asci SE! - service event
-    _chain="SERVICE_EVENT_CHECK"
+    _chain="$CHAINS_CHECK"
 
     if ! ip addr show dev lo | grep -Fq "inet $_addr "; then
         ip -4 addr add "$_addr" dev lo
