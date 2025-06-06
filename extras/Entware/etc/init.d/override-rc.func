@@ -5,7 +5,7 @@
 # init.d variables like ENABLED, ARGS or PREARGS.
 # This script requires procps-ng-ps package to be installed to function.
 #
-# A better alternative to using override-SXXdaemon is Sxxdaemon.override which
+# A better alternative to using override-SXXdaemon is hook-SXXdaemon which
 # will make the overrides continue to work even after daemon package is updated.
 #
 # You can use override_before() and override_after() hook functions to run
@@ -70,8 +70,8 @@ if [ -f "$_rcfunc_config" ]; then
     unset _rcfunc_enabled _rcfunc_critical _rcfunc_procs _rcfunc_args _rcfunc_preargs _rcfunc_desc _rcfunc_precmd _rcfunc_postcmd _rcfunc_nice _rcfunc_ioclass _rcfunc_iopriority _rcfunc_affinity _rcfunc_umask
 fi
 
-# Source .override file if it exists
-_rcfunc_override="/opt/etc/init.d/$(basename "$0").override"
+# Source hook file if it exists
+_rcfunc_override="/opt/etc/init.d/hook-$(basename "$0")"
 if [ -f "$_rcfunc_override" ]; then
     #shellcheck disable=SC1090
     . "$_rcfunc_override"

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#shellcheck disable=SC2034
+
+ARGS=""
+NICE=15
+AFFINITY=1
+
+###################################
+
+override_before() {
+    case $1 in
+        start|restart)
+            if [ ! -d /opt/var/lib/daemon ]; then
+                mkdir -p /opt/var/lib/daemon
+                chmod 755 /opt/var/lib/daemon
+            fi
+        ;;
+    esac
+}
