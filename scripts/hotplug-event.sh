@@ -142,7 +142,7 @@ EOT
 
 case "$1" in
     "run")
-        if ! grep -Fq "$script_path" /etc/hotplug2.rules; then
+        if [ -f /etc/hotplug2.rules ] && ! grep -Fq "$script_path" /etc/hotplug2.rules; then
             hotplug_config modify
         fi
     ;;
