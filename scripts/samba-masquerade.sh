@@ -49,7 +49,7 @@ lockfile() { #LOCKFILE_START#
 
     _lockfile="/var/lock/script-$script_name.lock"
     _pidfile="/var/run/script-$script_name.pid"
-    _fd=100
+    _fd_min=100
     _fd_max=200
 
     if [ -n "$2" ]; then
@@ -57,8 +57,8 @@ lockfile() { #LOCKFILE_START#
         _pidfile="/var/run/script-$script_name-$2.lock"
     fi
 
-    [ -n "$3" ] && [ "$3" -eq "$3" ] && _fd="$3" && _fd_max="$3"
-    [ -n "$4" ] && [ "$4" -eq "$4" ] && _fd_max="$4"
+    [ -n "$3" ] && _fd_min="$3" && _fd_max="$3"
+    [ -n "$4" ] && _fd_max="$4"
 
     [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
     [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
@@ -68,23 +68,31 @@ lockfile() { #LOCKFILE_START#
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            while [ -f "/proc/$$/fd/$_fd" ]; do
-                _fd=$((_fd+1))
-                [ "$_fd" -gt "$_fd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+            for _fd_test in "/proc/$$/fd"/*; do
+                if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
+                    logger -st "$script_name" "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
+                    exit 1
+                fi
             done
 
+            _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
             eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
                     _lockwait=0
-                    while ! flock -nx "$_fd"; do # flock -x "$_fd" sometimes gets stuck
+                    while ! flock -nx "$_fd"; do
+                        eval exec "$_fd>&-"
                         _lockwait=$((_lockwait+1))
-                        sleep 1
+
                         if [ "$_lockwait" -ge 60 ]; then
-                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds"
+                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds ($_lockfile)"
                             exit 1
                         fi
+
+                        sleep 1
+                        _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
+                        eval exec "$_fd>$_lockfile"
                     done
                 ;;
                 "lockfail")
@@ -114,6 +122,18 @@ lockfile() { #LOCKFILE_START#
             return 1
         ;;
     esac
+}
+
+lockfile_fd() {
+    _lfd_min=$1
+    _lfd_max=$2
+
+    while [ -f "/proc/$$/fd/$_lfd_min" ]; do
+        _lfd_min=$((_lfd_min+1))
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+    done
+
+    echo "$_lfd_min"
 } #LOCKFILE_END#
 
 get_destination_network() {
