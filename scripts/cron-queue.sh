@@ -119,7 +119,15 @@ case "$1" in
         lockfile lockwait run # make sure queue list does not get written to while running
 
         #shellcheck disable=SC1090
-        sh "$QUEUE_FILE"
+        #( sh "$QUEUE_FILE" < /dev/null )
+
+        while IFS= read -r line; do
+            line=$(echo "$line" | sed 's/[[:space:]]*#.*$//; s/^[[:space:]]*//; s/[[:space:]]*$//')
+            [ -z "$line" ] && continue
+            echo "Running: $line"
+            #shellcheck disable=SC2086
+            ( $line < /dev/null )
+        done < "$QUEUE_FILE"
 
         lockfile unlock run
     ;;
