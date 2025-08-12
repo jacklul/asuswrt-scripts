@@ -46,11 +46,17 @@ extra_ip() {
 
     for _extra_ip in $EXTRA_IPS; do
         _interface=
+        _label=
         _address=
 
         if echo "$_extra_ip" | grep -Fq "="; then
             _address="$(echo "$_extra_ip" | cut -d '=' -f 2 2> /dev/null)"
             _interface="$(echo "$_extra_ip" | cut -d '=' -f 1 2> /dev/null)"
+
+            if echo "$_interface" | grep -Fq ":"; then
+                _label="$_interface"
+                _interface="$(echo "$_extra_ip" | cut -d ':' -f 1 2> /dev/null)"
+            fi
 
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
             { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { echo "List element is invalid: $_interface $_address"; exit 1; }
@@ -62,7 +68,12 @@ extra_ip() {
         case "$1" in
             "add")
                 if ! ip addr show dev "$_interface" | grep -Fq "inet $_address"; then
-                    ip -4 addr add "$_address" brd + dev "$_interface"
+                    if [ -n "$_label" ]; then
+                        ip -4 addr add "$_address" brd + dev "$_interface" label "$_label"
+                    else
+                        ip -4 addr add "$_address" brd + dev "$_interface"
+                    fi
+
                     logger -st "$script_name" "Added IPv4 address $_address to interface $_interface"
                 fi
             ;;

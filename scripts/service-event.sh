@@ -161,7 +161,7 @@ custom_checks() {
     _chain="$CHAINS_CHECK"
 
     if ! ip addr show dev lo | grep -Fq "inet $_addr "; then
-        ip -4 addr add "$_addr" dev lo
+        ip -4 addr add "$_addr" dev lo label lo:se
         change_interface=true
     fi
 
