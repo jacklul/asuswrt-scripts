@@ -3,7 +3,6 @@
 #
 # This script allows your overrides (see S00overrides) to easily change
 # init.d variables like ENABLED, ARGS or PREARGS.
-# This script requires procps-ng-ps package to be installed to function.
 #
 # A better alternative to using override-SXXdaemon is hook-SXXdaemon which
 # will make the overrides continue to work even after daemon package is updated.
@@ -118,80 +117,84 @@ fi
 # Prioritize /opt binaries from this point
 PATH="/opt/sbin:/opt/bin:$PATH"
 
-_rcfunc_can_renice=true
-_rcfunc_can_ionice=true
-_rcfunc_can_affinity=true
-
-[ -x /opt/bin/ps ] || { echo "Please install 'procps-ng-ps' package!" >&2; _rcfunc_can_renice=false; }
-which renice >/dev/null 2>&1 || { echo "Command 'renice' not found!" >&2; _rcfunc_can_renice=false; }
-which ionice >/dev/null 2>&1 || { echo "Command 'ionice' not found!" >&2; _rcfunc_can_ionice=false; }
-which taskset >/dev/null 2>&1 || { echo "Command 'taskset' not found!" >&2; _rcfunc_can_affinity=false; }
-
 # Apply those only when starting or restarting
 if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
-    # Handle negative AFFINITY setting
-    if [ "$_rcfunc_can_affinity" = true ] && echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
-        init_affinity="$(taskset -p 1 | sed 's/.*: //')"
-
-        # Convert to decimal
-        init_affinity=$((0x$init_affinity))
-
-        # Make sure variable holds only numbers
-        if echo "$init_affinity" | grep -q '^[0-9]\+$'; then
-
-            # Convert to absolute value
-            AFFINITY=${AFFINITY#-}
-
-            # Substract the value 
-            AFFINITY=$((init_affinity - AFFINITY))
-
-            if [ "$AFFINITY" -ge 1 ]; then
-                # Convert to hexadecimal
-                AFFINITY=$(printf '%x\n' "$AFFINITY")
-            else # Values below 1 are invalid
-                echo "Invalid value for CPU affinity: $AFFINITY" >&2
-                AFFINITY=
+    # Apply priority
+    if [ -n "$NICE" ]; then
+        if which renice >/dev/null 2>&1; then
+            if renice -n "$NICE" -p $$ > /dev/null; then
+                [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
+            else
+                echo "Failed to set niceness to $NICE" >&2
             fi
         else
-            echo "Failed to get CPU affinity of the init process (PID 1)" >&2
-            AFFINITY=
-        fi
-    fi
-
-    # Apply priority
-    if [ "$_rcfunc_can_renice" = true ] && [ -n "$NICE" ]; then
-        if renice -n "$NICE" -p $$ > /dev/null; then
-            [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
-        else
-            echo "Failed to set niceness to $NICE" >&2
+            echo "Command 'renice' not found!" >&2
         fi
     fi
 
     # Apply IO class and priority
-    if [ "$_rcfunc_can_ionice" = true ]; then
-        if [ -n "$IOCLASS" ]; then
-            if ionice -c "$IOCLASS" -p $$ > /dev/null; then
-                [ -n "$VERBOSE" ] && echo "Set IO class to $IOCLASS"
-            else
-                echo "Failed to set IO class to $IOCLASS" >&2
+    if [ -n "$IOCLASS" ] || [ -n "$IOPRIORITY" ]; then
+        if which ionice >/dev/null 2>&1; then
+            if [ -n "$IOCLASS" ]; then
+                if ionice -c "$IOCLASS" -p $$ > /dev/null; then
+                    [ -n "$VERBOSE" ] && echo "Set IO class to $IOCLASS"
+                else
+                    echo "Failed to set IO class to $IOCLASS" >&2
+                fi
             fi
-        fi
 
-        if [ -n "$IOPRIORITY" ]; then
-            if ionice -n "$IOPRIORITY" -p $$ > /dev/null; then
-                [ -n "$VERBOSE" ] && echo "Set IO priority to $IOPRIORITY"
-            else
-                echo "Failed to set IO priority to $IOPRIORITY" >&2
+            if [ -n "$IOPRIORITY" ]; then
+                if ionice -n "$IOPRIORITY" -p $$ > /dev/null; then
+                    [ -n "$VERBOSE" ] && echo "Set IO priority to $IOPRIORITY"
+                else
+                    echo "Failed to set IO priority to $IOPRIORITY" >&2
+                fi
             fi
+        else
+            echo "Command 'ionice' not found!" >&2
         fi
     fi
 
     # Apply CPU affinity
-    if [ "$_rcfunc_can_affinity" = true ] && [ -n "$AFFINITY" ]; then
-        if taskset -p "$AFFINITY" $$ > /dev/null; then
-            [ -n "$VERBOSE" ] && echo "Set CPU affinity to $AFFINITY"
+    if [ -n "$AFFINITY" ]; then
+        if which taskset >/dev/null 2>&1; then
+            # Handle negative AFFINITY setting
+            if echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
+                init_affinity="$(taskset -p 1 | sed 's/.*: //')"
+
+                # Convert to decimal
+                init_affinity=$((0x$init_affinity))
+
+                # Make sure variable holds only numbers
+                if echo "$init_affinity" | grep -q '^[0-9]\+$'; then
+                    # Convert to absolute value
+                    AFFINITY=${AFFINITY#-}
+
+                    # Substract the value 
+                    AFFINITY=$((init_affinity - AFFINITY))
+
+                    if [ "$AFFINITY" -ge 1 ]; then
+                        # Convert to hexadecimal
+                        AFFINITY=$(printf '%x\n' "$AFFINITY")
+                    else # Values below 1 are invalid
+                        echo "Invalid value for CPU affinity: $AFFINITY" >&2
+                        AFFINITY=
+                    fi
+                else
+                    echo "Failed to get CPU affinity of the init process (PID 1)" >&2
+                    AFFINITY=
+                fi
+            fi
+
+            if [ -n "$AFFINITY" ]; then
+                if taskset -p "$AFFINITY" $$ > /dev/null; then
+                    [ -n "$VERBOSE" ] && echo "Set CPU affinity to $AFFINITY"
+                else
+                    echo "Failed to set CPU affinity to $AFFINITY" >&2
+                fi
+            fi
         else
-            echo "Failed to set CPU affinity to $AFFINITY" >&2
+            echo "Command 'taskset' not found!" >&2
         fi
     fi
 
