@@ -5,7 +5,7 @@
 
 mounts="/opt/var/lock /opt/var/log /opt/var/run" # Space separated list of directories to mount
 tmpfs_dir=/tmp/entware-tmpfs # Temporary directory to mount the directories to
-copy_stat=false # Copy permissions and ownership from the original directory? Requires 'coreutils-stat' package
+copy_stat=false # Copy permissions and ownership from the original directory? Requires 'stat' command
 
 ##################################################
 
@@ -18,11 +18,16 @@ fi
 
 case $1 in
     start|restart|reconfigure)
+        tag="$(basename "$0")"
+
         [ ! -d "$tmpfs_dir" ] && mkdir -m 755 "$tmpfs_dir"
 
         for mount in $mounts; do
             if ! mount | grep -Fq "on $mount type"; then
                 path="${mount#/opt/}"
+
+                #shellcheck disable=SC2174
+                mkdir -pm 755 "$tmpfs_dir/$path"
 
                 # if stat command is available, use it to copy the permissions and ownership
                 if [ -x /opt/bin/stat ] && [ "$copy_stat" = true ]; then
@@ -30,16 +35,16 @@ case $1 in
 $(stat -c "%a %u %g" "$mount")
 EOF
 
-                    mount -o bind "$tmpfs_dir/$path" "$mount"
-
                     chmod "$perms" "$tmpfs_dir/$path"
                     chown "$owner:$group" "$tmpfs_dir/$path"
-                else # otherwise apply 755 permissions and root ownership
-                    #shellcheck disable=SC2174
-                    mkdir -pm 755 "$tmpfs_dir/$path"
+                else # otherwise apply root ownership
                     chown 0:0 "$tmpfs_dir/$path"
+                fi
 
-                    mount -o bind "$tmpfs_dir/$path" "$mount"
+                if mount -o bind "$tmpfs_dir/$path" "$mount"; then
+                    logger -st "$tag" "Mounted $tmpfs_dir/$path on $mount"
+                else
+                    logger -st "$tag" "Failed to mount $tmpfs_dir/$path on $mount"
                 fi
             fi
         done
@@ -47,7 +52,11 @@ EOF
     stop|kill)
         for mount in $mounts; do
             if mount | grep -Fq "on $mount type"; then
-                umount "$mount"
+                if umount "$mount"; then
+                    echo "Unmounted $mount"
+                else
+                    echo "Failed to unmount $mount"
+                fi
             fi
         done
     ;;

@@ -6,6 +6,8 @@
 #shellcheck disable=SC2044
 case $1 in
     start|restart|reconfigure)
+        tag="$(basename "$0")"
+
         for i in $(find /opt/etc/init.d/ -name 'S*' -o -name 'rc.*'); do
             if [ -f "$i" ]; then
                 b="$(basename "$i")"
@@ -14,6 +16,8 @@ case $1 in
                     mv -f "$i" "$i.old"
                     chmod -x "$i.old"
                     ln -s "/opt/etc/init.d/override-$b" "$i"
+
+                    logger -st "$tag" "Overriding service '$b' with /opt/etc/init.d/override-$b"
                 fi
             fi
         done
@@ -24,6 +28,7 @@ case $1 in
                 rm -f "$i"
                 mv -f "$i.old" "$i"
                 chmod +x "$i"
+                echo "Restored original service file for '$i'"
             fi
         done
     ;;

@@ -26,6 +26,8 @@ is_uid_in_use() {
 
 case $1 in
     start|restart|reconfigure)
+        tag="$(basename "$0")"
+
         for new_user in $users; do
             if ! grep -q "$new_user:" /opt/etc/passwd; then
                 used_uids=$(cut -d: -f3 /opt/etc/passwd)
@@ -35,7 +37,7 @@ case $1 in
                     next_uid=$((next_uid + 1))
                 done
 
-                echo "Adding user $new_user with UID $next_uid..."
+                logger -st "$tag" "Adding user '$new_user' with UID $next_uid..."
 
                 echo "$new_user:x:$next_uid:$next_uid::/dev/null:/dev/null" >> /opt/etc/passwd
                 echo "$new_user:x:$next_uid:" >> /opt/etc/group
@@ -46,6 +48,7 @@ case $1 in
     ;;
     stop|kill)
         # Do nothing as processes might be already running as those users
+        echo "Action '$1' is not supported."
     ;;
     check)
         for new_user in $users; do

@@ -1,0 +1,31 @@
+#!/bin/sh
+# /opt/etc/init.d/S05wait-time-sync
+# This script will block startup of the services until the clock is synchronized
+
+timeout=300 # How many seconds to wait before continuing anyway
+
+##################################################
+
+case "$1" in
+    start)
+        tag="$(basename "$0")"
+
+        while [ "$(nvram get ntp_ready)" = "0" ] && [ "$timeout" -ge 0 ]; do
+            timeout=$((timeout-1))
+            sleep 1
+        done
+
+        if [ "$(nvram get ntp_ready)" = "0" ]; then
+            logger -st "$tag" "Time synchronization failed or timed out"
+        fi
+    ;;
+    check)
+        if [ "$(nvram get ntp_ready)" = "1" ]; then
+            echo "alive"
+            exit 0
+        else
+            echo "dead"
+            exit 1
+        fi
+    ;;
+esac
