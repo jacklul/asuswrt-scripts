@@ -55,7 +55,7 @@ extra_ip() {
 
             if echo "$_interface" | grep -Fq ":"; then
                 _label="$_interface"
-                _interface="$(echo "$_extra_ip" | cut -d ':' -f 1 2> /dev/null)"
+                _interface="$(echo "$_label" | cut -d ':' -f 1 2> /dev/null)"
             fi
 
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
@@ -79,7 +79,12 @@ extra_ip() {
             ;;
             "remove")
                 if ip addr show dev "$_interface" | grep -Fq "inet $_address"; then
-                    ip -4 addr delete "$_address" dev "$_interface"
+                    if [ -n "$_label" ]; then
+                        ip -4 addr delete "$_address" dev "$_interface" label "$_label"
+                    else
+                        ip -4 addr delete "$_address" dev "$_interface"
+                    fi
+
                     logger -st "$script_name" "Removed IPv4 address $_address from interface $_interface"
                 fi
             ;;
@@ -88,11 +93,17 @@ extra_ip() {
 
     for _extra_ip6 in $EXTRA_IPS6; do
         _interface=
+        _label=
         _address=
 
         if echo "$_extra_ip6" | grep -Fq "="; then
             _address="$(echo "$_extra_ip6" | cut -d '=' -f 2 2> /dev/null)"
             _interface="$(echo "$_extra_ip6" | cut -d '=' -f 1 2> /dev/null)"
+
+            if echo "$_interface" | grep -Fq ":"; then
+                _label="$_interface"
+                _interface="$(echo "$_label" | cut -d ':' -f 1 2> /dev/null)"
+            fi
 
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
             { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { echo "List element is invalid: $_interface $_address"; exit 1; }
@@ -104,13 +115,23 @@ extra_ip() {
         case "$1" in
             "add")
                 if [ -n "$_address" ] && ! ip addr show dev "$_interface" | grep -Fq "inet6 $_address"; then
-                    ip -6 addr add "$_address" brd + dev "$_interface"
+                    if [ -n "$_label" ]; then
+                        ip -6 addr add "$_address" brd + dev "$_interface" label "$_label"
+                    else
+                        ip -6 addr add "$_address" brd + dev "$_interface"
+                    fi
+
                     logger -st "$script_name" "Added IPv6 address $_address to interface $_interface"
                 fi
             ;;
             "remove")
                 if [ -n "$_address" ] && ip addr show dev "$_interface" | grep -Fq "inet6 $_address"; then
-                    ip -6 addr delete "$_address" dev "$_interface"
+                    if [ -n "$_label" ]; then
+                        ip -6 addr delete "$_address" dev "$_interface" label "$_label"
+                    else
+                        ip -6 addr delete "$_address" dev "$_interface"
+                    fi
+
                     logger -st "$script_name" "Removed IPv6 address $_address from interface $_interface"
                 fi
             ;;
