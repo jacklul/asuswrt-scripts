@@ -239,7 +239,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`entware.sh`](/scripts/entware.sh)
 
-This script installs and enables [Entware](https://github.com/Entware/Entware), even in RAM (`/tmp`).
+This script launches [Entware](https://github.com/Entware/Entware) or installs it in RAM (`/tmp`).
+
+To install Entware run `/jffs/scripts/entware.sh install /tmp/mnt/sda1`, replace `sda1` with your storage label.
 
 > [!TIP]
 > When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.  
