@@ -228,10 +228,12 @@ case "$1" in
             exit 1
         fi
 
-        if [ -x "$script_dir/cron-queue.sh" ]; then
-            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-        else
-            cru a "$script_name" "*/1 * * * * $script_path run"
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            if [ -x "$script_dir/cron-queue.sh" ]; then
+                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
+            else
+                cru a "$script_name" "*/1 * * * * $script_path run"
+            fi
         fi
 
         sh "$script_path" run
