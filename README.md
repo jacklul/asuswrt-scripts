@@ -52,9 +52,10 @@ Then you can proceed to install scripts that you want to use from the [section b
 <a href="#user-content-entwaresh">entware</a><br>
 <a href="#user-content-extra-ipsh">extra-ip</a><br>
 <a href="#user-content-force-dnssh">force-dns</a><br>
-<a href="#user-content-guest-passwordsh">guest-password</a><br>
+<a href="#user-content-fstrimsh">fstrim</a><br>
 </td>
 <td>
+<a href="#user-content-guest-passwordsh">guest-password</a><br>
 <a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
 <a href="#user-content-led-controlsh">led-control</a><br>
 <a href="#user-content-modify-featuressh">modify-features</a><br>
@@ -286,6 +287,16 @@ _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/force-dns.sh" -o /jffs/scripts/force-dns.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`fstrim.sh`](/scripts/fstrim.sh)
+
+This script will run `fstrim` command on a schedule for all mounted devices.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/fstrim.sh" -o /jffs/scripts/fstrim.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
