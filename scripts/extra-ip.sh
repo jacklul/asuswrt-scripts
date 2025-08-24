@@ -5,7 +5,7 @@
 #
 
 #jacklul-asuswrt-scripts-update=extra-ip.sh
-#shellcheck disable=SC2155,SC2009
+#shellcheck disable=SC2155
 
 readonly script_path="$(readlink -f "$0")"
 readonly script_name="$(basename "$script_path" .sh)"
@@ -32,10 +32,6 @@ if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
 fi
-
-# we did some changes, inform user of the change @TODO Remove it someday...
-[ -n "$EXTRA_IP" ] && [ -z "$EXTRA_IPS" ] && echo "EXTRA_IP variable has been renamed into EXTRA_IPS and expects different format!"
-[ -n "$EXTRA_IP6" ] && [ -z "$EXTRA_IPS6" ]  && echo "EXTRA_IP6 variable has been renamed into EXTRA_IPS6 and expects different format!"
 
 if [ -z "$RUN_EVERY_MINUTE" ]; then
     [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true

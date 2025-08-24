@@ -5,7 +5,7 @@
 #
 
 #jacklul-asuswrt-scripts-update=process-affinity.sh
-#shellcheck disable=SC2155,SC2009
+#shellcheck disable=SC2155
 
 readonly script_path="$(readlink -f "$0")"
 readonly script_name="$(basename "$script_path" .sh)"
@@ -18,9 +18,6 @@ if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
 fi
-
-# PROCESS_AFFINITY was renamed, do not break people's configuration @TODO Remove it someday...
-[ -n "$PROCESS_AFFINITY" ] && PROCESS_AFFINITIES="$PROCESS_AFFINITY"
 
 init_affinity="$(taskset -p 1 | sed 's/.*: //')"
 init_affinity=$((0x$init_affinity))

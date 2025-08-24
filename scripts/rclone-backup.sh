@@ -34,11 +34,6 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
-# we removed these, inform user of the change @TODO Remove it someday...
-[ -n "$NVRAMTXT_FILE" ] && logger -st "$script_name" "NVRAMTXT_FILE is deprecated, use '/jffs/rclone-pre.sh' script instead"
-[ -n "$NVRAMCFG_FILE" ] && logger -st "$script_name" "NVRAMCFG_FILE is deprecated, use '/jffs/rclone-pre.sh' script instead"
-[ -n "$LOG_FILE" ] && logger -st "$script_name" "LOG_FILE is deprecated, add '--log-file=' to PARAMETERS instead"
-
 case "$1" in
     "run")
         # Detect when installed through Entware

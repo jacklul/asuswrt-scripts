@@ -5,7 +5,7 @@
 #
 
 #jacklul-asuswrt-scripts-update=modify-webui.sh
-#shellcheck disable=SC2155,SC2016,SC2174
+#shellcheck disable=SC2155,SC2016
 
 readonly script_path="$(readlink -f "$0")"
 readonly script_name="$(basename "$script_path" .sh)"

@@ -8,7 +8,7 @@
 #
 
 #jacklul-asuswrt-scripts-update=custom-configs.sh
-#shellcheck disable=SC2155,SC2009
+#shellcheck disable=SC2155
 
 readonly script_path="$(readlink -f "$0")"
 readonly script_name="$(basename "$script_path" .sh)"

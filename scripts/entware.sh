@@ -9,7 +9,7 @@
 #
 
 #jacklul-asuswrt-scripts-update=entware.sh
-#shellcheck disable=SC2155,SC2016
+#shellcheck disable=SC2155
 
 readonly script_path="$(readlink -f "$0")"
 readonly script_name="$(basename "$script_path" .sh)"
@@ -493,8 +493,6 @@ case "$1" in
                     fi
                 ;;
             esac
-
-            sh "$script_path" run
         fi
     ;;
     "start")
