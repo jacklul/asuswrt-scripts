@@ -183,6 +183,8 @@ case "$1" in
         firewall_rules add
     ;;
     "start")
+        firewall_rules add
+
         if [ "$RUN_EVERY_MINUTE" = true ]; then
             if [ -x "$script_dir/cron-queue.sh" ]; then
                 sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
@@ -190,8 +192,6 @@ case "$1" in
                 cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
-
-        firewall_rules add
     ;;
     "stop")
         [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"

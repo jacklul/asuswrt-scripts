@@ -448,6 +448,8 @@ case "$1" in
         [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
         [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Unable to start - target DNS server is not set"; exit 1; }
 
+        { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
+
         if [ "$RUN_EVERY_MINUTE" = true ]; then
             if [ -x "$script_dir/cron-queue.sh" ]; then
                 sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
@@ -455,8 +457,6 @@ case "$1" in
                 cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
-
-        { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
     ;;
     "stop")
         [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"

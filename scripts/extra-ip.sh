@@ -146,6 +146,8 @@ case "$1" in
     "start")
         { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logger -st "$script_name" "Error: Unable to start - extra IP(s) are not set"; exit 1; }
 
+        extra_ip add
+
         if [ "$RUN_EVERY_MINUTE" = true ]; then
             if [ -x "$script_dir/cron-queue.sh" ]; then
                 sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
@@ -153,8 +155,6 @@ case "$1" in
                 cru a "$script_name" "*/1 * * * * $script_path run"
             fi
         fi
-
-        extra_ip add
     ;;
     "stop")
         [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
