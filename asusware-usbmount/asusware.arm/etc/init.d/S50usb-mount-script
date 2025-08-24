@@ -30,8 +30,8 @@ case "$1" in
             eval "$command"
         fi
 
-        # This allows the USB drive to be unplugged and then plugged back in and retriggering this script again,
-        # without this router will not call this script ever again until a reboot.
+        # This allows the USB drive to be unplugged and then plugged back in and retriggering this
+        # script again, without this router will not call this script ever again until a reboot.
         # "USB Application" in the web UI will also be stuck on "apps installing" without this fix.
         {
             sleep 15
