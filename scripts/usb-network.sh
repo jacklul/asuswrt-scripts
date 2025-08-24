@@ -191,7 +191,7 @@ case "$1" in
         done
     ;;
     "hotplug")
-        if [ "$(echo "$DEVICENAME" | cut -c 1-3)" = "usb" ]; then
+        if [ "$SUBSYSTEM" = "net" ] && [ "$(echo "$DEVICENAME" | cut -c 1-3)" = "usb" ]; then
             case "$ACTION" in
                 "add")
                     setup_inteface add "$DEVICENAME"

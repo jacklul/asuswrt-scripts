@@ -476,7 +476,7 @@ case "$1" in
     "hotplug")
         [ -n "$IN_RAM" ] && exit
 
-        if [ "$(echo "$DEVICENAME" | cut -c 1-2)" = "sd" ]; then
+        if [ "$SUBSYSTEM" = "block" ]; then
             case "$ACTION" in
                 "add")
                     is_entware_mounted && exit
