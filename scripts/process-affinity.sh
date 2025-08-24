@@ -108,7 +108,7 @@ case $1 in
         process_affinity set
     ;;
     "start")
-        { [ ! -f /usr/bin/taskset ] && [ ! -f /opt/bin/taskset ] ; } && { logger -st "$script_name" "Command 'taskset' not found"; exit 1; }
+        [ -z "$(which taskset 2>/dev/null)" ] && { logger -st "$script_name" "Error: Unable to start - command 'taskset' not found"; exit 1; }
 
         if [ -x "$script_dir/cron-queue.sh" ]; then
             sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"

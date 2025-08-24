@@ -175,7 +175,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -373,8 +373,8 @@ rules_exist() {
 }
 
 firewall_rules() {
-    [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Target DNS server is not set"; exit 1; }
-    [ -z "$TARGET_INTERFACES" ] && { logger -st "$script_name" "Target interfaces are not set"; exit 1; }
+    [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Error: Target DNS server is not set"; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logger -st "$script_name" "Error: Target interfaces are not set"; exit 1; }
 
     lockfile lockwait
 
@@ -446,7 +446,6 @@ case "$1" in
     ;;
     "start")
         [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
-
         [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Unable to start - target DNS server is not set"; exit 1; }
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then

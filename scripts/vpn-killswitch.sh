@@ -131,7 +131,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -232,7 +232,7 @@ get_wan_interface() {
         _interface="$(nvram get wan0_pppoe_ifname)"
     fi
 
-    [ -z "$_interface" ] && { logger -st "$script_name" "Couldn't get WAN interface name"; exit 1; }
+    [ -z "$_interface" ] && { logger -st "$script_name" "Error: Couldn't get WAN interface name"; exit 1; }
 
     echo "$_interface"
 }
@@ -251,7 +251,7 @@ verify_bridge_interfaces() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$script_name" "Bridge interfaces are not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACES" ] && { logger -st "$script_name" "Error: Bridge interfaces are not set"; exit 1; }
 
     lockfile lockwait
 

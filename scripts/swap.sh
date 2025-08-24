@@ -115,7 +115,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -209,8 +209,8 @@ case "$1" in
         [ -n "$2" ] && SWAP_FILE="$2"
         [ -n "$3" ] && SWAP_SIZE="$3"
 
-        [ -z "$SWAP_FILE" ] && { logger -st "$script_name" "Swap file is not set"; exit 1; }
-        [ -z "$SWAP_SIZE" ] && { logger -st "$script_name" "Swap size is not set"; exit 1; }
+        [ -z "$SWAP_FILE" ] && { logger -st "$script_name" "Error: Swap file is not set"; exit 1; }
+        [ -z "$SWAP_SIZE" ] && { logger -st "$script_name" "Error: Swap size is not set"; exit 1; }
 
         set -e
 

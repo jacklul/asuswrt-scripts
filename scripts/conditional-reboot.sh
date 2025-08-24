@@ -22,7 +22,7 @@ fi
 
 case "$1" in
     "run")
-        [ -z "$TARGET_UPTIME" ] && { logger -st "$script_name" "Target uptime is not set"; exit 1; }
+        [ -z "$TARGET_UPTIME" ] && { logger -st "$script_name" "Error: Target uptime is not set"; exit 1; }
 
         if [ -n "$TARGET_UPTIME" ] && [ "$TARGET_UPTIME" != "0" ]; then
             current_uptime=$(awk -F '.' '{print $1}' /proc/uptime)

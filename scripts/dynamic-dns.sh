@@ -75,10 +75,10 @@ case "$1" in
         run_ddns_update
     ;;
     "start")
-        [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or ddns-start script instead!"
+        [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected - you should probably use Custom DDNS or 'ddns-start' script instead!"
 
-        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
-        inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$script_name" "Unable to start - Inadyn config is not valid"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Error: Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
+        inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$script_name" "Error: Unable to start - Inadyn config is not valid"; exit 1; }
 
         if [ -x "$script_dir/cron-queue.sh" ]; then
             sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"

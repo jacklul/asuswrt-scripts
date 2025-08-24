@@ -64,10 +64,10 @@ case "$1" in
             fi
         fi
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logger -st "$script_name" "WAN network is not connected"; exit 1; }
-        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
-        [ ! -f "$FILTER_FILE" ] && { logger -st "$script_name" "Could not find filter file: $FILTER_FILE"; exit 1; }
-        [ ! -f "$RCLONE_PATH" ] && { logger -st "$script_name" "Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logger -st "$script_name" "Error: WAN network is not connected"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Error: Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
+        [ ! -f "$FILTER_FILE" ] && { logger -st "$script_name" "Error: Could not find filter file: $FILTER_FILE"; exit 1; }
+        [ ! -f "$RCLONE_PATH" ] && { logger -st "$script_name" "Error: Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
 
         if [ -n "$SCRIPT_PRE" ] && [ -x "$SCRIPT_PRE" ]; then
             logger -st "$script_name" "Executing script '$SCRIPT_PRE'..."
@@ -105,7 +105,8 @@ case "$1" in
         fi
     ;;
     "start")
-        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Error: Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
+        [ -z "$(which rclone 2>/dev/null)" ] && { echo "Warning: Command 'rclone' not found"; }
 
         cru a "$script_name" "$CRON $script_path run"
     ;;

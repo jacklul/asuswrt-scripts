@@ -42,7 +42,7 @@ if [ -z "$RUN_EVERY_MINUTE" ]; then
 fi
 
 extra_ip() {
-    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logger -st "$script_name" "Extra IP addresses are not set"; exit 1; }
+    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logger -st "$script_name" "Error: Extra IP addresses are not set"; exit 1; }
 
     for _extra_ip in $EXTRA_IPS; do
         _interface=
@@ -61,7 +61,7 @@ extra_ip() {
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
             { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { echo "List element is invalid: $_interface $_address"; exit 1; }
         else
-            echo "Variable EXTRA_IPS has invalid value"
+            logger -st "$script_name" "Variable EXTRA_IPS has invalid value"
             exit 1
         fi
 
@@ -108,7 +108,7 @@ extra_ip() {
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
             { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { echo "List element is invalid: $_interface $_address"; exit 1; }
         else
-            echo "Variable EXTRA_IPS6 has invalid value"
+            logger -st "$script_name" "Variable EXTRA_IPS6 has invalid value"
             exit 1
         fi
 
@@ -144,7 +144,7 @@ case "$1" in
         extra_ip add
     ;;
     "start")
-        { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logger -st "$script_name" "Extra IP(s) are not set"; exit 1; }
+        { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logger -st "$script_name" "Error: Unable to start - extra IP(s) are not set"; exit 1; }
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then
             if [ -x "$script_dir/cron-queue.sh" ]; then

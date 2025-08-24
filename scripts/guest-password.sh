@@ -53,7 +53,7 @@ case "$1" in
         [ -n "$changed" ] && nvram commit && service restart_wireless
     ;;
     "start")
-        [ -z "$ROTATE_WL" ] && { logger -st "$script_name" "Unable to start - no guest networks to rotate password for are set"; exit 1; }
+        [ -z "$ROTATE_WL" ] && { logger -st "$script_name" "Error: Unable to start - no guest networks to rotate password for are set"; exit 1; }
 
         cru a "$script_name" "$CRON $script_path run"
 

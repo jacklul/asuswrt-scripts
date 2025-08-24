@@ -130,7 +130,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -141,8 +141,8 @@ get_destination_network() {
 }
 
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Bridge interface is not set"; exit 1; }
-    [ -z "$VPN_NETWORKS" ] && { logger -st "$script_name" "Allowed VPN networks are not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Error: Bridge interface is not set"; exit 1; }
+    [ -z "$VPN_NETWORKS" ] && { logger -st "$script_name" "Error: Allowed VPN networks are not set"; exit 1; }
 
     lockfile lockwait
 

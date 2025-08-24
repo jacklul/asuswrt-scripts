@@ -115,7 +115,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -140,7 +140,7 @@ is_interface_up() {
 }
 
 setup_inteface() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Bridge interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Error: Bridge interface is not set"; exit 1; }
     [ -z "$2" ] && { echo "You must specify a network interface"; exit 1; }
 
     lockfile lockwait
@@ -203,7 +203,7 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Unable to start - bridge interface is not set"; exit 1; }
+        [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Error: Unable to start - bridge interface is not set"; exit 1; }
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then
             if [ -x "$script_dir/cron-queue.sh" ]; then

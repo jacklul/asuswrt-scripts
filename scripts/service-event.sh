@@ -134,7 +134,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -204,7 +204,7 @@ trigger_event() {
 }
 
 service_monitor() {
-    [ ! -f "$SYSLOG_FILE" ] && { logger -st "$script_name" "Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+    [ ! -f "$SYSLOG_FILE" ] && { logger -st "$script_name" "Error: Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
     lockfile lockfail || { echo "Already running! ($_lockpid)"; exit 1; }
 
@@ -304,7 +304,7 @@ case "$1" in
     ;;
     "event")
         if [ "$4" = "ccheck" ]; then
-            lockfile lockfail "event_${2}_${3}" || { logger -st "$script_name" "This event is already being processed (args: '$2' '$3')"; exit 1; }
+            lockfile lockfail "event_${2}_${3}" || { logger -st "$script_name" "Error: This event is already being processed (args: '$2' '$3')"; exit 1; }
         else
             lockfile lockwait "event_${2}_${3}"
         fi

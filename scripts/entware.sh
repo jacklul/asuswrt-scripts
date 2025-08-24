@@ -396,7 +396,7 @@ entware() {
 
     case "$1" in
         "start")
-            [ -z "$2" ] && { logger -st "$script_name" "Entware directory not provided"; exit 1; }
+            [ -z "$2" ] && { echo "Entware directory not provided"; exit 1; }
 
             init_opt "$2"
             services start

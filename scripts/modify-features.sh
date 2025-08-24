@@ -86,9 +86,7 @@ case "$1" in
         rc_support modify
     ;;
     "start")
-        if [ -z "$FEATURES_REMOVE" ] || [ -z "$FEATURES_ADD" ]; then
-            logger -st "$script_name" "Configuration is not set"
-        fi
+        { [ -z "$FEATURES_REMOVE" ] || [ -z "$FEATURES_ADD" ] ; } && { logger -st "$script_name" "Error: Unable to start - configuration is not set"; exit 1; }
 
         if [ "$RUN_EVERY_MINUTE" = true ]; then
             if [ -x "$script_dir/cron-queue.sh" ]; then
