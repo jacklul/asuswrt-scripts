@@ -86,12 +86,12 @@ Then you can proceed to install scripts that you want to use from the [section b
 > Remember to mark the scripts as executable after installing, you can use `chmod +x /jffs/scripts/*.sh` to do it in one go.
 
 > [!NOTE]
-> You can override config variables for scripts by creating `.conf` with the same name as the script (for example: `/jffs/scripts/conditional-reboot.conf`).  
+> You can override config variables for scripts by creating `.conf` with the same name as the script (for example: `/jffs/scripts/conditional-reboot.conf`).
 > Configuration variables are defined on top of each script - peek into the script to see what's available to change!
 
 > [!TIP]
-> You can rename the scripts and add prefixes to them (such as `010-force-dns.sh`) to control the order in which they start.  
-> Don't worry about <a href="#user-content-update-scriptssh">update-scripts.sh</a> as it will still be able to update them!  
+> You can rename the scripts and add prefixes to them (such as `010-force-dns.sh`) to control the order in which they start.
+> Don't worry about <a href="#user-content-update-scriptssh">update-scripts.sh</a> as it will still be able to update them!
 > **Do not rename `cron-queue.sh` as scripts are using it directly!**
 
 > [!TIP]
@@ -113,7 +113,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`cron-queue.sh`](/scripts/cron-queue.sh)
 
-When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).  
+When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).
 This script will run all "every minute" tasks synchronously which will reduce the CPU load in exchange for task execution delays.
 
 All scripts from this repository integrate with this script and will use it instead of `cru` when it's available.
@@ -207,7 +207,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script does exactly what you would expect - makes sure WPS stays disabled.
 
-By default, runs check <ins>at boot and at 00:00</ins>, and when `service-event.sh` is used it also <ins>runs every time wireless is restarted</ins>.
+By default, it runs at boot and <ins>00:00 everyday</ins>.
+When `service-event.sh` is used it also <ins>runs every time wireless is restarted</ins>.
 
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
@@ -221,7 +222,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script implements [custom DDNS feature from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services#using-one-of-the-services-supported-by-in-a-dyn-but-not-by-the-asuswrt-merlin-webui) that allows you to use custom [Inadyn](https://github.com/troglobit/inadyn) config file.
 
-Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`.  
+Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`.
 You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
 > [!TIP]
@@ -245,9 +246,9 @@ This script launches [Entware](https://github.com/Entware/Entware) or installs i
 To install Entware run `/jffs/scripts/entware.sh install /tmp/mnt/sda1`, replace `sda1` with your storage label.
 
 > [!TIP]
-> When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.  
-> Create `.symlinkthisdir` file in directory's root to symlink it directly or `.copythisdir` to copy it instead.  
-> If you want a single file to be copied then create a file with the same name and `.copythisfile` extension, e.g. `file.txt.copythisfile`. 
+> When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.
+> Create `.symlinkthisdir` file in directory's root to symlink it directly or `.copythisdir` to copy it instead.
+> If you want a single file to be copied then create a file with the same name and `.copythisfile` extension, e.g. `file.txt.copythisfile`.
 
 > [!IMPORTANT]
 > If you want to use HTTPS to download packages you might have to install Entware's `wget-ssl` and `ca-bundle`.
@@ -295,6 +296,10 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script will run `fstrim` command on a schedule for all mounted devices.
 
+By default, it runs at <ins>03:00 every Sunday</ins>.
+
+_Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/fstrim.sh" -o /jffs/scripts/fstrim.sh
 ```
@@ -305,7 +310,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 This script rotates **Guest WiFi** passwords.
 
-By default, it rotates passwords for the first network pair at <ins>4AM</ins>.
+By default, it rotates passwords for the first network pair at <ins>04:00 everyday</ins>.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
@@ -379,10 +384,10 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 
 > [!TIP]
 > This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
-> 
+>
 > <details>
 > <summary>Example dnsmasq.conf.add</summary>
-> 
+>
 > ```
 > dhcp-option=66,192.168.1.1
 > enable-tftp
@@ -392,9 +397,9 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 > dhcp-boot=tag:bios,netboot.xyz.kpxe,,192.168.1.1
 > dhcp-boot=tag:!bios,netboot.xyz.efi,,192.168.1.1
 > ```
-> 
+>
 > Replace `192.168.1.1` with your router's IP address.
-> 
+>
 > </details>
 
 > [!IMPORTANT]
@@ -434,6 +439,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`rclone-backup.sh`](/scripts/rclone-backup.sh)
 
 This script can backup all NVRAM variables and selected `/jffs` contents to cloud service using [Rclone](https://github.com/rclone/rclone).
+
+By default, it runs at <ins>06:00 every Sunday</ins>.
 
 You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation (then remove it after the job is done - this feature is targeted for Entware installation in RAM).
 
@@ -501,6 +508,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`update-notify.sh`](/scripts/update-notify.sh)
 
 This script will send you a notification when new router firmware is available.
+
+By default, it runs every <ins>6 hours starting from 00:00</ins>.
 
 **Currently supported notification providers:**
 - Email
