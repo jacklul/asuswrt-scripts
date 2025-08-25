@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# This script runs fstrim on all mounted SSDs on a scheduled basis
+# This script runs fstrim on all mounted SSDs on a schedule
 #
 # Based on:
 #  https://github.com/kuchkovsky/asuswrt-merlin-scripts/blob/main/jffs/scripts/trim_ssd.sh
@@ -17,6 +17,7 @@ readonly script_dir="$(dirname "$script_path")"
 readonly script_config="$script_dir/$script_name.conf"
 
 CRON="0 3 * * 7" # schedule as cron string
+CHANGE_PROVISIONING_MODE=false # set provisioning mode to 'unset' for applicable block devices, needed for some storage devices
 
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
@@ -115,6 +116,44 @@ lockfile_fd() {
     echo "$_lfd_min"
 } #LOCKFILE_END#
 
+is_valid_ssd_device() {
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return 1; }
+
+    _dev="/sys/block/$1"
+
+    # Check if device is SSD
+    rotational=$(cat "$dev/queue/rotational" 2>/dev/null || echo "N/A")
+    if [ "$rotational" != "0" ]; then
+        echo "Device is not an SSD: $_dev"
+        return 1
+    fi
+
+    # Check if TRIM is supported
+    max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2>/dev/null || echo "N/A")
+    if [ "$max_discard" = "N/A" ] || [ "$max_discard" -eq 0 ]; then
+        echo "Device does not support discard: $_dev"
+        return 1
+    fi
+
+    return 0
+}
+
+change_provisioning_mode() {
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return; }
+
+    # Set provisioning_mode to 'unmap' to allow TRIM commands to go through
+    find "/sys/block/$1/device" -type f -name "provisioning_mode" | while read -r file; do
+        [ -z "$file" ] && continue
+
+        _contents=$(cat "$file" 2>/dev/null || echo "")
+
+        if [ "$_contents" != "unmap" ]; then
+            echo "Writing 'unmap' to $file"
+            echo "unmap" > "$file"
+        fi
+    done
+}
+
 case "$1" in
     "run")
         [ -z "$(which fstrim 2>/dev/null)" ] && { logger -st "$script_name" "Error: Command 'fstrim' not found"; exit 1; }
@@ -124,34 +163,13 @@ case "$1" in
         for dev in /sys/block/*; do
             name=$(basename "$dev")
 
-            if 
+            if
                 [ "$(echo "$name" | cut -c 1-2)" = "sd" ] ||
                 [ "$(echo "$name" | cut -c 1-4)" = "nvme" ] ||
                 [ "$(echo "$name" | cut -c 1-6)" = "mmcblk" ]
             then
-                # Check if device is SSD
-                rotational=$(cat "$dev/queue/rotational" 2>/dev/null || echo "N/A")
-                if [ "$rotational" != "0" ]; then
-                    echo "Skipping non-SSD device: /dev/$name"
-                    continue
-                fi
-
-                # Check if TRIM is supported
-                max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2>/dev/null || echo "N/A")
-                if [ "$max_discard" = "N/A" ] || [ "$max_discard" -eq 0 ]; then
-                    echo "Skipping device without TRIM support: /dev/$name"
-                    continue
-                fi
-
-                # Set provisioning_mode to 'unmap' to allow TRIM command to go through
-                find "$dev" -type f -name "provisioning_mode" | while read -r file; do
-                    contents=$(cat "$file" 2>/dev/null || echo "")
-
-                    if [ "$contents" != "unmap" ]; then
-                        echo "Setting provisioning_mode to 'unmap' for /dev/$name"
-                        echo "unmap" > "$file"
-                    fi
-                done
+                is_valid_ssd_device "$name" || continue
+                [ "$CHANGE_PROVISIONING_MODE" = true ] && change_provisioning_mode "$name"
 
                 trimmed=""
                 mount | grep "/dev/$name" | while read -r line; do
@@ -168,7 +186,10 @@ case "$1" in
 
                     #shellcheck disable=SC2181
                     if [ $? -ne 0 ]; then
-                        logger -st "$script_name" "fstrim error on $mount_device: $output"
+                        log="/tmp/fstrim_$name.log"
+                        #shellcheck disable=SC3037
+                        echo -e "$output" > "$log"
+                        logger -st "$script_name" "fstrim error on $mount_device - check $log for details"
                     fi
                 done
             fi
@@ -176,8 +197,32 @@ case "$1" in
 
         lockfile unlock
     ;;
+    "hotplug")
+        if [ "$CHANGE_PROVISIONING_MODE" = true ] && [ "$SUBSYSTEM" = "block" ] && [ -n "$DEVICENAME" ]; then
+            case "$ACTION" in
+                "add")
+                    change_provisioning_mode "$DEVICENAME"
+                ;;
+            esac
+        fi
+    ;;
     "start")
         [ -z "$(which fstrim 2>/dev/null)" ] && { echo "Warning: Command 'fstrim' not found"; }
+
+        if [ "$CHANGE_PROVISIONING_MODE" = true ]; then
+            for dev in /sys/block/*; do
+                name=$(basename "$dev")
+
+                if
+                    [ "$(echo "$name" | cut -c 1-2)" = "sd" ] ||
+                    [ "$(echo "$name" | cut -c 1-4)" = "nvme" ] ||
+                    [ "$(echo "$name" | cut -c 1-6)" = "mmcblk" ]
+                then
+                    is_valid_ssd_device "$name" || continue
+                    change_provisioning_mode "$name"
+                fi
+            done
+        fi
 
         cru a "$script_name" "$CRON $script_path run"
     ;;

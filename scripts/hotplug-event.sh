@@ -178,6 +178,7 @@ case "$1" in
         # $2 = subsystem, $3 = action
         case "$2" in
             "block")
+                [ -x "$script_dir/fstrim.sh" ] && sh "$script_dir/fstrim.sh" hotplug
                 [ -x "$script_dir/usb-mount.sh" ] && sh "$script_dir/usb-mount.sh" hotplug
                 [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" hotplug
                 [ -x "$script_dir/entware.sh" ] && sh "$script_dir/entware.sh" hotplug
