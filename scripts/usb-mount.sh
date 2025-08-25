@@ -192,15 +192,14 @@ case "$1" in
         for device in /dev/sd*; do
             [ ! -b "$device" ] && continue
 
-            devicename="$(basename "$device")"
+            name="$(basename "$device")"
 
-            if [ ! -d "/tmp/mnt/$devicename" ]; then
-                setup_mount add "$devicename"
+            if [ ! -d "/tmp/mnt/$name" ]; then
+                setup_mount add "$name"
             fi
         done
     ;;
     "hotplug")
-        #shellcheck disable=SC2153
         if [ "$SUBSYSTEM" = "block" ] && [ -n "$DEVICENAME" ]; then
             case "$ACTION" in
                 "add")

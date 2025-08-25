@@ -50,7 +50,7 @@ call_action() {
             return
     esac
 
-    /bin/sh "$_entry" "$_action" 
+    /bin/sh "$_entry" "$_action"
 }
 
 scripts() {

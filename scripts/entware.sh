@@ -38,8 +38,6 @@ last_entware_device=""
 [ -f "$CACHE_FILE" ] && last_entware_device="$(cat "$CACHE_FILE")"
 check_url="http://$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
-curl_binary="curl"
-#[ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # what was I thinking here?
 
 lockfile() { #LOCKFILE_START#
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
@@ -213,7 +211,7 @@ echo_and_log() {
     [ -z "$1" ] && { echo "Message is empty"; return 1; }
     [ -z "$2" ] && { echo "File is empty"; return 1; }
 
-    echo "$1" 
+    echo "$1"
     echo "$1" >> "$2"
 }
 
@@ -355,7 +353,7 @@ entware_in_ram() {
         return 1
     fi
 
-    if [ -z "$($curl_binary -fs "$check_url" --retry 3)" ]; then
+    if [ -z "$(curl -fs "$check_url" --retry 3)" ]; then
         echo_and_log "Cannot reach $check_url" "$INSTALL_LOG"
         return 1
     fi

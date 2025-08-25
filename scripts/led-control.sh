@@ -3,7 +3,7 @@
 #
 # Automatically turns LEDs on/off on by schedule
 #
-# WARNING: This is hit-or-miss on stock firmware as every model does things differently, 
+# WARNING: This is hit-or-miss on stock firmware as every model does things differently,
 # consider this script proof-of-concept quality
 #
 # Based on:
