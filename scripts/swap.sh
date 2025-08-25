@@ -174,7 +174,7 @@ case "$1" in
         lockfile unlock
     ;;
     "hotplug")
-        if [ "$SUBSYSTEM" = "block" ]; then
+        if [ "$SUBSYSTEM" = "block" ] && [ -n "$DEVICENAME" ]; then
             case "$ACTION" in
                 "add")
                     grep -Fq "file" /proc/swaps && exit 0 # do nothing if swap is already enabled

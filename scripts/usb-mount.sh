@@ -201,7 +201,7 @@ case "$1" in
     ;;
     "hotplug")
         #shellcheck disable=SC2153
-        if [ "$SUBSYSTEM" = "block" ]; then
+        if [ "$SUBSYSTEM" = "block" ] && [ -n "$DEVICENAME" ]; then
             case "$ACTION" in
                 "add")
                     setup_mount add "$DEVICENAME"
