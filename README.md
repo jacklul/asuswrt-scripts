@@ -2,7 +2,7 @@
 
 This is a collection of custom scripts for AsusWRT firmware that can be used to enhance your router's functionality.
 
-Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on non-AX routers and on older versions of the firmware.
+Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on older routers or firmware.
 
 Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
 
@@ -101,7 +101,7 @@ Then you can proceed to install scripts that you want to use from the [section b
 
 ## [`conditional-reboot.sh`](/scripts/conditional-reboot.sh)
 
-This script will reboot your router at specified time if it's been running for fixed amount of time.
+This script will reboot your router at specified time if it's been running for a fixed amount of time.
 
 By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
@@ -114,7 +114,7 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 ## [`cron-queue.sh`](/scripts/cron-queue.sh)
 
 When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).
-This script will run all "every minute" tasks synchronously which will reduce the CPU load in exchange for task execution delays.
+This script will run all "every minute" tasks sequentially which will reduce the CPU load in exchange for execution delays.
 
 All scripts from this repository integrate with this script and will use it instead of `cru` when it's available.
 
@@ -471,7 +471,8 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`service-event.sh`](/scripts/service-event.sh)
 
-This script tries to emulate [service-event script from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end) but there is no guarantee whenever it will run before or after the event.
+This script works similarly to [service-event-end script from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end), it watches the syslog for service related events and executes appropriate actions.  
+It can also emulate `firewall-start`, `nat-start` and `service-event-end` event scripts.
 
 By default, integrates with all scripts present in this repository (where applicable).
 
