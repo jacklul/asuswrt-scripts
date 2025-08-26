@@ -1,9 +1,0 @@
-# Use this together with netboot-download.sh script
-# To have your router act as PXE server with netboot.xyz
-dhcp-option=66,192.168.1.1
-enable-tftp
-tftp-no-fail
-tftp-root=/tmp/netboot.xyz
-dhcp-match=set:bios,option:client-arch,0
-dhcp-boot=tag:bios,netboot.xyz.kpxe,,192.168.1.1
-dhcp-boot=tag:!bios,netboot.xyz.efi,,192.168.1.1

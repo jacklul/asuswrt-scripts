@@ -1,0 +1,43 @@
+#!/bin/sh
+# Use this together with custom-configs.sh script
+# to have your router act as PXE server using netboot.xyz
+
+[ -z "$1" ] && exit 1
+tag="$(basename "$0")"
+netboot_root="/tmp/netboot.xyz"
+netboot_baseurl="https://boot.netboot.xyz/ipxe/"
+netboot_files="netboot.xyz.efi netboot.xyz.kpxe"
+
+if [ -n "$netboot_root" ]; then
+    if [ ! -d "$netboot_root" ]; then
+        mkdir -p "$netboot_root"
+    fi
+
+    curl="curl"
+    [ -f /opt/bin/curl ] && curl="/opt/bin/curl"
+
+    for file in $netboot_files; do
+        [ -f "$netboot_root/$file" ] && continue
+
+        if ! $curl -fsL --retry 3 "$netboot_baseurl$file" -o "$netboot_root/$file"; then
+            logger -t "$tag" "Failed to download '$netboot_baseurl$file'!"
+        fi
+    done
+
+    lan_ipaddr="$(nvram get lan_ipaddr)"
+    if [ -n "$lan_ipaddr" ]; then
+        cat << EOF >> "$1"
+
+# Enable netboot.xyz TFTP server
+dhcp-option=66,$lan_ipaddr
+enable-tftp
+tftp-no-fail
+tftp-root=$netboot_root
+dhcp-match=set:bios,option:client-arch,0
+dhcp-boot=tag:bios,netboot.xyz.kpxe,,$lan_ipaddr
+dhcp-boot=tag:!bios,netboot.xyz.efi,,$lan_ipaddr
+EOF
+    else
+        logger -t "$tag" "Unable to determine router's LAN IP address!"
+    fi
+fi

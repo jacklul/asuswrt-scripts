@@ -1,5 +1,7 @@
 #!/bin/sh
 # This script will execute fsck on provided block device
+# Only ext2/3/4 filesystems are supported
+#
 # Usage: ./fsck.sh /dev/sda1
 #
 # Run it before anything else from:

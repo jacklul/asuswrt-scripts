@@ -1,11 +1,12 @@
 #!/bin/sh
-# Use this script to run fsck on boot for all partitions on the 
+# Use this script to run fsck on boot for all partitions on the
 # same device as asusware-usbmount's init.d script
+# You will also need to place fsck.sh in /jffs/scripts directory
 # Note that fsck.sh supports only ext2/3/4 filesystems
 
 if [ -x /jffs/scripts/fsck.sh ]; then
     # Find the path to asusware-usbmount's init.d script
-    asusware_script="$(find /tmp/mnt -type f -path '*/asusware*/etc/init.d/*' | head -n 1)"
+    asusware_script="$(echo /tmp/mnt/*/asusware*/etc/init.d/S* | head -n 1)"
     if [ -n "$asusware_script" ]; then
         # Get the base device name the script is on
         base_device="$(df -h "$asusware_script" | tail -n 1 | awk '{print $1}' | sed 's/\(p[0-9]*\)*[0-9]*$//')"
