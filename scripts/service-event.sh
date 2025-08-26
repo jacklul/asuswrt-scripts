@@ -24,7 +24,7 @@ CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each syslog reading iteration
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts
-EMULATE_MERLIN_SCRIPTS=true # emulate 'firewall-start', 'nat-start', 'service-event-end' and 'services-start' event scripts
+EMULATE_MERLIN_SCRIPTS=false # emulate 'firewall-start', 'nat-start', 'service-event-end' and 'services-start' event scripts
 
 umask 022 # set default umask
 
