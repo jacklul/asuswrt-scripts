@@ -13,6 +13,7 @@ readonly script_dir="$(dirname "$script_path")"
 readonly script_config="$script_dir/$script_name.conf"
 
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = subsystem, $2 = action)
+NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts
 RUN_EVERY_MINUTE=false # verify that the hotplug configuration is modified (true/false), this usually should not be needed
 
 umask 022 # set default umask
@@ -175,21 +176,23 @@ case "$1" in
             ;;
         esac
 
-        # $2 = subsystem, $3 = action
-        case "$2" in
-            "block")
-                [ -x "$script_dir/fstrim.sh" ] && sh "$script_dir/fstrim.sh" hotplug
-                [ -x "$script_dir/usb-mount.sh" ] && sh "$script_dir/usb-mount.sh" hotplug
-                [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" hotplug
-                [ -x "$script_dir/entware.sh" ] && sh "$script_dir/entware.sh" hotplug
-            ;;
-            "net")
-                [ -x "$script_dir/usb-network.sh" ] && sh "$script_dir/usb-network.sh" hotplug
-            ;;
-            "misc")
-                # empty for now
-            ;;
-        esac
+        if [ "$NO_INTEGRATION" != true ]; then
+            # $2 = subsystem, $3 = action
+            case "$2" in
+                "block")
+                    [ -x "$script_dir/fstrim.sh" ] && sh "$script_dir/fstrim.sh" hotplug
+                    [ -x "$script_dir/usb-mount.sh" ] && sh "$script_dir/usb-mount.sh" hotplug
+                    [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" hotplug
+                    [ -x "$script_dir/entware.sh" ] && sh "$script_dir/entware.sh" hotplug
+                ;;
+                "net")
+                    [ -x "$script_dir/usb-network.sh" ] && sh "$script_dir/usb-network.sh" hotplug
+                ;;
+                "misc")
+                    # empty for now
+                ;;
+            esac
+        fi
 
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
 

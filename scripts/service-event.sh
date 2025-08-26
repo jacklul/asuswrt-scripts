@@ -23,7 +23,7 @@ SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case of crash
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each syslog reading iteration
-CUSTOM_CHECKS=true # run additional checks (detect when interface config or firewall rules were recreated)
+NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts
 
 umask 022 # set default umask
 
@@ -32,12 +32,12 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
+if [ -n "$CUSTOM_CHECKS" ]; then
+    logger -st "$script_name" "Config variable CUSTOM_CHECKS has been deprecated, the functionality is now forced!"
+fi
+
 # Chain names definitions, must be changed if they were modified in their scripts
 readonly CHAINS_CHECK="SERVICE_EVENT_CHECK"
-readonly CHAINS_FORCEDNS="FORCEDNS"
-readonly CHAINS_SAMBA_MASQUERADE="SAMBA_MASQUERADE"
-readonly CHAINS_VPN_KILLSWITCH="VPN_KILLSWITCH"
-readonly CHAINS_WGS_LANONLY="WGS_LANONLY"
 
 is_merlin_firmware() { #ISMERLINFIRMWARE_START#
     if [ -f "/usr/sbin/helper.sh" ]; then
@@ -155,9 +155,8 @@ is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
 custom_checks() {
     change_interface=false
     change_firewall=false
-    upgrade_running=false
 
-    _addr="127.83.69.33/8" # asci SE! - service event
+    _addr="127.83.69.33/8" # asci SE! - service event !
     _chain="$CHAINS_CHECK"
 
     if ! ip addr show dev lo | grep -Fq "inet $_addr "; then
@@ -170,19 +169,7 @@ custom_checks() {
         change_firewall=true
     fi
 
-    #_wan0_state_new="$(nvram get wan0_state_t)"
-    #_wan1_state_new="$(nvram get wan1_state_t)"
-    #if [ "$wan0_state" != "$_wan0_state_new" ] || [ "$wan1_state" != "$_wan1_state_new" ]; then
-    #    wan0_state="$_wan0_state_new"
-    #    wan1_state="$_wan1_state_new"
-    #    change_interface=true
-    #fi
-
-    if [ -f /tmp/linux.zip ] && [ ! -f /tmp/linux.trx ] && [ -n "$(/bin/ps w | grep -F "[z]ip_webs_upgrade.sh" | awk '{print $1}')" ]; then
-        upgrade_running=true
-    fi
-
-    if [ "$1" != "init" ] && { [ "$change_interface" = true ] || [ "$change_firewall" = true ] || [ "$upgrade_running" = true ] ; }; then
+    if [ "$1" != "init" ] && { [ "$change_interface" = true ] || [ "$change_firewall" = true ] ; }; then
         return 1
     fi
 
@@ -219,7 +206,7 @@ service_monitor() {
         last_line="$((last_line+1))"
     fi
 
-    [ "$CUSTOM_CHECKS" = true ] && custom_checks init
+    custom_checks init
 
     while true; do
         events_triggered=false
@@ -267,17 +254,13 @@ service_monitor() {
             fi
         fi
 
-        if [ "$CUSTOM_CHECKS" = true ] && [ "$events_triggered" = false ] && ! custom_checks; then
+        if ! custom_checks && [ "$events_triggered" = false ]; then
             if [ "$change_interface" = true ]; then
                 trigger_event "restart" "net" "ccheck"
             fi
 
             if [ "$change_firewall" = true ]; then
                 trigger_event "restart" "firewall" "ccheck"
-            fi
-
-            if [ "$upgrade_running" = true ]; then
-                trigger_event "restart" "custom_upgrade" "ccheck"
             fi
         fi
 
@@ -289,6 +272,59 @@ service_monitor() {
     done
 
     lockfile unlock
+}
+
+integrated_event() {
+    [ "$NO_INTEGRATION" = true ] && return
+
+    # $1 = type, $2 = event, $3 = target, $4 = extra
+    case "$1" in
+        "firewall")
+            [ -x "$script_dir/vpn-killswitch.sh" ] && sh "$script_dir/vpn-killswitch.sh" run &
+            [ -x "$script_dir/wgs-lanonly.sh" ] && sh "$script_dir/wgs-lanonly.sh" run &
+            [ -x "$script_dir/force-dns.sh" ] && sh "$script_dir/force-dns.sh" run &
+            [ -x "$script_dir/samba-masquerade.sh" ] && sh "$script_dir/samba-masquerade.sh" run &
+
+            sh "$script_path" event restart custom_configs "$4" &
+        ;;
+        "network")
+            [ -x "$script_dir/usb-network.sh" ] && sh "$script_dir/usb-network.sh" run &
+            [ -x "$script_dir/extra-ip.sh" ] && sh "$script_dir/extra-ip.sh" run &
+            [ -x "$script_dir/dynamic-dns.sh" ] && sh "$script_dir/dynamic-dns.sh" run &
+        ;;
+        "wireless")
+            # probably a good idea to run this just in case
+            [ -x "$script_dir/disable-wps.sh" ] && sh "$script_dir/disable-wps.sh" run &
+
+            # this service event recreates rc_support so we have to re-run this script
+            if [ -x "$script_dir/modify-features.sh" ]; then
+                if [ -f /tmp/rc_support.last ]; then
+                    rc_support_last="$(cat /tmp/rc_support.last 2> /dev/null)"
+
+                    if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
+                        timer=30; while { # wait till rc_support is modified
+                            [ "$(nvram get rc_support)" = "$rc_support_last" ]
+                        } && [ "$timer" -ge 0 ]; do
+                            timer=$((timer-1))
+                            sleep 1
+                        done
+                    fi
+                fi
+
+                sh "$script_dir/modify-features.sh" run &
+            fi
+        ;;
+        "usb_idle")
+            # re-run in case script exited due to USB idle being set and now it has been disabled
+            [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" run &
+        ;;
+        "custom_configs")
+            if [ -x "$script_dir/custom-configs.sh" ] && [ -z "$merlin" ]; then
+                # delay the execution to let the calling service create their config
+                { sleep 10 && sh "$script_dir/custom-configs.sh" run; } &
+            fi
+        ;;
+    esac
 }
 
 case "$1" in
@@ -309,115 +345,65 @@ case "$1" in
             lockfile lockwait "event_${2}_${3}"
         fi
 
-        # $2 = event, $3 = target
+        # $2 = event, $3 = target, $4 = extra
         case "$3" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
-                if
-                    [ -x "$script_dir/vpn-killswitch.sh" ] ||
-                    [ -x "$script_dir/wgs-lanonly.sh" ] ||
-                    [ -x "$script_dir/force-dns.sh" ] ||
-                    [ -x "$script_dir/samba-masquerade.sh" ]
-                then
-                    if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                        timer=30; while { # wait till our chains disappear
-                            iptables -nL "$CHAINS_CHECK" > /dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_VPN_KILLSWITCH" > /dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_WGS_LANONLY" > /dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_FORCEDNS" -t nat > /dev/null 2>&1 ||
-                            iptables -nL "$CHAINS_SAMBA_MASQUERADE" -t nat > /dev/null 2>&1
-                        } && [ "$timer" -ge 0 ]; do
-                            timer=$((timer-1))
-                            sleep 1
-                        done
-                    fi
-
-                    [ -x "$script_dir/vpn-killswitch.sh" ] && sh "$script_dir/vpn-killswitch.sh" run &
-                    [ -x "$script_dir/wgs-lanonly.sh" ] && sh "$script_dir/wgs-lanonly.sh" run &
-                    [ -x "$script_dir/force-dns.sh" ] && sh "$script_dir/force-dns.sh" run &
-                    [ -x "$script_dir/samba-masquerade.sh" ] && sh "$script_dir/samba-masquerade.sh" run &
+                if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
+                    timer=15; while { # wait till our chains disappear
+                        iptables -nL "$CHAINS_CHECK" > /dev/null 2>&1
+                    } && [ "$timer" -ge 0 ]; do
+                        timer=$((timer-1))
+                        sleep 1
+                    done
                 fi
 
-                sh "$script_path" event restart custom_configs "$4" &
+                integrated_event firewall "$2" "$3" "$4"
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
-                if
-                    [ -x "$script_dir/usb-network.sh" ] ||
-                    [ -x "$script_dir/extra-ip.sh" ] ||
-                    [ -x "$script_dir/dynamic-dns.sh" ]
-                then
-                    if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                        timer=10; while { # wait until wan goes down
-                            { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
-                            { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
-                        } && [ "$timer" -ge 0 ]; do
-                            timer=$((timer-1))
-                            sleep 1
-                        done
+                if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
+                    timer=15; while { # wait until wan goes down
+                        { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
+                        { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
+                    } && [ "$timer" -ge 0 ]; do
+                        timer=$((timer-1))
+                        sleep 1
+                    done
 
-                        timer=30; while { # wait until wan goes up
-                            [ "$(nvram get wan0_state_t)" != "2" ] &&
-                            [ "$(nvram get wan1_state_t)" != "2" ];
-                        } && [ "$timer" -ge 0 ]; do
-                            timer=$((timer-1))
-                            sleep 1
-                        done
-                    fi
-
-                    [ -x "$script_dir/usb-network.sh" ] && sh "$script_dir/usb-network.sh" run &
-                    [ -x "$script_dir/extra-ip.sh" ] && sh "$script_dir/extra-ip.sh" run &
-                    [ -x "$script_dir/dynamic-dns.sh" ] && sh "$script_dir/dynamic-dns.sh" run &
+                    timer=30; while { # wait until wan goes up
+                        [ "$(nvram get wan0_state_t)" != "2" ] &&
+                        [ "$(nvram get wan1_state_t)" != "2" ];
+                    } && [ "$timer" -ge 0 ]; do
+                        timer=$((timer-1))
+                        sleep 1
+                    done
                 fi
 
-                # most services here also restart firewall and/or wireless and/or recreate configs so execute these too
+                integrated_event network "$2" "$3" "$4"
+
+                # most services here also restart firewall, wireless and/or recreate configs so execute these too
                 sh "$script_path" event restart wireless "$4" &
                 sh "$script_path" event restart firewall "$4" &
                 #sh "$script_path" event restart custom_configs "$4" & # this is already executed by 'restart firewall' event
             ;;
-            "wireless")
-                # probably a good idea to run this just in case
-                [ -x "$script_dir/disable-wps.sh" ] && sh "$script_dir/disable-wps.sh" run &
-
-                # this service event recreates rc_support so we have to re-run this script
-                if [ -x "$script_dir/modify-features.sh" ]; then
-                    if [ -f /tmp/rc_support.last ]; then
-                        rc_support_last="$(cat /tmp/rc_support.last 2> /dev/null)"
-
-                        if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then # do not perform sleep-checks on Asuswrt-Merlin firmware
-                            timer=30; while { # wait till rc_support is modified
-                                [ "$(nvram get rc_support)" = "$rc_support_last" ]
-                            } && [ "$timer" -ge 0 ]; do
-                                timer=$((timer-1))
-                                sleep 1
-                            done
-                        fi
-                    fi
-
-                    sh "$script_dir/modify-features.sh" run &
-                fi
-            ;;
-            "usb_idle")
-                # re-run in case script exited due to USB idle being set and now it has been disabled
-                [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" run &
-            ;;
-            "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
-                if [ -x "$script_dir/custom-configs.sh" ] && [ -z "$merlin" ]; then # Do not run custom-configs on Asuswrt-Merlin firmware as that functionality is already built-in
-                    { sleep 5 && sh "$script_dir/custom-configs.sh" run; } &
-                fi
-            ;;
-            "custom_upgrade") # triggered by custom check only
-                [ -x "$script_dir/rclone-backup.sh" ] && sh "$script_dir/rclone-backup.sh" stop &
-                [ -x "$script_dir/entware.sh" ] && sh "$script_dir/entware.sh" stop &
-                [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" stop &
-                [ -x "$script_dir/usb-mount.sh" ] && sh "$script_dir/usb-mount.sh" stop &
-            ;;
         esac
+
+        if [ "$NO_INTEGRATION" != true ]; then
+            case "$3" in
+                "wireless")
+                    integrated_event wireless "$2" "$3" "$4"
+                ;;
+                "usb_idle")
+                    integrated_event usb_idle "$2" "$3" "$4"
+                ;;
+                "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
+                    integrated_event custom_configs "$2" "$3" "$4"
+                ;;
+            esac
+        fi
 
         case "${2}_${3}" in
             "ipsec_set"|"ipsec_start"|"ipsec_restart") # these do not follow the naming scheme ("ACTION_SERVICE")
                 sh "$script_path" event restart firewall "$4" &
-            ;;
-            "stop_upgrade")
-                sh "$script_path" event restart custom_upgrade "$4" &
             ;;
         esac
 
