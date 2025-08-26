@@ -24,6 +24,7 @@ CACHE_FILE="/tmp/last_syslog_line" # where to store last parsed log line in case
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each syslog reading iteration
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts
+EMULATE_MERLIN_SCRIPTS=true # emulate 'firewall-start', 'nat-start', 'service-event-end' and 'services-start' event scripts
 
 umask 022 # set default umask
 
@@ -46,7 +47,10 @@ is_merlin_firmware() { #ISMERLINFIRMWARE_START#
     return 1
 } #ISMERLINFIRMWARE_END#
 
-is_merlin_firmware && merlin=true
+if is_merlin_firmware; then
+    merlin=true
+    EMULATE_MERLIN_SCRIPTS=false
+fi
 
 lockfile() { #LOCKFILE_START#
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
@@ -327,6 +331,17 @@ integrated_event() {
     esac
 }
 
+emulated_firewall_start() {
+    if [ -x "/jffs/scripts/firewall-start" ] || [ -x "/jffs/scripts/nat-start" ]; then
+        wan_interface="$(nvram get wan0_ifname)"
+        [ "$(nvram get wan0_gw_ifname)" != "$wan_interface" ] && wan_interface=$(nvram get wan0_gw_ifname)
+        [ -n "$(nvram get wan0_pppoe_ifname)" ] && wan_interface="$(nvram get wan0_pppoe_ifname)"
+
+        [ -x "/jffs/scripts/firewall-start" ] && sh /jffs/scripts/firewall-start "$wan_interface" &
+        [ -x "/jffs/scripts/nat-start" ] && sh /jffs/scripts/nat-start "$wan_interface" &
+    fi
+}
+
 case "$1" in
     "run")
         [ -n "$merlin" ] && exit # Do not run on Asuswrt-Merlin firmware
@@ -358,6 +373,7 @@ case "$1" in
                 fi
 
                 integrated_event firewall "$2" "$3" "$4"
+                [ "$EMULATE_MERLIN_SCRIPTS" = true ] && emulated_firewall_start
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
@@ -407,6 +423,10 @@ case "$1" in
             ;;
         esac
 
+        if [ "$EMULATE_MERLIN_SCRIPTS" = true ] && [ -x "/jffs/scripts/service-event-end" ]; then
+            sh /jffs/scripts/service-event-end "$2" "$3" &
+        fi
+
         lockfile unlock "event_${2}_${3}"
         exit
     ;;
@@ -434,6 +454,14 @@ EOT
                 sh "$script_path" run
             else
                 echo "Will launch within one minute by cron..."
+            fi
+
+            if [ "$EMULATE_MERLIN_SCRIPTS" = true ] && [ ! -f /tmp/merlin_scripts_start ]; then
+                touch /tmp/merlin_scripts_start
+
+                [ -x "/jffs/scripts/services-start" ] && sh /jffs/scripts/services-start &
+
+                emulated_firewall_start
             fi
         fi
     ;;
