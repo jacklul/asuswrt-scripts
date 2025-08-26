@@ -151,7 +151,6 @@ EOT
                 echo "Setting NVRAM variable 'script_usbmount' to '$NVRAM_SCRIPT'"
 
                 nvram set script_usbmount="$NVRAM_SCRIPT"
-                nvram commit
 
                 echo "Waiting for 15 seconds to verify that the value is still set..."
                 sleep 15
@@ -161,6 +160,8 @@ EOT
 Value has been cleaned by the router - you will have to use a workaround:
 https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount
 EOT
+                else
+                    nvram commit
                 fi
             else
                 echo "NVRAM variable 'script_usbmount' is already set to '$NVRAM_SCRIPT'"
