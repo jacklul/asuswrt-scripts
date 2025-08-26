@@ -175,7 +175,7 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$script_name" "$CRON $script_path run"
+        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
 
         sh "$script_path" run &
     ;;

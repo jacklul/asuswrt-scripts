@@ -55,7 +55,7 @@ case "$1" in
     "start")
         [ -z "$ROTATE_WL" ] && { logger -st "$script_name" "Error: Unable to start - no guest networks to rotate password for are set"; exit 1; }
 
-        cru a "$script_name" "$CRON $script_path run"
+        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
 
         if [ "$ROTATE_ON_START" = true ]; then
             if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then

@@ -35,7 +35,7 @@ case "$1" in
         fi
     ;;
     "start")
-        cru a "$script_name" "$CRON $script_path run"
+        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
 
         if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && sh "$script_path" run; } & # delay when freshly booted

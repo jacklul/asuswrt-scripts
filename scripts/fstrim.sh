@@ -224,7 +224,7 @@ case "$1" in
             done
         fi
 
-        cru a "$script_name" "$CRON $script_path run"
+        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
     ;;
     "stop")
         cru d "$script_name"
