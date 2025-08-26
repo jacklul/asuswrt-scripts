@@ -1,7 +1,9 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Modify features supported by the router (rc_support nvram variable)
+# Modify rc_support nvram variable
+#
+# This does not unlock any features, mostly useful to hide stuff from the WebUI
 #
 
 #jacklul-asuswrt-scripts-update=modify-features.sh

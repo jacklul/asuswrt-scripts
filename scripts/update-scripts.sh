@@ -3,7 +3,7 @@
 #
 # Update all installed scripts
 #
-# For security and reliability reasons this cannot be run at boot
+# For security and reliability reasons this cannot run at boot
 #
 
 #jacklul-asuswrt-scripts-update=update-scripts.sh
