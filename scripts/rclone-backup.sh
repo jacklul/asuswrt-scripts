@@ -3,8 +3,8 @@
 #
 # Backup important stuff using Rclone
 #
-# Note that automatic download of Rclone binary stores it in /tmp directory - make sure you have enough free RAM!
-# This script will detect if Rclone was installed through Entware and set RCLONE_PATH automatically when left empty
+# If Entware is available it will try to install Rclone on first backup execution
+# If Entware was installed to tmpfs it will uninstall Rclone after execution
 #
 # Based on:
 #  https://github.com/jacklul/rclone-backup
@@ -21,10 +21,10 @@ readonly script_config="$script_dir/$script_name.conf"
 REMOTE="remote:" # remote to use
 PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose --log-file=/tmp/rclone.log" # optional parameters
 CRON="0 6 * * 7" # schedule as cron string
-CONFIG_FILE="/jffs/rclone.conf" # Rclone configuration file
-FILTER_FILE="/jffs/rclone.list" # Rclone filter/list file
-SCRIPT_PRE="/jffs/rclone-pre.sh" # execute a command before running rclone command
-SCRIPT_POST="/jffs/rclone-post.sh" # execute a command after running rclone command
+CONFIG_FILE="/jffs/rclone-backup/rclone.conf" # Rclone configuration file
+FILTER_FILE="/jffs/rclone-backup/filter.list" # Rclone filter/list file
+SCRIPT_PRE="/jffs/rclone-backup/script-pre.sh" # execute a command before running rclone command
+SCRIPT_POST="/jffs/rclone-backup/script-post.sh" # execute a command after running rclone command
 RCLONE_PATH="" # path to Rclone binary
 
 umask 022 # set default umask
@@ -32,6 +32,20 @@ umask 022 # set default umask
 if [ -f "$script_config" ]; then
     #shellcheck disable=SC1090
     . "$script_config"
+fi
+
+# @TODO remove it after some time
+if
+    { [ -f /jffs/rclone.conf ] && [ "$CONFIG_FILE" = "/jffs/rclone.conf" ] ; } ||
+    { [ -f /jffs/rclone.list ] && [ "$FILTER_FILE" = "/jffs/rclone.list" ] ; } ||
+    { [ -f /jffs/rclone-pre.sh ] && [ "$SCRIPT_PRE" = "/jffs/rclone-pre.sh" ] ; } ||
+    { [ -f /jffs/rclone-post.sh ] && [ "$SCRIPT_POST" = "/jffs/rclone-post.sh" ] ; }
+then
+    CONFIG_FILE="/jffs/rclone.conf"
+    FILTER_FILE="/jffs/rclone.list"
+    SCRIPT_PRE="/jffs/rclone-pre.sh"
+    SCRIPT_POST="/jffs/rclone-post.sh"
+    logger -st "$script_name" "Warning: Default configuration location has changed to /jffs/rclone-backup"
 fi
 
 case "$1" in
