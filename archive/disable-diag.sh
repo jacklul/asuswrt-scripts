@@ -3,8 +3,7 @@
 #
 # Disable diagnostics process (?)
 #
-# Prevents conn_diag from (re)starting amas_portstatus
-# which likes to hog the CPU sometimes
+# Prevents conn_diag from (re)starting amas_portstatus which likes to hog the CPU sometimes
 #
 
 #jacklul-asuswrt-scripts-update=disable-diag.sh
