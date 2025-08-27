@@ -3,7 +3,7 @@
 This is my current workaround for **Asus routers** that no longer execute command in `script_usbmount` NVRAM variable on USB mount.  
 The variable is being cleaned by `asd` (**Asus Security Daemon**).
 
-_Last updated: **04-03-2025**_
+_Last updated: **2025-08-27**_
 
 ## How to use this?
 
@@ -13,8 +13,8 @@ Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusw
 
 - command in `script_usbmount` NVRAM variable
 - `/jffs/scripts/usb-mount-script` script
-- `/jffs/scripts/scripts-startup.sh` script
-- `/jffs/scripts-startup.sh` script
+- `/jffs/scripts/scripts-startup.sh` script (with `start` argument)
+- `/jffs/scripts-startup.sh` script (with `start` argument)
 
 You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` script to run your own logic.
 

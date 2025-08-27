@@ -1,12 +1,9 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# This script will be executed by the router on mount/unmount event
-# It will first look for the script to execute in script_usbmount/script_usbumount NVRAM variable
-# Then it will look for usb-mount-script/usb-umount-script script in /jffs/scripts
-# It will launch scripts-startup.sh on mount if none of the above are available
-#
-# Receiving 'stop' here is unlikely, possibly only when unmounting from the web UI
+# This script will be called when a USB drive is mounted.
+# Receiving 'stop' here (on unmount) is unlikely, possibly only
+# when "safely ejecting" the drive through the web UI.
 #
 
 tag="$(basename "$0")"
@@ -27,11 +24,11 @@ case "$1" in
 
         if [ -n "$command" ]; then
             logger -t "$tag" "Executing command: $command"
-            eval "$command"
+            eval "$command" &
         fi
 
-        # This allows the USB drive to be unplugged and then plugged back in and retriggering this
-        # script again, without this router will not call this script ever again until a reboot.
+        # This allows the USB drive to be unplugged and then plugged back in to retrigger this
+        # script again. Without this, router will not call this script again until a reboot.
         # "USB Application" in the web UI will also be stuck on "apps installing" without this fix.
         {
             sleep 15
@@ -62,7 +59,7 @@ case "$1" in
 
         if [ -n "$command" ]; then
             logger -t "$tag" "Executing command: $command"
-            eval "$command"
+            eval "$command" &
         fi
     ;;
 esac
