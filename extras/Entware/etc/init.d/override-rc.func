@@ -160,18 +160,18 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
         if which taskset >/dev/null 2>&1; then
             # Handle negative AFFINITY setting
             if echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
-                init_affinity="$(taskset -p 1 | sed 's/.*: //')"
+                _init_affinity="$(taskset -p 1 | sed 's/.*: //')"
 
                 # Convert to decimal
-                init_affinity=$((0x$init_affinity))
+                _init_affinity=$((0x$_init_affinity))
 
                 # Make sure variable holds only numbers
-                if echo "$init_affinity" | grep -q '^[0-9]\+$'; then
+                if echo "$_init_affinity" | grep -q '^[0-9]\+$'; then
                     # Convert to absolute value
                     AFFINITY=${AFFINITY#-}
 
                     # Substract the value
-                    AFFINITY=$((init_affinity - AFFINITY))
+                    AFFINITY=$((_init_affinity - AFFINITY))
 
                     if [ "$AFFINITY" -ge 1 ]; then
                         # Convert to hexadecimal
@@ -184,6 +184,8 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
                     echo "Failed to get CPU affinity of the init process (PID 1)" >&2
                     AFFINITY=
                 fi
+
+                unset _init_affinity
             fi
 
             if [ -n "$AFFINITY" ]; then
@@ -213,7 +215,23 @@ ACTION="$1"
 CALLER="$2"
 
 # Make sure CALLER is not empty - fixes empty value in "Started xxx from ." message in syslog
-[ -z "$CALLER" ] && CALLER=unknown
+if [ -z "$CALLER" ]; then
+    _comm="$(cat /proc/$PPID/comm | tr '\0' ' ')"
+
+    if [ -n "$_comm" ] ; then
+        _cmdline="$(cat /proc/$PPID/cmdline | tr '\0' ' ' | sed -e 's/[[:space:]]*$//g')"
+
+        if [ -n "$_cmdline" ] && [ "$_cmdline" != "$_comm" ]; then
+            CALLER="$_comm ($PPID) [$_cmdline]"
+        else
+            CALLER="$_comm ($PPID)"
+        fi
+    else
+        CALLER=unknown
+    fi
+
+    unset _comm _cmdline
+fi
 
 override_before "$ACTION" "$CALLER"
 
