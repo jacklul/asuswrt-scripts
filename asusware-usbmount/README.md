@@ -20,12 +20,13 @@ You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` scr
 
 > [!IMPORTANT]
 > If your router's architecture is not ARM you will have to replace it with the correct one in these files:
+>
 > - **asusware.arm/lib/ipkg/status**
 > - **asusware.arm/lib/info/usb-mount-script.control**
 > - **asusware.arm/lib/lists/optware.asus**
-> 
+>
 > You will also need to rename **asusware.arm** directory to contain the new architecture suffix as well.
-> 
+>
 > Known supported architecture values are `arm, mipsbig, mipsel`.  
 > For `mipsel` the directory has to be called just **asusware** (no suffix!).
 
@@ -37,7 +38,7 @@ You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` scr
 - unplug it, preferably cleanly unmount it from the web UI first
 - plug back the "workaround" one - the script should be executed now
 
-### Reducing script startup delay:
+### Reducing script startup delay
 
 To reduce the delay before the script is triggered you can prevent the firmware from checking mounted filesystems for errors.
 

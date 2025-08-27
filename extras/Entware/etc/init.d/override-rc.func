@@ -170,7 +170,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
                     # Convert to absolute value
                     AFFINITY=${AFFINITY#-}
 
-                    # Substract the value 
+                    # Substract the value
                     AFFINITY=$((init_affinity - AFFINITY))
 
                     if [ "$AFFINITY" -ge 1 ]; then
@@ -213,7 +213,7 @@ ACTION="$1"
 CALLER="$2"
 
 # Make sure CALLER is not empty - fixes empty value in "Started xxx from ." message in syslog
-[ -z "$CALLER" ] && CALLER=unknown  
+[ -z "$CALLER" ] && CALLER=unknown
 
 override_before "$ACTION" "$CALLER"
 

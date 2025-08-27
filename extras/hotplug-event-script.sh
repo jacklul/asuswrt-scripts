@@ -2,7 +2,7 @@
 # $2 = subsystem, $3 = action
 # This is a fix for github.com/jacklul/asuswrt-usb-raspberry-pi not starting
 # after rebooting the Pi when also using Entware (because /opt is already mounted)
-# Install hotplug-event script and set path to this script in EXECUTE_COMMAND 
+# Install hotplug-event script and set path to this script in EXECUTE_COMMAND
 # variable in hotplug-event.conf
 
 #shellcheck disable=SC2125,SC2086

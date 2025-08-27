@@ -70,9 +70,9 @@ esac
 #
 #  #!/bin/sh
 #  # $1 = event, $2 = target
-#  
+#
 #  [ -z "$2" ] && exit
-#  
+#
 #  case "$1" in
 #      "start"|"restart")
 #          case "$2" in
