@@ -14,7 +14,7 @@ unmounted= # used at the bottom of the script
 
 #########################
 
-# If this is 1 then we can run fsck on ext2 and ext3, otherwise handled by firmware
+# If this is 1 then we can run fsck on ext2 and ext3, otherwise handled by the firmware
 stop_fsck="$(nvram get stop_fsck 2>/dev/null)"
 
 check_filesystem() {
@@ -39,10 +39,10 @@ check_filesystem() {
         return 1
     fi
 
-    logger -st "$tag" "Running filesystem check on $_device ($_mountpoint)"
-
     # Get mountpoint of the device
     _mountpoint="$(echo "$_mount" | awk '{print $2}')"
+
+    logger -st "$tag" "Starting filesystem check on $_device ($_mountpoint)"
 
     # Wait for the mountpoint to become idle
     _timer=60
