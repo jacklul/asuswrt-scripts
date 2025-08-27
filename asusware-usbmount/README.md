@@ -9,15 +9,6 @@ _Last updated: **2025-08-27**_
 
 Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
 
-**The workaround is hardcoded to launch whichever exists first:**
-
-- command in `script_usbmount` NVRAM variable
-- `/jffs/scripts/usb-mount-script` script
-- `/jffs/scripts/scripts-startup.sh` script (with `start` argument)
-- `/jffs/scripts-startup.sh` script (with `start` argument)
-
-You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` script to run your own logic.
-
 > [!IMPORTANT]
 > If your router's architecture is not ARM you will have to replace it with the correct one in these files:
 >
@@ -29,6 +20,9 @@ You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` scr
 >
 > Known supported architecture values are `arm, mipsbig, mipsel`.  
 > For `mipsel` the directory has to be called just **asusware** (no suffix!).
+
+**The workaround is hardcoded to launch either command in `script_usbmount` NVRAM variable or `/jffs/scripts/usb-mount-script` script.**  
+You can also modify or replace `asusware.arm/etc/init.d/S50usb-mount-script` script to run your own logic.
 
 ### Sometimes this workaround does not work straight away - in that case do the following:
 

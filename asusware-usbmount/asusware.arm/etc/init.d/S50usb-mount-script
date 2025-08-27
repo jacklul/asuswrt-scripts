@@ -16,10 +16,6 @@ case "$1" in
             command="$nvram_script"
         elif [ -x /jffs/scripts/usb-mount-script ]; then
             command=/jffs/scripts/usb-mount-script
-        elif [ -x "/jffs/scripts/scripts-startup.sh" ]; then
-            command="/jffs/scripts/scripts-startup.sh start"
-        elif [ -x "/jffs/scripts-startup.sh" ]; then
-            command="/jffs/scripts-startup.sh start"
         fi
 
         if [ -n "$command" ]; then
