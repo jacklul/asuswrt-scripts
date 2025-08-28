@@ -1,5 +1,21 @@
+# Own configuration
++ /jffs/rclone-backup/**
+
+# Important stuff on /jffs
++ /jffs/usericon/*
++ /jffs/openvpn/*
++ /jffs/ca_files/*
++ /jffs/.cert/*
++ /jffs/.le/*
++ /jffs/cert.tgz
++ /jffs/*.js
 + /jffs/**.conf
 + /jffs/**.sh
+
+# Entware
++ /opt/etc/**
+
+# Created by script-pre.sh
 + /tmp/nvram.txt
 + /tmp/nvram.cfg
 
