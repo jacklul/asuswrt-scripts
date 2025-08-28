@@ -24,9 +24,9 @@ readonly script_config="$script_dir/$script_name.conf"
 
 DNS_SERVER="" # when left empty will use DNS server set in DHCP DNS1 (or router's address if that field is empty)
 DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use router's address, set to "block" to block IPv6 DNS traffic
-PERMIT_MAC="" # space/comma separated allowed MAC addresses to bypass forced DNS
-PERMIT_IP="" # space/comma separated allowed v4 IPs to bypass forced DNS, ranges supported
-PERMIT_IP6="" # space/comma separated allowed v6 IPs to bypass forced DNS, ranges supported
+PERMIT_MAC="" # space separated allowed MAC addresses to bypass forced DNS
+PERMIT_IP="" # space separated allowed v4 IPs to bypass forced DNS, ranges supported
+PERMIT_IP6="" # space separated allowed v6 IPs to bypass forced DNS, ranges supported
 TARGET_INTERFACES="br+" # the target interface(s) to set rules for, separated by spaces
 REQUIRE_INTERFACE="" # rules will be removed if this interface is not up, wildcards accepted, set this to "usb*" when using usb-network script and Pi-hole on USB connected Raspberry Pi
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
@@ -322,7 +322,7 @@ iptables_rules() {
         fi
 
         if [ -n "$PERMIT_MAC" ]; then
-            for _mac in $(echo "$PERMIT_MAC" | tr ',' ' '); do
+            for _mac in $PERMIT_MAC; do
                 _mac="$(echo "$_mac" | awk '{$1=$1};1')"
 
                 $_iptables -t nat "$_action" "$CHAIN_DNAT" -m mac --mac-source "$_mac" -j RETURN
@@ -333,7 +333,7 @@ iptables_rules() {
 
         if [ -n "$_permit_ip" ]; then
             if [ "${_permit_ip#*"-"}" != "$_permit_ip" ]; then # IP ranges found
-                for _ip in $(echo "$_permit_ip" | tr ',' ' '); do
+                for _ip in $_permit_ip; do
                     _ip="$(echo "$_ip" | awk '{$1=$1};1')"
 
                     if [ "${_ip#*"-"}" != "$_ip" ]; then # IP range entry
@@ -347,6 +347,7 @@ iptables_rules() {
                     fi
                 done
             else # no IP ranges found, conveniently iptables accept IPs separated by commas
+                _permit_ip="$(echo "$_permit_ip" | tr ' ' ',' | awk '{$1=$1};1')"
                 $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_permit_ip" -j RETURN
                 $_iptables "$_action" "$CHAIN_DOT" -s "$_permit_ip" -j RETURN
                 [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_permit_ip" -j RETURN
