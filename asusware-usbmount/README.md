@@ -1,7 +1,7 @@
 # What is this?
 
-This is my current workaround for **Asus routers** that no longer execute command in `script_usbmount` NVRAM variable on USB mount.  
-The variable is being cleaned by `asd` (**Asus Security Daemon**).
+This is my current workaround for **ASUS routers** no longer executing command in `script_usbmount` NVRAM variable on USB mount.  
+The variable is most likely being cleaned by `asd` (**Asus Security Daemon**).
 
 _Last updated: **2025-08-28**_
 
@@ -10,7 +10,7 @@ _Last updated: **2025-08-28**_
 Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
 
 > [!IMPORTANT]
-> If your router's architecture is not ARM you will have to replace it with the correct one in these files:
+> If your router's architecture is not ARM then you will have to replace it with the correct one in these files:
 >
 > - **asusware.arm/lib/ipkg/status**
 > - **asusware.arm/lib/info/usb-mount-script.control**
@@ -29,17 +29,17 @@ You can also add more scripts to `asusware.arm/etc/init.d` directory.
 
 - grab another USB stick (or reformat the current one)
 - plug it into the router (it has to be the only one plugged in)
-- install Download Master
-- unplug it, preferably cleanly unmount it from the web UI first
-- plug back the "workaround" one - the script should be executed now
+- install **Download Master**
+- "safely remove disk" it through the ASUS web UI
+- plug back the "workaround" one - the script should execute now
 
 ### Reducing script startup delay
 
 To reduce the delay before the script is triggered you can prevent the firmware from checking mounted filesystems for errors.
 
 > [!WARNING]
-> Do not do this if you're using the USB stick for other purposes like file share or Entware.  
-> Power failures will lead to filesystem corruption, without **fsck** running regularly it will eventually make the filesystem unreadable.
+> Do not do this if you're using the USB stick for other purposes like file share or **Entware**.  
+> Power failures will lead to filesystem corruption, without **fsck** running regularly it will eventually make the filesystem broken.
 
 ```
 nvram set stop_fsck=1
