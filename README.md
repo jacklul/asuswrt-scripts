@@ -276,6 +276,9 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 ## [`fstrim.sh`](/scripts/fstrim.sh)
 
+> [!WARNING]
+> This script is currently untested.
+
 This script will run `fstrim` command on a schedule for all mounted devices.
 
 By default, it runs at <ins>03:00 every Sunday</ins>.
