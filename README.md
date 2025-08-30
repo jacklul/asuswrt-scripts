@@ -46,19 +46,23 @@ Then you can proceed to install scripts that you want to use from the [section b
 <a href="#user-content-conditional-rebootsh">conditional-reboot</a><br>
 <a href="#user-content-cron-queuesh">cron-queue</a><br>
 <a href="#user-content-custom-configssh">custom-configs</a><br>
+<a href="#user-content-disable-diagsh">disable-diag</a><br>
 <a href="#user-content-disable-wpssh">disable-wps</a><br>
 <a href="#user-content-dynamic-dnssh">dynamic-dns</a><br>
 <a href="#user-content-entwaresh">entware</a><br>
 <a href="#user-content-extra-ipsh">extra-ip</a><br>
 <a href="#user-content-force-dnssh">force-dns</a><br>
+<a href="#user-content-fstrimsh">fstrim</a><br>
 </td>
 <td>
-<a href="#user-content-fstrimsh">fstrim</a><br>
 <a href="#user-content-guest-passwordsh">guest-password</a><br>
 <a href="#user-content-hotplug-eventsh">hotplug-event</a><br>
+<a href="#user-content-led-controlsh">led-control</a><br>
 <a href="#user-content-modify-featuressh">modify-features</a><br>
 <a href="#user-content-modify-webuish">modify-webui</a><br>
+<a href="#user-content-netboot-downloadsh">netboot-download</a><br>
 <a href="#user-content-process-affinitysh">process-affinity</a><br>
+<a href="#user-content-process-killersh">process-killer</a><br>
 <a href="#user-content-rclone-backupsh">rclone-backup</a><br>
 <a href="#user-content-samba-masqueradesh">samba-masquerade</a><br>
 </td>
@@ -68,6 +72,7 @@ Then you can proceed to install scripts that you want to use from the [section b
 <a href="#user-content-temperature-warningsh">temperature-warning</a><br>
 <a href="#user-content-update-notifysh">update-notify</a><br>
 <a href="#user-content-update-scriptssh">update-scripts</a><br>
+<a href="#user-content-usb-mountsh">usb-mount</a><br>
 <a href="#user-content-usb-networksh">usb-network</a><br>
 <a href="#user-content-vpn-killswitchsh">vpn-killswitch</a><br>
 <a href="#user-content-wgs-lanonlysh">wgs-lanonly</a><br>
@@ -181,6 +186,19 @@ _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well.
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`disable-diag.sh`](/scripts/disable-diag.sh)
+
+This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes to hog the CPU sometimes.
+
+> [!CAUTION]
+> Do not install this script if you don't have mentioned CPU usage issue.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-diag.sh" -o /jffs/scripts/disable-diag.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -315,6 +333,21 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
+## [`led-control.sh`](/scripts/led-control.sh)
+
+> [!CAUTION]
+> This script might not work on every device with the official firmware, it should work fine on Asuswrt-Merlin.
+
+This script implements [scheduled LED control from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Scheduled-LED-control).
+
+By default, LEDs shutdown at <ins>00:00 and turn on at 06:00</ins>.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/led-control.sh" -o /jffs/scripts/led-control.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
 ## [`modify-features.sh`](/scripts/modify-features.sh)
 
 This script modifies `rc_support` NVRAM variable to enable/disable some features, this is mainly for hiding Web UI menus and tabs.
@@ -348,6 +381,39 @@ curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scr
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
 
+## [`netboot-download.sh`](/scripts/netboot-download.sh)
+
+Automatically download specified bootloader files from [netboot.xyz](https://netboot.xyz).
+
+> [!TIP]
+> This and [`custom-configs.sh`](#user-content-custom-configssh) can help you setup a **netboot.xyz** PXE server on the router.
+>
+> <details>
+> <summary>Example dnsmasq.conf.add</summary>
+>
+> ```
+> dhcp-option=66,192.168.1.1
+> enable-tftp
+> tftp-no-fail
+> tftp-root=/tmp/netboot.xyz
+> dhcp-match=set:bios,option:client-arch,0
+> dhcp-boot=tag:bios,netboot.xyz.kpxe,,192.168.1.1
+> dhcp-boot=tag:!bios,netboot.xyz.efi,,192.168.1.1
+> ```
+>
+> Replace `192.168.1.1` with your router's IP address.
+>
+> </details>
+
+> [!IMPORTANT]
+> You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the firmware.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
 ## [`process-affinity.sh`](/scripts/process-affinity.sh)
 
 This script allows setting custom CPU affinity masks on processes.
@@ -356,6 +422,19 @@ If no mask is specified, it takes the affinity mask of `init` process and decrea
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-affinity.sh" -o /jffs/scripts/process-affinity.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`process-killer.sh`](/scripts/process-killer.sh)
+
+This script can kill processes by their names, unfortunately on the official firmware most of them will restart, there is an attempt to prevent that in that script but it is not guaranteed to work.
+
+> [!CAUTION]
+> Use this script at your own risk.
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-killer.sh" -o /jffs/scripts/process-killer.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -462,6 +541,18 @@ This script updates all scripts from this repository present in the same directo
 
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
+```
+
+<a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
+
+## [`usb-mount.sh`](/scripts/usb-mount.sh)
+
+This script will mount any USB storage device in `/tmp/mnt` directory if for some reason the official firmware does not automount it for you.
+
+_Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
+
+```sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-mount.sh" -o /jffs/scripts/usb-mount.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
