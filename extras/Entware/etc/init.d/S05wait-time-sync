@@ -24,12 +24,11 @@ case "$1" in
         fi
     ;;
     check)
-        if [ "$(nvram get ntp_ready)" = "1" ]; then
-            echo "alive"
-            exit 0
-        else
+        if [ "$(nvram get ntp_ready)" != "1" ]; then
             echo "dead"
             exit 1
         fi
+
+        echo "alive"
     ;;
 esac
