@@ -1,7 +1,11 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/etc/init.d/S00tmpfs
+#
 # This script mounts the specified directories to temporary directories
 # to prevent unnecessary writes to the Entware storage device.
+#
 
 mounts="/opt/var/lock /opt/var/log /opt/var/run" # Space separated list of directories to mount
 tmpfs_dir=/tmp/entware-tmpfs # Temporary directory to mount the directories to

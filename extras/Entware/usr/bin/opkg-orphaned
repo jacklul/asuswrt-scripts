@@ -1,6 +1,10 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/usr/sbin/opkg-orphaned
+#
 # Lists orphaned packages only
+#
 
 installed="$(opkg list-installed)"
 

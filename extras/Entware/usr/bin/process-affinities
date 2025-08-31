@@ -1,6 +1,10 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/usr/bin/process-affinities
+#
 # List all processes and their CPU affinities
+#
 
 which taskset >/dev/null || { echo "Command 'taskset' not found!" >&2; exit 1; }
 [ -x /opt/bin/ps ] || { echo "Install 'procps-ng-ps' package!" >&2; exit 1; }

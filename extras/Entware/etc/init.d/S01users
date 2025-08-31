@@ -1,6 +1,13 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/etc/init.d/S01users
+#
 # This script allows easy creation of users for services that require them
+#
+# See a warning at the end of this file about firmware events that can undo changes
+# made by this script on stock firmware
+#
 
 users="" # Space separated list of users to create
 min_uid=1001 # On AsusWRT users added from fileshare UI start at 501, 'asd' sometimes switches to UID 1000 so 1001 should be safe value to use

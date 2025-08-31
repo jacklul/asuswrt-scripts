@@ -1,7 +1,11 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/usr/sbin/restore-permissions
+#
 # This script restores permissions and ownership of files and directories
 # from the file created by save-permissions script.
+#
 
 [ "$(id -u)" -ne 0 ] && { echo "This script must run as root."; exit 1; }
 [ -x /opt/bin/stat ] || { echo "Install 'coreutils-stat' package!" >&2; exit 1; }

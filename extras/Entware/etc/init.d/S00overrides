@@ -1,7 +1,15 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/etc/init.d/S00overrides
+#
 # This script allows you to override the default startup scripts in /opt/etc/init.d
 # by creating a script with the name prefixed with "override-" in the same directory.
+#
+# Please note that if you update or install packages through opkg then their init.d script
+# will be overwritten and you will have to run /opt/etc/init.d/S00overrides restart to
+# reapply the changes
+#
 
 #shellcheck disable=SC2044
 case $1 in
@@ -48,6 +56,3 @@ case $1 in
         echo "alive"
     ;;
 esac
-
-# Please note that if you update or install packages through opkg then their initd script will be overwritten
-# You will have to run /opt/etc/init.d/S00overrides restart to reapply the changes

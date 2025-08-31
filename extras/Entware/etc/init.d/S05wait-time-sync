@@ -1,6 +1,10 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/etc/init.d/S05wait-time-sync
+#
 # This script will block startup of the services until the clock is synchronized
+#
 
 timeout=300 # How many seconds to wait before continuing anyway
 

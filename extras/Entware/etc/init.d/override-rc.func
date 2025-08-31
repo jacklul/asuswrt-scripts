@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/etc/init.d/override-rc.func
 #
 # This script allows your overrides (see S00overrides) to easily change

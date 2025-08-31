@@ -1,5 +1,8 @@
 #!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
 # /opt/usr/bin/eservice
+#
 # This is a small helper script that makes
 # executing Entware's init.d scripts easier
 #
@@ -7,6 +10,7 @@
 #  eservice dnsmasq restart - restart dnsmasq
 #
 # Execute without arguments to list all services and their status
+#
 
 service="$1"
 action="$2"
