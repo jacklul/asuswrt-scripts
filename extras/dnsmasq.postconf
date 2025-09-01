@@ -13,6 +13,14 @@ if [ -n "$netboot_root" ]; then
         mkdir -p "$netboot_root"
     fi
 
+    # Wait for NTP to be ready (up to 60 seconds)
+    # The time must be correct for HTTPS to work
+    timeout=60
+    while [ "$(nvram get ntp_ready)" != "1" ] && [ "$timeout" -ge 0 ]; do
+        timeout=$((timeout-1))
+        sleep 1
+    done
+
     curl="curl"
     [ -f /opt/bin/curl ] && curl="/opt/bin/curl"
 
