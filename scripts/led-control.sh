@@ -112,7 +112,7 @@ case "$1" in
     "run")
         if [ -n "$ON_HOUR" ] && [ -n "$ON_MINUTE" ] && [ -n "$OFF_HOUR" ] && [ -n "$OFF_MINUTE" ]; then
             timeout=60
-            while [ "$(nvram get ntp_ready)" = "0" ] && [ "$timeout" -ge 0 ]; do
+            while [ "$(nvram get ntp_ready)" != "1" ] && [ "$timeout" -ge 0 ]; do
                 timeout=$((timeout-1))
                 sleep 1
             done

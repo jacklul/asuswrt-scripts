@@ -14,12 +14,12 @@ case "$1" in
     start)
         tag="$(basename "$0")"
 
-        while [ "$(nvram get ntp_ready)" = "0" ] && [ "$timeout" -ge 0 ]; do
+        while [ "$(nvram get ntp_ready)" != "1" ] && [ "$timeout" -ge 0 ]; do
             timeout=$((timeout-1))
             sleep 1
         done
 
-        if [ "$(nvram get ntp_ready)" = "0" ]; then
+        if [ "$(nvram get ntp_ready)" != "1" ]; then
             logger -st "$tag" "Time synchronization failed or timed out"
         fi
     ;;
