@@ -1,9 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Update all installed scripts
-#
-# For security and reliability reasons this cannot run at boot
+# Update all legacy scripts
 #
 
 #jacklul-asuswrt-scripts-update=update-scripts.sh
@@ -45,6 +43,11 @@ md5_compare() {
 download_and_check() {
     if [ -n "$1" ] && [ -n "$2" ]; then
         if $curl_binary -fsSL "$1?$(date +%s)" -o "/tmp/$script_name-download"; then
+            if ! grep -Eq '^#(\s+)?jacklul-asuswrt-scripts-update=' "/tmp/$script_name-download"; then
+                echo "skipping '$1' as it does not contain 'jacklul-asuswrt-scripts-update' tag"
+                return 1
+            fi
+
             if ! md5_compare "/tmp/$script_name-download" "$2"; then
                 return 0
             fi
