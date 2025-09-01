@@ -7,13 +7,11 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Update-Notification-Example
 #
 
-#jacklul-asuswrt-scripts-update=update-notify.sh
+#jas-update=update-notify.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 EMAIL_SMTP=""
 EMAIL_PORT=""
@@ -29,36 +27,19 @@ PUSHOVER_TOKEN=""
 PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
 CUSTOM_COMMAND="" # command will receive the new firmware version as its first parameter
-CACHE_FILE="/tmp/last_update_notify" # where to cache last notified version
+CACHE_FILE="$TMP_DIR/$script_name" # where to cache last notified version
 CRON="0 */6 * * *" # schedule as cron string
 
-umask 022 # set default umask
-
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
+load_script_config
 
 router_ip="$(nvram get lan_ipaddr)"
 router_name="$(nvram get lan_hostname)"
 [ -z "$router_name" ] && router_name="$router_ip"
-curl_binary="curl"
-[ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
-
-is_started_by_system() { #ISSTARTEDBYSYSTEM_START#
-    _ppid=$PPID
-    while true; do
-        [ -z "$_ppid" ] && break
-        _ppid=$(< "/proc/$_ppid/stat" awk '{print $4}')
-        grep -Fq "cron" "/proc/$_ppid/comm" && return 0
-        grep -Fq "hotplug" "/proc/$_ppid/comm" && return 0
-        [ "$_ppid" -gt 1 ] || break
-    done
-    return 1
-} #ISSTARTEDBYSYSTEM_END#
+curl_binary="$(get_curl_binary)"
+[ -z "$curl_binary" ] && { echo "curl not found"; exit 1; }
 
 send_email_message() {
-    cat <<EOT > /tmp/mail.eml
+    cat <<EOT > /tmp/jacklul-asuswrt-scripts/mail.eml
 From: "$EMAIL_FROM_NAME" <$EMAIL_FROM_ADDRESS>
 To: "$EMAIL_TO_NAME" <$EMAIL_TO_ADDRESS>
 Subject: New router firmware notification @ $router_name
@@ -68,8 +49,8 @@ Content-Transfer-Encoding: quoted-printable
 New firmware version <b>$1</b> is now available for your router at <a href="$router_ip">$router_ip</a>.
 EOT
 
-    curl --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file /tmp/mail.eml --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logger -st "$script_name" "Failed to send an email message"
-    rm -f /tmp/mail.eml
+    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file /tmp/jacklul-asuswrt-scripts/mail.eml --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logger -st "$script_name" "Failed to send an email message"
+    rm -f /tmp/jacklul-asuswrt-scripts/mail.eml
 }
 
 send_telegram_message() {
@@ -88,11 +69,11 @@ send_telegram_message() {
 }
 
 send_pushover_message() {
-    curl --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logger -st "$script_name" "Failed to send Pushover message"
+    $curl_binary --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logger -st "$script_name" "Failed to send Pushover message"
 }
 
 send_pushbullet_message () {
-    curl -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logger -st "$script_name" "Failed to send Pushbullet message"
+    $curl_binary -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logger -st "$script_name" "Failed to send Pushbullet message"
 }
 
 send_notification() {
@@ -129,31 +110,35 @@ send_notification() {
     fi
 }
 
+check_and_notify() {
+    { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
+
+    buildno=$(nvram get buildno | sed 's/[-_.]*//g')
+    extendno=$(nvram get extendno)
+    web_state_info=$(nvram get webs_state_info)
+
+    #extendno_ver=$(echo "$extendno" | awk -F '-' '{print $1}')
+    web_buildno=$(echo "$web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
+    #web_extendno_ver=$(echo "$web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
+
+    if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] ||  [ "$buildno" -gt "$web_buildno" ]; then
+        echo "Could not gather valid values from NVRAM"
+        exit
+    fi
+
+    new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
+    current_version="${buildno}_${extendno}"
+
+    if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$new_version" ] ; }; then
+        send_notification "$new_version"
+
+        echo "$new_version" > "$CACHE_FILE"
+    fi
+}
+
 case "$1" in
     "run")
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; exit 1; }
-
-        buildno=$(nvram get buildno | sed 's/[-_.]*//g')
-        extendno=$(nvram get extendno)
-        web_state_info=$(nvram get webs_state_info)
-
-        #extendno_ver=$(echo "$extendno" | awk -F '-' '{print $1}')
-        web_buildno=$(echo "$web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
-        #web_extendno_ver=$(echo "$web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
-
-        if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] ||  [ "$buildno" -gt "$web_buildno" ]; then
-            echo "Could not gather valid values from NVRAM"
-            exit
-        fi
-
-        new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
-        current_version="${buildno}_${extendno}"
-
-        if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$new_version" ] ; }; then
-            send_notification "$new_version"
-
-            echo "$new_version" > "$CACHE_FILE"
-        fi
+        check_and_notify
     ;;
     "test")
         if { is_started_by_system && cru l | grep -Fq "#$script_name-test#"; } || [ "$2" = "now" ]; then
@@ -175,13 +160,11 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
-
-        sh "$script_path" run &
+        [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
+        check_and_notify
     ;;
     "stop")
-        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
-        cru d "$script_name"
+        crontab_entry delete
     ;;
     "restart")
         sh "$script_path" stop

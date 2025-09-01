@@ -4,23 +4,18 @@
 # Modifies CPU affinity mask of defined processes
 #
 
-#jacklul-asuswrt-scripts-update=process-affinity.sh
+#jas-update=process-affinity.sh
 #shellcheck disable=SC2155
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+PROCESS_AFFINITIES="" # List of processes and affinity masks in format "process1:6 process2:4", specify only the process name to set it to /sbin/init affinity minus one
 
-PROCESS_AFFINITIES="crond" # List of processes and affinity masks in format "process1:6 process2:4", specify only the process name to set it to /sbin/init affinity minus one
+load_script_config
 
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
-
-init_affinity="$(taskset -p 1 | sed 's/.*: //')"
-init_affinity=$((0x$init_affinity))
+init_affinity="$(taskset -p 1 2>/dev/null | sed 's/.*: //')"
+[ -n "$init_affinity" ] && init_affinity=$((0x$init_affinity))
 if ! echo "$init_affinity" | grep -q '^[0-9]\+$'; then
     unset init_affinity
 fi
@@ -81,8 +76,8 @@ process_affinity() {
         case $1 in
             "set")
                 if echo "$_process" | grep -Fq ":"; then
-                    _affinity="$(echo "$_process" | cut -d ':' -f 2 2> /dev/null)"
-                    _process="$(echo "$_process" | cut -d ':' -f 1 2> /dev/null)"
+                    _affinity="$(echo "$_process" | cut -d ':' -f 2 2>/dev/null)"
+                    _process="$(echo "$_process" | cut -d ':' -f 1 2>/dev/null)"
 
                     echo "$_process" | grep -Fq ":" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
                 fi
@@ -105,18 +100,14 @@ case $1 in
         process_affinity set
     ;;
     "start")
-        [ -z "$(which taskset 2> /dev/null)" ] && { logger -st "$script_name" "Error: Unable to start - command 'taskset' not found"; exit 1; }
-
-        if [ -x "$script_dir/cron-queue.sh" ]; then
-            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-        else
-            cru a "$script_name" "*/1 * * * * $script_path run"
-        fi
+        type taskset > /dev/null 2>&1 || { logger -st "$script_name" "Unable to start - command 'taskset' not found"; exit 1; }
+        [ -z "$PROCESS_AFFINITIES" ] && { logger -st "$script_name" "Unable to start - process affinities are not set"; exit 1; }
 
         process_affinity set
+        crontab_entry add "*/1 * * * * $script_path run"
     ;;
     "stop")
-        cru d "$script_name"
+        crontab_entry delete
 
         if [ -n "$init_affinity" ]; then
             process_affinity unset

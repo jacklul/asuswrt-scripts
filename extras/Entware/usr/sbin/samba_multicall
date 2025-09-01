@@ -1,0 +1,71 @@
+#!/bin/sh
+# Made by Jack'lul <jacklul.github.io>
+#
+# /opt/usr/sbin/samba_multicall
+#
+# This script is to replace /usr/sbin/samba_multicall so that Entware's Samba
+# is used instead of the firmware's one
+#
+# You will need to have /opt/etc/init.d/S90replace-samba script to mount this
+#
+# Samba 4 config docs: https://www.samba.org/samba/docs/4.18/man-html/smb.conf.5.html
+#
+# Based on:
+#  https://www.snbforums.com/threads/how-to-get-samba-4-18-8-running-on-an-rt-ax86u-pro-running-merlin-3006-102-4_0.94825/#post-957792
+#
+
+replace_config=false
+custom_configs=/jffs/scripts/jas/custom-configs.sh
+
+#########################
+
+smbconf=/tmp/etc/smb.conf
+args="$*"
+
+if [ "$replace_config" = true ] && [ -f /opt/etc/samba/smb.conf ]; then
+    args="$(echo "$args" | sed "s#-s /etc/smb.conf#-s /opt/etc/samba/smb.conf#g")"
+else
+    # Manually call custom-configs script if it exists
+    { [ ! -f /usr/sbin/helper.sh ] && [ -f "$custom_configs" ] ; } && "$custom_configs" modify /etc/smb.conf
+
+    # Either we are on Asuswrt-Merlin or config got modified by custom-configs script
+    if [ -f /usr/sbin/helper.sh ] || grep -Fq "# Modified by" "$smbconf"; then
+        if ! grep -Fq "# Modified by samba_multicall" "$smbconf"; then
+            # Remove options not supported by Samba 4.18
+            sed '/^display charset/d' -i "$smbconf"
+            sed '/^use spnego/d' -i "$smbconf"
+            sed '/^auth methods/d' -i "$smbconf"
+
+            # Logging is not enabled by default in Samba 4.18
+            sed "/^log file/a logging = file" -i "$smbconf"
+
+            # Do not limit max protocol to SMB2
+            sed '/^max protocol = SMB2/d' -i "$smbconf"
+
+            # Set private directory to /etc/samba
+            if ! grep -q "^private dir = /etc/samba" "$smbconf"; then
+                sed '/^private dir =/ s/^/#/' -i "$smbconf"
+                sed "/^\[global\]/a private dir = /etc/samba" -i "$smbconf"
+            fi
+
+            # Ensure SMB1 is allowed for clients
+            if grep -q "^min protocol = NT1" "$smbconf"; then
+                sed "/^min protocol = NT1/a client min protocol = NT1" -i "$smbconf"
+            fi
+
+            echo "# Modified by samba_multicall" >> "$smbconf"
+        fi
+    fi
+fi
+
+case "$(basename "$0")" in
+    smbd)
+        exec /opt/sbin/smbd "$args"
+    ;;
+    nmbd)
+        exec /opt/sbin/nmbd "$args"
+    ;;
+    smbpasswd)
+        exec /jffs/scripts/smbpasswd "$args"
+    ;;
+esac

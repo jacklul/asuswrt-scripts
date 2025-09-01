@@ -4,41 +4,35 @@
 # Reboot the router after reaching certain uptime
 #
 
-#jacklul-asuswrt-scripts-update=conditional-reboot.sh
+#jas-update=conditional-reboot.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
 CRON="0 5 * * *" # schedule as cron string
 
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
+load_script_config
 
 case "$1" in
     "run")
-        [ -z "$TARGET_UPTIME" ] && { logger -st "$script_name" "Error: Target uptime is not set"; exit 1; }
-
         if [ -n "$TARGET_UPTIME" ] && [ "$TARGET_UPTIME" != "0" ]; then
             current_uptime=$(awk -F '.' '{print $1}' /proc/uptime)
 
             if [ "$current_uptime" -ge "$TARGET_UPTIME" ]; then
                 logger -st "$script_name" "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!"
+                crontab_entry delete
                 service reboot
-                cru d "$script_name"
             fi
         fi
     ;;
     "start")
-        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
+        [ -z "$TARGET_UPTIME" ] && { logger -st "$script_name" "Error: Target uptime is not set"; exit 1; }
+        [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")
-        cru d "$script_name"
+        crontab_entry delete
     ;;
     "restart")
         sh "$script_path" stop

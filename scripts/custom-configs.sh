@@ -7,110 +7,17 @@
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files
 #
 
-#jacklul-asuswrt-scripts-update=custom-configs.sh
+#jas-update=custom-configs.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 readonly ETC_FILES="profile hosts" # /etc files we can modify
 readonly NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
 readonly NOPOSTCONF_FILES="/etc/profile" # files that cannot run postconf script
 
-umask 022 # set default umask
-
-lockfile() { #LOCKFILE_START#
-    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
-
-    _lockfile="/var/lock/script-$script_name.lock"
-    _pidfile="/var/run/script-$script_name.pid"
-    _fd_min=100
-    _fd_max=200
-
-    if [ -n "$2" ]; then
-        _lockfile="/var/lock/script-$script_name-$2.lock"
-        _pidfile="/var/run/script-$script_name-$2.lock"
-    fi
-
-    [ -n "$3" ] && _fd_min="$3" && _fd_max="$3"
-    [ -n "$4" ] && _fd_max="$4"
-
-    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
-    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
-
-    _lockpid=
-    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
-
-    case "$1" in
-        "lockwait"|"lockfail"|"lockexit")
-            for _fd_test in "/proc/$$/fd"/*; do
-                if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logger -st "$script_name" "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
-                    exit 1
-                fi
-            done
-
-            _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
-            eval exec "$_fd>$_lockfile"
-
-            case "$1" in
-                "lockwait")
-                    _lockwait=0
-                    while ! flock -nx "$_fd"; do
-                        eval exec "$_fd>&-"
-                        _lockwait=$((_lockwait+1))
-
-                        if [ "$_lockwait" -ge 60 ]; then
-                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds ($_lockfile)"
-                            exit 1
-                        fi
-
-                        sleep 1
-                        _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
-                        eval exec "$_fd>$_lockfile"
-                    done
-                ;;
-                "lockfail")
-                    flock -nx "$_fd" || return 1
-                ;;
-                "lockexit")
-                    flock -nx "$_fd" || exit 1
-                ;;
-            esac
-
-            echo $$ > "$_pidfile"
-            chmod 644 "$_pidfile"
-            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
-        ;;
-        "unlock")
-            flock -u "$_fd"
-            eval exec "$_fd>&-"
-            rm -f "$_lockfile" "$_pidfile"
-            trap - INT TERM EXIT
-        ;;
-        "check")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
-            return 1
-        ;;
-        "kill")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
-            return 1
-        ;;
-    esac
-}
-
-lockfile_fd() {
-    _lfd_min=$1
-    _lfd_max=$2
-
-    while [ -f "/proc/$$/fd/$_lfd_min" ]; do
-        _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
-    done
-
-    echo "$_lfd_min"
-} #LOCKFILE_END#
+# No RUN_EVERY_MINUTE option here as this script has to run every minute to check if any of the configs reverted to default
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
@@ -131,8 +38,8 @@ restart_process() {
         _cmdline="$(tr "\0" " " < "/proc/$_pid/cmdline")"
 
         killall "$1"
-        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGTERM "$_pid" 2> /dev/null
-        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGKILL "$_pid" 2> /dev/null
+        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGTERM "$_pid" 2>/dev/null
+        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGKILL "$_pid" 2>/dev/null
 
         if [ -z "$_started" ]; then
             # make sure we are executing build-in binary
@@ -175,8 +82,8 @@ is_file_postconf_supported() {
 
 is_config_file_modified() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File $1 does not exist"; return 1; }
-    [ ! -f "$1.new" ] && { echo "File $1.new does not exist"; return 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist"; return 1; }
+    [ ! -f "$1.new" ] && { echo "File '$1.new' does not exist"; return 1; }
 
     if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
         return 0
@@ -187,6 +94,7 @@ is_config_file_modified() {
 
 modify_config_file() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist"; return 1; }
     # $2 = custom /jffs/configs/[NAME.conf]
 
     if [ -n "$2" ]; then
@@ -209,6 +117,7 @@ modify_config_file() {
 
 run_postconf_script() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
 
     if ! is_file_postconf_supported "$1"; then
         return
@@ -226,6 +135,7 @@ run_postconf_script() {
 
 add_modified_mark() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
 
     _basename="$(basename "$1" | cut -d. -f1)"
     _comment="#"
@@ -242,8 +152,8 @@ add_modified_mark() {
 
 commit_new_file() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File $1 does not exist"; exit 1; }
-    [ !  -f "$1.new" ] && { echo "File $1.new does not exist"; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
+    [ !  -f "$1.new" ] && { echo "File '$1.new' does not exist"; exit 1; }
 
     cp -f "$1.new" "$1"
 }
@@ -309,11 +219,11 @@ modify_service_config_file() {
                         restart_process smbd
                     ;;
                     "ipsec")
-                        ipsec restart > /dev/null 2>&1
+                        ipsec restart >/dev/null 2>&1
                     ;;
                     "mcpd")
-                        killall -SIGKILL /bin/mcpd 2> /dev/null
-                        nohup /bin/mcpd > /dev/null 2>&1 &
+                        killall -SIGKILL /bin/mcpd 2>/dev/null
+                        nohup /bin/mcpd >/dev/null 2>&1 &
                     ;;
                     *)
                         restart_process "$2"
@@ -326,7 +236,7 @@ modify_service_config_file() {
 
 restore_service_config_file() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ -z "$2" ] && { echo "Process/Service name not provided"; exit 1; }
+    [ -z "$2" ] && { echo "Process/service name not provided"; exit 1; }
 
     _match="$2"
     _service="$2"
@@ -364,10 +274,10 @@ restore_service_config_file() {
     if /bin/ps w | grep -v "grep" | grep -q "$_match" && [ -f "$1.new" ]; then
         case "$_service" in
             "ipsec")
-                service "ipsec_restart" > /dev/null
+                service "ipsec_restart" >/dev/null
             ;;
             *)
-                service "restart_${_service}" > /dev/null
+                service "restart_${_service}" >/dev/null
             ;;
         esac
 
@@ -378,7 +288,7 @@ restore_service_config_file() {
 }
 
 configs() {
-    lockfile lockwait # not lockfail as multiple service restarts might queue this one up via service-event.sh
+    lockfile lockwait # not lockfail as multiple service restarts might queue this one up via service-event script
 
     case "$1" in
         "modify")
@@ -452,25 +362,22 @@ configs() {
 
 case "$1" in
     "run")
-        if { [ ! -x "$script_dir/cron-queue.sh" ] || ! "$script_dir/cron-queue.sh" check "$script_name" ; } && ! cru l | grep -Fq "#$script_name#"; then
-            exit # do not run if not started
-        fi
-
         configs modify
     ;;
+    "modify")
+        lockfile lockfail modify
+        modify_config_file "$1"
+        run_postconf_script "$1"
+        add_modified_mark "$1.new"
+        commit_new_file "$1"
+        lockfile unlock modify
+    ;;
     "start")
-        if [ -x "$script_dir/cron-queue.sh" ]; then
-            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-        else
-            cru a "$script_name" "*/1 * * * * $script_path run"
-        fi
-
-        sh "$script_path" run
+        crontab_entry add "*/1 * * * * $script_path run"
+        configs modify
     ;;
     "stop")
-        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
-        cru d "$script_name"
-
+        crontab_entry delete
         configs restore
     ;;
     "restart")

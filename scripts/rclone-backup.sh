@@ -10,16 +10,14 @@
 #  https://github.com/jacklul/rclone-backup
 #
 
-#jacklul-asuswrt-scripts-update=rclone-backup.sh
+#jas-update=rclone-backup.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 REMOTE="remote:" # remote to use
-PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose --log-file=/tmp/rclone.log" # optional parameters
+PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose --log-file=/tmp/rclone-backup.log" # optional parameters
 CRON="0 6 * * 7" # schedule as cron string
 CONFIG_FILE="/jffs/rclone-backup/rclone.conf" # Rclone configuration file
 FILTER_FILE="/jffs/rclone-backup/filter.list" # Rclone filter/list file
@@ -27,12 +25,7 @@ SCRIPT_PRE="/jffs/rclone-backup/script-pre.sh" # execute a command before runnin
 SCRIPT_POST="/jffs/rclone-backup/script-post.sh" # execute a command after running rclone command
 RCLONE_PATH="" # path to Rclone binary
 
-umask 022 # set default umask
-
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
+load_script_config
 
 # @TODO remove it after some time
 if
@@ -81,7 +74,6 @@ case "$1" in
         if [ -n "$SCRIPT_PRE" ] && [ -x "$SCRIPT_PRE" ]; then
             logger -st "$script_name" "Executing script '$SCRIPT_PRE'..."
 
-            #shellcheck disable=SC1090
             . "$SCRIPT_PRE"
         fi
 
@@ -94,7 +86,6 @@ case "$1" in
         if [ -n "$SCRIPT_POST" ] && [ -x "$SCRIPT_POST" ]; then
             logger -st "$script_name" "Executing script '$SCRIPT_POST'..."
 
-            #shellcheck disable=SC1090
             . "$SCRIPT_POST"
         fi
 
@@ -114,13 +105,12 @@ case "$1" in
         fi
     ;;
     "start")
-        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Error: Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
-        [ -z "$(which rclone 2> /dev/null)" ] && { echo "Warning: Command 'rclone' not found"; }
-
-        [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
+        [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
+        type rclone > /dev/null 2>&1 || { echo "Warning: Command 'rclone' not found"; }
+        [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")
-        cru d "$script_name"
+        crontab_entry delete
     ;;
     "restart")
         sh "$script_path" stop

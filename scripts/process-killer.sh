@@ -10,62 +10,63 @@
 #  Cannot block files that are symlinked
 #
 
-#jacklul-asuswrt-scripts-update=process-killer.sh
+#jas-update=process-killer.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
+load_script_config
+
+process_killer() {
+    if [ -n "$PROCESSES_TO_KILL" ]; then
+        for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
+            filepath="$process"
+
+            if [ ! -f "$filepath" ]; then
+                tmp=$(which "$process")
+
+                [ -n "$tmp" ] && filepath=$tmp
+            fi
+
+            [ -f "$filepath" ] && mount | grep -F "$filepath" >/dev/null && continue
+
+            filename="$(basename "$filepath")"
+            fileext="${filename##*.}"
+
+            if [ "$fileext" = "ko" ]; then
+                modulename="${filename%.*}"
+                filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
+
+                if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
+                    lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logger -st "$script_name" "Blocked kernel module: $process" && usleep 250000
+                    mount -o bind /dev/null "$filepath"
+                fi
+            else
+                [ -n "$(pidof "$filename")" ] && killall "$filename" && logger -st "$script_name" "Killed process: $process"
+
+                if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
+                    usleep 250000
+                    mount -o bind /dev/null "$filepath"
+                fi
+            fi
+        done
+    fi
+}
 
 case "$1" in
     "run")
-        if [ -n "$PROCESSES_TO_KILL" ]; then
-            for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
-                filepath="$process"
-
-                if [ ! -f "$filepath" ]; then
-                    tmp=$(which "$process")
-
-                    [ -n "$tmp" ] && filepath=$tmp
-                fi
-
-                [ -f "$filepath" ] && mount | grep -F "$filepath" > /dev/null && continue
-
-                filename="$(basename "$filepath")"
-                fileext="${filename##*.}"
-
-                if [ "$fileext" = "ko" ]; then
-                    modulename="${filename%.*}"
-                    filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
-
-                    if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                        lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logger -st "$script_name" "Blocked kernel module: $process" && usleep 250000
-                        mount -o bind /dev/null "$filepath"
-                    fi
-                else
-                    [ -n "$(pidof "$filename")" ] && killall "$filename" && logger -st "$script_name" "Killed process: $process"
-
-                    if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                        usleep 250000
-                        mount -o bind /dev/null "$filepath"
-                    fi
-                fi
-            done
-        fi
+        process_killer
     ;;
     "start")
-        if [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
-            { sleep 60 && sh "$script_path" run; } & # delay when freshly booted
+        [ -z "$PROCESSES_TO_KILL" ] && { logger -st "$script_name" "Unable to start - processes to kill are not set"; exit 1; }
+
+        if [ ! -t 0 ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
+            { sleep 60 && process_killer; } & # delay when freshly booted
         else
-            sh "$script_path" run
+            process_killer
         fi
     ;;
     "stop")

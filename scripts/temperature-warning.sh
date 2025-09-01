@@ -4,24 +4,17 @@
 # Send warning to syslog when temperatures reaches specific threshold
 #
 
-#jacklul-asuswrt-scripts-update=temperature-warning.sh
+#jas-update=temperature-warning.sh
 #shellcheck disable=SC2155
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
-
-TEMPERATURE_TARGET="80" # target temperature at which log the warning
+TEMPERATURE_TARGET=80 # target temperature at which log the warning
 COOLDOWN=300 # how long to wait (seconds) before logging another warning
-CACHE_FILE="/tmp/last_temperature_warning" # where to cache last warning uptime value
+CACHE_FILE="$TMP_DIR/$script_name" # where to cache last warning uptime value
 
-umask 022 # set default umask
-
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
+load_script_config
 
 get_temperatures() {
     _eth_24g=""
@@ -31,7 +24,7 @@ get_temperatures() {
         [ ! -d "$_interface" ] && continue
 
         _interface="$(basename "$_interface")"
-        _status="$(wl -i "$_interface" status 2> /dev/null)"
+        _status="$(wl -i "$_interface" status 2>/dev/null)"
 
         if echo "$_status" | grep -Fq "2.4GHz"; then
             _eth_24g="$_interface"
@@ -81,15 +74,10 @@ case "$1" in
         [ -n "$wifi_5g_temperature" ] && echo "WiFi 5G temperature: $wifi_5g_temperature C ($_eth_5g)"
     ;;
     "start")
-        if [ -x "$script_dir/cron-queue.sh" ]; then
-            sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-        else
-            cru a "$script_name" "*/1 * * * * $script_path run"
-        fi
+        crontab_entry add "*/1 * * * * $script_path run"
     ;;
     "stop")
-        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
-        cru d "$script_name"
+        crontab_entry delete
     ;;
     "restart")
         sh "$script_path" stop

@@ -14,13 +14,11 @@
 #  iptables -I "FORCEDNS_DOT" -m mac --mac-source "d9:32:cb:d0:fe:fe" ! -d "1.1.1.1" -j REJECT
 #
 
-#jacklul-asuswrt-scripts-update=force-dns.sh
+#jas-update=force-dns.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 DNS_SERVER="" # when left empty will use DNS server set in DHCP DNS1 (or router's address if that field is empty)
 DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use router's address, set to "block" to block IPv6 DNS traffic
@@ -36,30 +34,9 @@ BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are
 VERIFY_DNS=false # verify that the DNS server is working before applying
 VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applying (fallback only)
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
-RUN_EVERY_MINUTE=true # verify that the rules are still set (true/false), recommended to keep it enabled even when service-event.sh is available
+RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
-is_merlin_firmware() { #ISMERLINFIRMWARE_START#
-    if [ -f "/usr/sbin/helper.sh" ]; then
-        return 0
-    fi
-    return 1
-} #ISMERLINFIRMWARE_END#
-
-is_merlin_firmware && merlin=true
-
-# Disable on Merlin when service-event.sh is available (service-event-end runs it)
-if [ -n "$merlin" ] && [ -x "$script_dir/service-event.sh" ]; then
-    RUN_EVERY_MINUTE=false
-fi
-
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
-
-if [ -z "$RUN_EVERY_MINUTE" ]; then
-    [ ! -x "$script_dir/service-event.sh" ] && RUN_EVERY_MINUTE=true
-fi
+load_script_config
 
 if [ -z "$DNS_SERVER" ]; then
     dhcp_dns1="$(nvram get dhcp_dns1_x)"
@@ -89,98 +66,6 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
     fi
 fi
 
-lockfile() { #LOCKFILE_START#
-    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
-
-    _lockfile="/var/lock/script-$script_name.lock"
-    _pidfile="/var/run/script-$script_name.pid"
-    _fd_min=100
-    _fd_max=200
-
-    if [ -n "$2" ]; then
-        _lockfile="/var/lock/script-$script_name-$2.lock"
-        _pidfile="/var/run/script-$script_name-$2.lock"
-    fi
-
-    [ -n "$3" ] && _fd_min="$3" && _fd_max="$3"
-    [ -n "$4" ] && _fd_max="$4"
-
-    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
-    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
-
-    _lockpid=
-    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
-
-    case "$1" in
-        "lockwait"|"lockfail"|"lockexit")
-            for _fd_test in "/proc/$$/fd"/*; do
-                if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logger -st "$script_name" "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
-                    exit 1
-                fi
-            done
-
-            _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
-            eval exec "$_fd>$_lockfile"
-
-            case "$1" in
-                "lockwait")
-                    _lockwait=0
-                    while ! flock -nx "$_fd"; do
-                        eval exec "$_fd>&-"
-                        _lockwait=$((_lockwait+1))
-
-                        if [ "$_lockwait" -ge 60 ]; then
-                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds ($_lockfile)"
-                            exit 1
-                        fi
-
-                        sleep 1
-                        _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
-                        eval exec "$_fd>$_lockfile"
-                    done
-                ;;
-                "lockfail")
-                    flock -nx "$_fd" || return 1
-                ;;
-                "lockexit")
-                    flock -nx "$_fd" || exit 1
-                ;;
-            esac
-
-            echo $$ > "$_pidfile"
-            chmod 644 "$_pidfile"
-            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
-        ;;
-        "unlock")
-            flock -u "$_fd"
-            eval exec "$_fd>&-"
-            rm -f "$_lockfile" "$_pidfile"
-            trap - INT TERM EXIT
-        ;;
-        "check")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
-            return 1
-        ;;
-        "kill")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
-            return 1
-        ;;
-    esac
-}
-
-lockfile_fd() {
-    _lfd_min=$1
-    _lfd_max=$2
-
-    while [ -f "/proc/$$/fd/$_lfd_min" ]; do
-        _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
-    done
-
-    echo "$_lfd_min"
-} #LOCKFILE_END#
-
 interface_exists() {
     if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
         if ip link show | grep -F ": $1" | grep -Fq "mtu"; then
@@ -198,7 +83,7 @@ iptables_chains() {
     for _iptables in $for_iptables; do
         case "$1" in
             "add")
-                if ! $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
+                if ! $_iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
                     _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _forward_start_plus="$((_forward_start+1))"
 
@@ -210,7 +95,7 @@ iptables_chains() {
                     done
                 fi
 
-                if ! $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
+                if ! $_iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1; then
                     _prerouting_start="$($_iptables -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER" | tail -1 | awk '{print $1}')"
                     _prerouting_start_plus="$((_prerouting_start+1))"
 
@@ -223,7 +108,7 @@ iptables_chains() {
                     done
                 fi
 
-                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
+                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_iptables -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
                     if [ "$_iptables" = "ip6tables" ]; then
                         _router_ip="$router_ip6"
                     else
@@ -243,7 +128,7 @@ iptables_chains() {
                 fi
             ;;
             "remove")
-                if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
+                if $_iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
                     for _target_interface in $TARGET_INTERFACES; do
                         $_iptables -D FORWARD -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
                     done
@@ -252,7 +137,7 @@ iptables_chains() {
                     $_iptables -X "$CHAIN_DOT"
                 fi
 
-                if $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
+                if $_iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1; then
                     for _target_interface in $TARGET_INTERFACES; do
                         $_iptables -t nat -D PREROUTING -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
                         $_iptables -t nat -D PREROUTING -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
@@ -262,7 +147,7 @@ iptables_chains() {
                     $_iptables -t nat -X "$CHAIN_DNAT"
                 fi
 
-                if $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
+                if $_iptables -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
                     if [ "$_iptables" = "ip6tables" ]; then
                         _router_ip="$router_ip6"
                     else
@@ -364,8 +249,8 @@ iptables_rules() {
 }
 
 rules_exist() {
-    if iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1 && iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-        if iptables -t nat -C "$CHAIN_DNAT" ! -d "$1" -j DNAT --to-destination "$1" > /dev/null 2>&1; then
+    if iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1 && iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN_DNAT" ! -d "$1" -j DNAT --to-destination "$1" >/dev/null 2>&1; then
             return 0
         fi
     fi
@@ -446,23 +331,20 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -n "$merlin" ] && logger -st "$script_name" "Asuswrt-Merlin firmware detected, you should probably use DNS Director instead!"
         [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Unable to start - target DNS server is not set"; exit 1; }
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
 
+        # Set value of empty RUN_EVERY_MINUTE depending on situation
+        execute_script_basename "service-event.sh" check && service_event_active=true
+        [ -z "$RUN_EVERY_MINUTE" ] && [ -z "$service_event_active" ] && RUN_EVERY_MINUTE=true
+
         if [ "$RUN_EVERY_MINUTE" = true ]; then
-            if [ -x "$script_dir/cron-queue.sh" ]; then
-                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-            else
-                cru a "$script_name" "*/1 * * * * $script_path run"
-            fi
+            crontab_entry add "*/1 * * * * $script_path run"
         fi
     ;;
     "stop")
-        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
-        cru d "$script_name"
-
+        crontab_entry delete
         FALLBACK_DNS_SERVER="" # prevent changing to fallback instead of removing everything...
         firewall_rules remove
     ;;

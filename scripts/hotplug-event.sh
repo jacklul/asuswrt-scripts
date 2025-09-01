@@ -4,116 +4,17 @@
 # Handle hotplug events
 #
 
-#jacklul-asuswrt-scripts-update=hotplug-event.sh
+#jas-update=hotplug-event.sh
 #shellcheck disable=SC2155
-
-readonly script_path="$(readlink -f "$0")"
-readonly script_name="$(basename "$script_path" .sh)"
-readonly script_dir="$(dirname "$script_path")"
-readonly script_config="$script_dir/$script_name.conf"
+#shellcheck source=./common.sh
+readonly common_script="$(dirname "$0")/common.sh"
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = subsystem, $2 = action)
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts
-RUN_EVERY_MINUTE=false # verify that the hotplug configuration is modified (true/false), this usually should not be needed
+RUN_EVERY_MINUTE=false # verify that the hotplug configuration is still modified (true/false), this is usually not be needed
 
-umask 022 # set default umask
-
-if [ -f "$script_config" ]; then
-    #shellcheck disable=SC1090
-    . "$script_config"
-fi
-
-lockfile() { #LOCKFILE_START#
-    [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
-
-    _lockfile="/var/lock/script-$script_name.lock"
-    _pidfile="/var/run/script-$script_name.pid"
-    _fd_min=100
-    _fd_max=200
-
-    if [ -n "$2" ]; then
-        _lockfile="/var/lock/script-$script_name-$2.lock"
-        _pidfile="/var/run/script-$script_name-$2.lock"
-    fi
-
-    [ -n "$3" ] && _fd_min="$3" && _fd_max="$3"
-    [ -n "$4" ] && _fd_max="$4"
-
-    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
-    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
-
-    _lockpid=
-    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
-
-    case "$1" in
-        "lockwait"|"lockfail"|"lockexit")
-            for _fd_test in "/proc/$$/fd"/*; do
-                if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logger -st "$script_name" "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
-                    exit 1
-                fi
-            done
-
-            _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
-            eval exec "$_fd>$_lockfile"
-
-            case "$1" in
-                "lockwait")
-                    _lockwait=0
-                    while ! flock -nx "$_fd"; do
-                        eval exec "$_fd>&-"
-                        _lockwait=$((_lockwait+1))
-
-                        if [ "$_lockwait" -ge 60 ]; then
-                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds ($_lockfile)"
-                            exit 1
-                        fi
-
-                        sleep 1
-                        _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
-                        eval exec "$_fd>$_lockfile"
-                    done
-                ;;
-                "lockfail")
-                    flock -nx "$_fd" || return 1
-                ;;
-                "lockexit")
-                    flock -nx "$_fd" || exit 1
-                ;;
-            esac
-
-            echo $$ > "$_pidfile"
-            chmod 644 "$_pidfile"
-            trap 'flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $?' INT TERM EXIT
-        ;;
-        "unlock")
-            flock -u "$_fd"
-            eval exec "$_fd>&-"
-            rm -f "$_lockfile" "$_pidfile"
-            trap - INT TERM EXIT
-        ;;
-        "check")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
-            return 1
-        ;;
-        "kill")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
-            return 1
-        ;;
-    esac
-}
-
-lockfile_fd() {
-    _lfd_min=$1
-    _lfd_max=$2
-
-    while [ -f "/proc/$$/fd/$_lfd_min" ]; do
-        _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
-    done
-
-    echo "$_lfd_min"
-} #LOCKFILE_END#
+load_script_config
 
 hotplug_config() {
     lockfile lockwait
@@ -141,7 +42,7 @@ SUBSYSTEM == misc, DEVICENAME ~~ ^(tun|tap)$, ACTION ~~ ^(add|remove)$ {
 }
 EOT
 
-                killall hotplug2 2> /dev/null
+                killall hotplug2 2>/dev/null
 
                 logger -st "$script_name" "Modified hotplug configuration"
             fi
@@ -151,7 +52,7 @@ EOT
                 rm /etc/hotplug2.rules
                 cp /etc/hotplug2.rules.bak /etc/hotplug2.rules
 
-                killall hotplug2 2> /dev/null
+                killall hotplug2 2>/dev/null
 
                 logger -st "$script_name" "Restored original hotplug configuration"
             fi
@@ -180,13 +81,12 @@ case "$1" in
             # $2 = subsystem, $3 = action
             case "$2" in
                 "block")
-                    [ -x "$script_dir/fstrim.sh" ] && sh "$script_dir/fstrim.sh" hotplug
-                    [ -x "$script_dir/usb-mount.sh" ] && sh "$script_dir/usb-mount.sh" hotplug
-                    [ -x "$script_dir/swap.sh" ] && sh "$script_dir/swap.sh" hotplug
-                    [ -x "$script_dir/entware.sh" ] && sh "$script_dir/entware.sh" hotplug
+                    execute_script_basename "fstrim.sh" hotplug
+                    execute_script_basename "swap.sh" hotplug
+                    execute_script_basename "entware.sh" hotplug
                 ;;
                 "net")
-                    [ -x "$script_dir/usb-network.sh" ] && sh "$script_dir/usb-network.sh" hotplug
+                    execute_script_basename "usb-network.sh" hotplug
                 ;;
                 "misc")
                     # empty for now
@@ -200,20 +100,14 @@ case "$1" in
         exit
     ;;
     "start")
-        if [ "$RUN_EVERY_MINUTE" = true ]; then
-            if [ -x "$script_dir/cron-queue.sh" ]; then
-                sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"
-            else
-                cru a "$script_name" "*/1 * * * * $script_path run"
-            fi
-        fi
-
         hotplug_config modify
+
+        if [ "$RUN_EVERY_MINUTE" = true ]; then
+            crontab_entry add "*/1 * * * * $script_path run"
+        fi
     ;;
     "stop")
-        [ -x "$script_dir/cron-queue.sh" ] && sh "$script_dir/cron-queue.sh" remove "$script_name"
-        cru d "$script_name"
-
+        crontab_entry delete
         hotplug_config restore
     ;;
     "restart")
