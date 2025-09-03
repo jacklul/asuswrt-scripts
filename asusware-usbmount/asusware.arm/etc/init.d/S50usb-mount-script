@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# This script will be called when a USB drive is mounted. 
+# This script will be called when a USB drive is mounted.
 # Receiving unmount event here is unlikely, maybe only when ejecting through the web UI.
 #
 
