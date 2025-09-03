@@ -211,6 +211,7 @@ case "$1" in
 
         [ -z "$SWAP_FILE" ] && { logger -st "$script_name" "Error: Swap file is not set"; exit 1; }
         [ -z "$SWAP_SIZE" ] && { logger -st "$script_name" "Error: Swap size is not set"; exit 1; }
+        grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps && { logger -st "$script_name" "Error: Swap file is mounted"; exit 1; }
 
         set -e
 
