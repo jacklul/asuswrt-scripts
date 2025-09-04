@@ -1,6 +1,10 @@
 #!/bin/sh
 # Use this together with custom-configs script
 # to have your router act as PXE server using netboot.xyz
+#
+# Based on:
+#  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Enable-PXE-booting-into-netboot.xyz
+#
 
 [ -z "$1" ] && exit 1
 tag="$(basename "$0")"
