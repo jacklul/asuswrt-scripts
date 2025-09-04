@@ -1,12 +1,13 @@
 # What is this?
 
-This is my current workaround for **ASUS routers** no longer executing command in `script_usbmount` NVRAM variable on USB mount.  
-The variable is most likely being cleaned by `asd` (**Asus Security Daemon**).
+This is my current workaround for **ASUS routers** that no longer execute command in `script_usbmount` NVRAM variable on USB mount.  
+Additionally, the variable is now being cleaned by (most likely) `asd` (**Asus Security Daemon**) on newer firmware.
 
 _Last updated: **2025-09-03**_
 
 ## How to use this?
 
+**Your router must support ASUS Download Master.**  
 Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
 
 > [!IMPORTANT]
