@@ -1,40 +1,68 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# This script will be called when a USB drive is mounted.
-# Receiving unmount event here is unlikely, maybe only when ejecting through the web UI.
+# This script will be executed by the router on mount/unmount event
+# It will first look for the script to execute in script_usbmount/script_usbumount NVRAM variable
+# Then it will look for usb-mount-script/usb-umount-script script in /jffs/scripts
+# It will launch scripts-startup.sh on mount if none of the above are available
+#
+# Receiving 'stop' here is unlikely, possibly only when unmounting from the web UI
 #
 
 tag="$(basename "$0")"
 
 case "$1" in
     "start")
-        if [ -x /jffs/scripts/usb-mount-script ]; then
-            logger -t "$tag" "Running: /jffs/scripts/usb-mount-script"
-            /jffs/scripts/usb-mount-script &
+        nvram_script="$(nvram get script_usbmount)"
+
+        if [ -n "$nvram_script" ]; then
+            command="$nvram_script"
+        elif [ -x /jffs/scripts/usb-mount-script ]; then
+            command=/jffs/scripts/usb-mount-script
+        elif [ -x "/jffs/scripts/scripts-startup.sh" ]; then
+            command="/jffs/scripts/scripts-startup.sh start"
+        elif [ -x "/jffs/scripts-startup.sh" ]; then
+            command="/jffs/scripts-startup.sh start"
         fi
 
-        # This allows the USB drive to be unplugged and then plugged back in to retrigger this script again.
-        # Without this, router will not call this script again until a reboot and "USB Application" menu
-        # in the router web UI might also get stuck on "apps installing" status.
-        {
-            # Wait for the ASUS apps script to finish (/rom/.asusrouter)
-            timeout=15
-            while [ "$(nvram get apps_state_autorun)" != "4" ] && [ "$timeout" -ge 0 ]; do
-                sleep 1
-                timeout=$((timeout-1))
-            done
+        if [ -n "$command" ]; then
+            logger -t "$tag" "Executing command: $command"
+            eval "$command"
+        fi
 
-            # Reset all apps_* variables, 'nvram commit' is not needed
-            for var in state_autorun state_install state_remove state_switch state_stop state_enable state_update state_upgrade state_cancel state_error state_action mounted_path dev; do
-                nvram set "apps_$var="
-            done
+        # This allows the USB drive to be unplugged and then plugged back in and retriggering this script again,
+        # without this router will not call this script ever again until a reboot.
+        # "USB Application" in the web UI will also be stuck on "apps installing" without this fix.
+        {
+            sleep 15
+            nvram set apps_state_autorun=
+            nvram set apps_state_install=
+            nvram set apps_state_remove=
+            nvram set apps_state_switch=
+            nvram set apps_state_stop=
+            nvram set apps_state_enable=
+            nvram set apps_state_update=
+            nvram set apps_state_upgrade=
+            nvram set apps_state_cancel=
+            nvram set apps_state_error=
+            nvram set apps_state_action=
+            nvram set apps_mounted_path=
+            nvram set apps_dev=
+            # nvram commit not needed!
         } >/dev/null 2>&1 &
     ;;
     "stop")
-        if [ -x /jffs/scripts/usb-umount-script ]; then
-            logger -t "$tag" "Running: /jffs/scripts/usb-umount-script"
-            /jffs/scripts/usb-umount-script &
+        nvram_script="$(nvram get script_usbumount)"
+
+        if [ -n "$nvram_script" ]; then
+            command="$nvram_script"
+        elif [ -x /jffs/scripts/usb-umount-script ]; then
+            command=/jffs/scripts/usb-umount-script
+        fi
+
+        if [ -n "$command" ]; then
+            logger -t "$tag" "Executing command: $command"
+            eval "$command"
         fi
     ;;
 esac
