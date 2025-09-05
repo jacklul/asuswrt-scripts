@@ -51,15 +51,15 @@ call_action() {
                 fi
             fi
 
-            logger -t "$script_name" "Starting '$_entry'..."
+            [ ! -t 0 ] && logger -t "$script_name" "Starting '$_entry'..."
             echo "Starting '${fwe}$_entry${frt}'..."
         ;;
         "stop")
-            logger -t "$script_name" "Stopping '$_entry'..."
+            [ ! -t 0 ] && logger -t "$script_name" "Stopping '$_entry'..."
             echo "Stopping '${fwe}$_entry${frt}'..."
         ;;
         "restart")
-            logger -t "$script_name" "Restarting '$_entry'..."
+            [ ! -t 0 ] && logger -t "$script_name" "Restarting '$_entry'..."
             echo "Restarting '${fwe}$_entry${frt}'..."
         ;;
         *)
@@ -195,20 +195,20 @@ case "$1" in
             [ ! -t 0 ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
-        logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
+        [ ! -t 0 ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
         echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action start
     ;;
     "stop")
-        logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
+        [ ! -t 0 ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
         echo "Stopping scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action stop
         [ -f "$check_file" ] && rm -f "$check_file"
     ;;
     "restart")
-        logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
+        [ ! -t 0 ] && logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
         echo "Restarting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action restart
