@@ -122,14 +122,14 @@ is_valid_ssd_device() {
     _dev="/sys/block/$1"
 
     # Check if device is SSD
-    rotational=$(cat "$dev/queue/rotational" 2>/dev/null || echo "N/A")
+    rotational=$(cat "$dev/queue/rotational" 2> /dev/null || echo "N/A")
     if [ "$rotational" != "0" ]; then
         echo "Device is not an SSD: $_dev"
         return 1
     fi
 
     # Check if TRIM is supported
-    max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2>/dev/null || echo "N/A")
+    max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2> /dev/null || echo "N/A")
     if [ "$max_discard" = "N/A" ] || [ "$max_discard" -eq 0 ]; then
         echo "Device does not support discard: $_dev"
         return 1
@@ -145,7 +145,7 @@ change_provisioning_mode() {
     find "/sys/block/$1/device" -type f -name "provisioning_mode" | while read -r file; do
         [ -z "$file" ] && continue
 
-        _contents=$(cat "$file" 2>/dev/null || echo "")
+        _contents=$(cat "$file" 2> /dev/null || echo "")
 
         if [ "$_contents" != "unmap" ]; then
             echo "Writing 'unmap' to $file"
@@ -156,7 +156,7 @@ change_provisioning_mode() {
 
 case "$1" in
     "run")
-        [ -z "$(which fstrim 2>/dev/null)" ] && { logger -st "$script_name" "Error: Command 'fstrim' not found"; exit 1; }
+        [ -z "$(which fstrim 2> /dev/null)" ] && { logger -st "$script_name" "Error: Command 'fstrim' not found"; exit 1; }
 
         lockfile lockfail
 
@@ -207,7 +207,7 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -z "$(which fstrim 2>/dev/null)" ] && { echo "Warning: Command 'fstrim' not found"; }
+        [ -z "$(which fstrim 2> /dev/null)" ] && { echo "Warning: Command 'fstrim' not found"; }
 
         if [ "$CHANGE_PROVISIONING_MODE" = true ]; then
             for dev in /sys/block/*; do

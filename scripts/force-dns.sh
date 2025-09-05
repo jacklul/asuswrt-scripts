@@ -387,7 +387,7 @@ firewall_rules() {
 
                 iptables_chains remove
 
-                if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$DNS_SERVER" >/dev/null 2>&1; then
+                if [ "$VERIFY_DNS" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$DNS_SERVER" > /dev/null 2>&1; then
                     iptables_chains add
                     iptables_rules add "$DNS_SERVER" "$DNS_SERVER6"
 
@@ -405,7 +405,7 @@ firewall_rules() {
 
                     iptables_chains remove
 
-                    if [ "$VERIFY_DNS_FALLBACK" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" >/dev/null 2>&1; then
+                    if [ "$VERIFY_DNS_FALLBACK" = false ] || nslookup "$VERIFY_DNS_DOMAIN" "$FALLBACK_DNS_SERVER" > /dev/null 2>&1; then
                         iptables_chains add
                         iptables_rules add "$FALLBACK_DNS_SERVER" "$FALLBACK_DNS_SERVER6"
 

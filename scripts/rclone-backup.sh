@@ -115,7 +115,7 @@ case "$1" in
     ;;
     "start")
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Error: Unable to start - Rclone configuration file ($CONFIG_FILE) not found"; exit 1; }
-        [ -z "$(which rclone 2>/dev/null)" ] && { echo "Warning: Command 'rclone' not found"; }
+        [ -z "$(which rclone 2> /dev/null)" ] && { echo "Warning: Command 'rclone' not found"; }
 
         [ -n "$CRON" ] && cru a "$script_name" "$CRON $script_path run"
     ;;

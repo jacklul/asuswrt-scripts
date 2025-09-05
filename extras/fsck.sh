@@ -10,7 +10,7 @@
 #
 
 tag="$(basename "$0")"
-stop_fsck="$(nvram get stop_fsck 2>/dev/null)"
+stop_fsck="$(nvram get stop_fsck 2> /dev/null)"
 
 check_filesystem() {
     _device="$1"

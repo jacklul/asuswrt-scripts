@@ -6,7 +6,7 @@
 # List all processes and their CPU affinities
 #
 
-which taskset >/dev/null || { echo "Command 'taskset' not found!" >&2; exit 1; }
+which taskset > /dev/null || { echo "Command 'taskset' not found!" >&2; exit 1; }
 [ -x /opt/bin/ps ] || { echo "Install 'procps-ng-ps' package!" >&2; exit 1; }
 
 pids=$(ps -e -o pid --no-headers)
@@ -16,10 +16,10 @@ printf "%-40s %-10s %-15s %-25s\n" "------------" "----" "---------" "---------"
 
 for pid in $pids; do
     process_name=$(ps -p "$pid" -o comm=)
-    cpu_affinity=$(taskset -p "$pid" 2>/dev/null | awk -F ': ' '{print $2}')
+    cpu_affinity=$(taskset -p "$pid" 2> /dev/null | awk -F ': ' '{print $2}')
 
     if [ -n "$cpu_affinity" ]; then
-        cpu_cores=$(taskset -cp "$pid" 2>/dev/null | awk -F ': ' '{print $2}')
+        cpu_cores=$(taskset -cp "$pid" 2> /dev/null | awk -F ': ' '{print $2}')
 
         printf "%-40s %-10s %-15s %-25s\n" "$process_name" "$pid" "$cpu_affinity" "$cpu_cores"
     fi

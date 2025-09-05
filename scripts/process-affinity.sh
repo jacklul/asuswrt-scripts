@@ -55,7 +55,7 @@ set_affinity() {
         fi
 
         if [ "$_pid_affinity" -ne "$2" ]; then
-            if taskset -p "$2" "$_pid" >/dev/null; then
+            if taskset -p "$2" "$_pid" > /dev/null; then
                 logger -st "$script_name" "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
             else
                 logger -st "$script_name" "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
@@ -105,7 +105,7 @@ case $1 in
         process_affinity set
     ;;
     "start")
-        [ -z "$(which taskset 2>/dev/null)" ] && { logger -st "$script_name" "Error: Unable to start - command 'taskset' not found"; exit 1; }
+        [ -z "$(which taskset 2> /dev/null)" ] && { logger -st "$script_name" "Error: Unable to start - command 'taskset' not found"; exit 1; }
 
         if [ -x "$script_dir/cron-queue.sh" ]; then
             sh "$script_dir/cron-queue.sh" add "$script_name" "$script_path run"

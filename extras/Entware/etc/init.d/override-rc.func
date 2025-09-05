@@ -123,7 +123,7 @@ PATH="/opt/sbin:/opt/bin:$PATH"
 if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     # Apply priority
     if [ -n "$NICE" ]; then
-        if which renice >/dev/null 2>&1; then
+        if which renice > /dev/null 2>&1; then
             if renice -n "$NICE" -p $$ > /dev/null; then
                 [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
             else
@@ -136,7 +136,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
 
     # Apply IO class and priority
     if [ -n "$IOCLASS" ] || [ -n "$IOPRIORITY" ]; then
-        if which ionice >/dev/null 2>&1; then
+        if which ionice > /dev/null 2>&1; then
             if [ -n "$IOCLASS" ]; then
                 if ionice -c "$IOCLASS" -p $$ > /dev/null; then
                     [ -n "$VERBOSE" ] && echo "Set IO class to $IOCLASS"
@@ -159,7 +159,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
 
     # Apply CPU affinity
     if [ -n "$AFFINITY" ]; then
-        if which taskset >/dev/null 2>&1; then
+        if which taskset > /dev/null 2>&1; then
             # Handle negative AFFINITY setting
             if echo "$AFFINITY" | grep -q '^-[0-9]\+$' && [ "$AFFINITY" -lt 0 ]; then
                 _init_affinity="$(taskset -p 1 | sed 's/.*: //')"

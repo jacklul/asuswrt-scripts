@@ -37,7 +37,7 @@ if [ -z "$action" ] && { [ -z "$service" ] || [ "$service" = "list" ] ; }; then
 
     for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*' | sort); do
         base="$(basename "$file" | sed 's/^S[0-9]*//')"
-        status="$("$file" check 2>/dev/null)"
+        status="$("$file" check 2> /dev/null)"
 
         if echo "$status" | grep -q 'alive'; then
             status="${ansi_green}alive${ansi_reset}"
