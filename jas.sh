@@ -163,18 +163,21 @@ download_file() {
 download_and_check() {
     if [ -n "$1" ]; then
         if download_file "$download_url/$1?$(date +%s)" "$tmp_file"; then
-            if
-                cat "$tmp_file" | grep -Fq "#jas-update" && 
-                {
-                    [ -z "$2" ] || ! md5sum_compare "$tmp_file" "$2";
-                }
-            then
-                return 0
+            if cat "$tmp_file" | grep -Fq "#jas-update"; then
+                if [ -z "$2" ] || ! md5sum_compare "$tmp_file" "$2"; then
+                    return 0 # checksums do not match or no local file to compare
+                else
+                    return 2 # checksums match, no update needed
+                fi
+            else
+                echo "Downloaded file is not valid"
             fi
         fi
+    else
+        echo "No file specified to download"
     fi
 
-    return 1
+    return 1 # download failed
 }
 
 case "$1" in
@@ -263,6 +266,10 @@ case "$1" in
         action="$1"
         shift
 
+        if [ "$action" = "install" ] && [ "$BRANCH" != "master" ]; then
+            echo "Using branch: ${fwe}$BRANCH${frt}"
+        fi
+
         for arg in "$@"; do
             name=$(echo "$arg" | cut -d '.' -f 1)
             colored="${fwe}${name}${frt}"
@@ -328,42 +335,57 @@ case "$1" in
             exit 1
         fi
 
-        # Always self update first
-        if [ "$SELF_UPDATE" = true ]; then
-            printf "%sRunning self update...%s " "$fwe" "$frt"
-
-            if download_and_check "$(get_script_basename "$script_path")" "$script_path"; then
-                # hacky way to avoid issues while running script that has changed on disk
-                { sleep 1 && cat "$tmp_file" > "$script_path"; rm -f "$tmp_file"; } &
-
-                printf "%supdated, please re-run!%s\n" "$fcn" "$frt"
-                exit 0
-            fi
-
-            printf "\n"
+        if [ "$BRANCH" != "master" ]; then
+            echo "Using branch: ${fwe}$BRANCH${frt}"
         fi
 
-        for entry in "$SCRIPTS_DIR"/*.sh; do
+        for entry in "$SCRIPTS_DIR/common.sh" "$SCRIPTS_DIR"/*.sh; do
             entry="$(readlink -f "$entry")"
             [ "$entry" = "$script_path" ] && continue # ignore self
             ! grep -Fq "#jas-update" "$entry" && continue # ignore scripts without jas-update tag
 
-            basename="$(basename "$entry")" # real file name
+            basename="$(basename "$entry")" # local file name
             remote_basename="$(get_script_basename "$entry")" # remote file name
 
-            if [ "$remote_basename" != "$basename" ]; then
-                printf "Processing '%s' (%s)... " "${fwe}$basename${frt}" "${fwe}$remote_basename${frt}"
-            else
-                printf "Processing '%s'... " "${fwe}$basename${frt}"
+            if [ "$basename" = "common.sh" ]; then
+                [ -n "$common_updated" ] && continue
+                common_updated=true
             fi
 
-            if download_and_check "scripts/$remote_basename" "$entry"; then
+            printf "%s " "${fwe}$basename${frt}"
+
+            download_and_check "scripts/$remote_basename" "$entry"
+            status=$?
+
+            if [ "$status" -eq 0 ]; then
                 cat "$tmp_file" > "$entry"
                 rm -f "$tmp_file"
-                printf "%supdated!%s" "$fcn" "$frt"
-            fi
+                printf "%s! updated%s" "$fcn" "$frt"
+            elif [ "$status" -eq 2 ]; then
+                printf "%s✓%s" "$fgn" "$frt"
+            fi # else download failed, do nothing as error will be printed
 
             printf "\n";
+
+            # Perform self update right after common.sh
+            if [ "$SELF_UPDATE" = true ] && [ "$basename" = "common.sh" ]; then
+                printf "%s " "${fwe}$(basename "$0")${frt}"
+
+                download_and_check "$(get_script_basename "$script_path")" "$script_path"
+                status=$?
+
+                if [ "$status" -eq 0 ]; then
+                    # hacky way to avoid issues while running script that has changed on disk
+                    { sleep 1 && cat "$tmp_file" > "$script_path"; rm -f "$tmp_file"; } &
+
+                    printf "%s! updated - please re-run!%s\n" "$fcn" "$frt"
+                    exit 0
+                elif [ "$status" -eq 2 ]; then
+                    printf "%s✓%s" "$fgn" "$frt"
+                fi
+
+                printf "\n"
+            fi
         done
 
     ;;
