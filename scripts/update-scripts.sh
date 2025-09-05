@@ -12,7 +12,7 @@ readonly script_name="$(basename "$script_path" .sh)"
 readonly script_dir="$(dirname "$script_path")"
 readonly script_config="$script_dir/$script_name.conf"
 
-BRANCH="master" # which git branch to use
+#BRANCH="legacy" # which git branch to use
 BASE_URL="https://raw.githubusercontent.com/jacklul/asuswrt-scripts" # base download url, no ending slash!
 BASE_PATH="scripts" # base path to scripts directory in the download URL, no slash on either side
 AUTOUPDATE=true # whenever to auto-update this script first or not
@@ -24,7 +24,7 @@ if [ -f "$script_config" ]; then
     . "$script_config"
 fi
 
-download_url="$BASE_URL/$BRANCH/$BASE_PATH"
+download_url="$BASE_URL/legacy/$BASE_PATH"
 curl_binary="curl"
 [ -f /opt/bin/curl ] && curl_binary="/opt/bin/curl" # prefer Entware's curl as it is not modified by Asus
 

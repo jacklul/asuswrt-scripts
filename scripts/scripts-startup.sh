@@ -158,7 +158,7 @@ EOT
                 if [ -z "$(nvram get script_usbmount)" ]; then
                     cat <<EOT
 Value has been cleaned by the router - you will have to use a workaround:
-https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount
+https://github.com/jacklul/asuswrt-scripts/tree/legacy/asusware-usbmount
 EOT
                 else
                     nvram commit

@@ -2,6 +2,9 @@
 
 This is a collection of custom scripts for AsusWRT firmware that can be used to enhance your router's functionality.
 
+> [!WARNING]
+> This is **legacy** version of the scripts, no updates will be done to this branch.
+
 Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on older routers or firmware.
 
 Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
@@ -30,7 +33,7 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as
 ### Run these commands to install the startup script:
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/scripts-startup.sh" -o /jffs/scripts/scripts-startup.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/scripts-startup.sh" -o /jffs/scripts/scripts-startup.sh
 chmod +x /jffs/scripts/scripts-startup.sh
 sh /jffs/scripts/scripts-startup.sh install
 # symlink will be created /jffs/scripts-startup.sh -> /jffs/scripts/scripts-startup.sh
@@ -106,7 +109,7 @@ This script will reboot your router at specified time if it's been running for a
 By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/conditional-reboot.sh" -o /jffs/scripts/conditional-reboot.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -119,7 +122,7 @@ This script will run all "every minute" tasks sequentially which will reduce the
 All scripts from this repository integrate with this script and will use it instead of `cru` when it's available.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/cron-queue.sh" -o /jffs/scripts/cron-queue.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/cron-queue.sh" -o /jffs/scripts/cron-queue.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -185,7 +188,7 @@ This script implements [Custom config files from Asuswrt-Merlin firmware](https:
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/custom-configs.sh" -o /jffs/scripts/custom-configs.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -198,7 +201,7 @@ This script prevent `conn_diag` from (re)starting `amas_portstatus` which likes 
 > Do not install this script if you don't have mentioned CPU usage issue.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-diag.sh" -o /jffs/scripts/disable-diag.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/disable-diag.sh" -o /jffs/scripts/disable-diag.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -213,7 +216,7 @@ When `service-event.sh` is used it also <ins>runs every time wireless is restart
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/disable-wps.sh" -o /jffs/scripts/disable-wps.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/disable-wps.sh" -o /jffs/scripts/disable-wps.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -234,7 +237,7 @@ You can alternatively configure it to use website API like "[ipecho.net/plain](h
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/dynamic-dns.sh" -o /jffs/scripts/dynamic-dns.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/dynamic-dns.sh" -o /jffs/scripts/dynamic-dns.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -256,7 +259,7 @@ To install Entware run `/jffs/scripts/entware.sh install /tmp/mnt/sda1`, replace
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/entware.sh" -o /jffs/scripts/entware.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/entware.sh" -o /jffs/scripts/entware.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -270,7 +273,7 @@ This is mainly for running services on ports normally taken by the firmware (lik
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/extra-ip.sh" -o /jffs/scripts/extra-ip.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/extra-ip.sh" -o /jffs/scripts/extra-ip.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -287,7 +290,7 @@ This script can be very useful when running [Pi-hole](https://pi-hole.net) in yo
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/force-dns.sh" -o /jffs/scripts/force-dns.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/force-dns.sh" -o /jffs/scripts/force-dns.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -304,7 +307,7 @@ By default, it runs at <ins>03:00 every Sunday</ins>.
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/fstrim.sh" -o /jffs/scripts/fstrim.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/fstrim.sh" -o /jffs/scripts/fstrim.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -316,7 +319,7 @@ This script rotates **Guest WiFi** passwords.
 By default, it rotates passwords for the first network pair at <ins>04:00 everyday</ins>.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/guest-password.sh" -o /jffs/scripts/guest-password.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -328,7 +331,7 @@ This script handles hotplug events.
 By default, integrates with all scripts present in this repository (where applicable).
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/hotplug-event.sh" -o /jffs/scripts/hotplug-event.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/hotplug-event.sh" -o /jffs/scripts/hotplug-event.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -343,7 +346,7 @@ This script implements [scheduled LED control from Asuswrt-Merlin firmware](http
 By default, LEDs shutdown at <ins>00:00 and turn on at 06:00</ins>.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/led-control.sh" -o /jffs/scripts/led-control.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/led-control.sh" -o /jffs/scripts/led-control.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -357,7 +360,7 @@ A good place to look for potential values are `init.c` and `state.js` files in t
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/modify-features.sh" -o /jffs/scripts/modify-features.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -376,7 +379,7 @@ This script modifies some web UI elements.
 > Tested only with English language!
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/modify-webui.sh" -o /jffs/scripts/modify-webui.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -409,7 +412,7 @@ Automatically download specified bootloader files from [netboot.xyz](https://net
 > You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the firmware.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/netboot-download.sh" -o /jffs/scripts/netboot-download.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -421,7 +424,7 @@ This script allows setting custom CPU affinity masks on processes.
 If no mask is specified, it takes the affinity mask of `init` process and decreases its value by one, thus preventing the process from running on the first CPU core.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-affinity.sh" -o /jffs/scripts/process-affinity.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/process-affinity.sh" -o /jffs/scripts/process-affinity.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -434,7 +437,7 @@ This script can kill processes by their names, unfortunately on the official fir
 > Use this script at your own risk.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/process-killer.sh" -o /jffs/scripts/process-killer.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/process-killer.sh" -o /jffs/scripts/process-killer.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -453,7 +456,7 @@ You have to download the binary and place it on the USB drive. If you installed 
 > If automatic installation of `rclone` fails then you might have to install Entware's `wget` (or `wget-ssl` when using HTTPS) to bypass the security limitations of the firmware one.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/rclone-backup.sh" -o /jffs/scripts/rclone-backup.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -467,7 +470,7 @@ By default, default networks for WireGuard, OpenVPN and IPSec are allowed.
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/samba-masquerade.sh" -o /jffs/scripts/samba-masquerade.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/samba-masquerade.sh" -o /jffs/scripts/samba-masquerade.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -480,7 +483,7 @@ It can also emulate `firewall-start`, `nat-start` and `service-event-end` event 
 By default, integrates with all scripts present in this repository (where applicable).
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/service-event.sh" -o /jffs/scripts/service-event.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -492,7 +495,7 @@ This script enables swap file on start, with configurable size and location.
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/swap.sh" -o /jffs/scripts/swap.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/swap.sh" -o /jffs/scripts/swap.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -504,7 +507,7 @@ This script will send log message when CPU or WLAN chip temperatures reach speci
 Be default, the treshold is set to <ins>80C</ins>.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/temperature-warning.sh" -o /jffs/scripts/temperature-warning.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/temperature-warning.sh" -o /jffs/scripts/temperature-warning.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -528,7 +531,7 @@ By default, it runs every <ins>6 hours starting from 00:00</ins>.
 > You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the firmware.
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/update-notify.sh" -o /jffs/scripts/update-notify.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -540,7 +543,7 @@ This script updates all scripts from this repository present in the same directo
 **This is on-demand script that must be ran manually.**
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/update-scripts.sh" -o /jffs/scripts/update-scripts.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -552,7 +555,7 @@ This script will mount any USB storage device in `/tmp/mnt` directory if for som
 _Recommended to use [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-mount.sh" -o /jffs/scripts/usb-mount.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/usb-mount.sh" -o /jffs/scripts/usb-mount.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -566,7 +569,7 @@ This is a great way of running Pi-hole in your network on a [Raspberry Pi Zero c
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) and [`hotplug-event.sh`](#user-content-hotplug-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/usb-network.sh" -o /jffs/scripts/usb-network.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -583,7 +586,7 @@ There might be a small window after router boots and before this script runs whe
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/vpn-killswitch.sh" -o /jffs/scripts/vpn-killswitch.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/vpn-killswitch.sh" -o /jffs/scripts/vpn-killswitch.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
@@ -595,7 +598,7 @@ This script will prevent clients connected to WireGuard server from accessing th
 _Recommended to use [`service-event.sh`](#user-content-service-eventsh) as well._
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/scripts/wgs-lanonly.sh" -o /jffs/scripts/wgs-lanonly.sh
+curl -fsSL "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/legacy/scripts/wgs-lanonly.sh" -o /jffs/scripts/wgs-lanonly.sh
 ```
 
 <a href="#available-scripts"><i> ^ back to the list ^ </i></a><br>
