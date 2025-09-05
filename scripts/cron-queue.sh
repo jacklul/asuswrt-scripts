@@ -17,8 +17,6 @@ load_script_config
 
 case "$1" in
     "run")
-        ! crontab_entry check && { echo "Missing crontab entry in system's cron"; exit 1; }
-
         lockfile lockfail run
 
         #( sh "$QUEUE_FILE" < /dev/null )

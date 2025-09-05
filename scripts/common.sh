@@ -201,13 +201,11 @@ crontab_entry() {
         _no_cron_queue="$4"
     fi
 
-    [ -z "$_name" ] && _name="${script_name}"
+    [ -z "$_name" ] && _name="$script_name"
     _name="jas-$_name"
 
-    if [ -z "$_no_cron_queue" ]; then # for cron-queue script - avoid adding entry to itself
-        _cron_queue="$(resolve_script_basename "cron-queue.sh")"
-        [ ! -x "$_cron_queue" ] && _cron_queue=""
-    fi
+    _cron_queue="$(resolve_script_basename "cron-queue.sh")"
+    [ ! -x "$_cron_queue" ] && _cron_queue=""
 
     case "$_action" in
         "add")
