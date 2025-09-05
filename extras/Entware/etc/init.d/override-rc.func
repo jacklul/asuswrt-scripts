@@ -221,7 +221,7 @@ if [ -z "$CALLER" ]; then
     _comm="$(cat /proc/$PPID/comm | tr '\0' ' ')"
 
     if [ -n "$_comm" ] ; then
-        _cmdline="$(cat /proc/$PPID/cmdline | tr '\0' ' ' | sed -e 's/[[:space:]]*$//g')"
+        _cmdline="$(cat /proc/$PPID/cmdline | tr '\0' ' ' | sed 's/[[:space:]]*$//g')"
 
         if [ -n "$_cmdline" ] && [ "$_cmdline" != "$_comm" ]; then
             CALLER="$_comm ($PPID) [$_cmdline]"
