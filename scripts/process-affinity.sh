@@ -14,7 +14,7 @@ PROCESS_AFFINITIES="" # List of processes and affinity masks in format "process1
 
 load_script_config
 
-init_affinity="$(taskset -p 1 2>/dev/null | sed 's/.*: //')"
+init_affinity="$(taskset -p 1 2> /dev/null | sed 's/.*: //')"
 [ -n "$init_affinity" ] && init_affinity=$((0x$init_affinity))
 if ! echo "$init_affinity" | grep -q '^[0-9]\+$'; then
     unset init_affinity
@@ -76,8 +76,8 @@ process_affinity() {
         case $1 in
             "set")
                 if echo "$_process" | grep -Fq ":"; then
-                    _affinity="$(echo "$_process" | cut -d ':' -f 2 2>/dev/null)"
-                    _process="$(echo "$_process" | cut -d ':' -f 1 2>/dev/null)"
+                    _affinity="$(echo "$_process" | cut -d ':' -f 2 2> /dev/null)"
+                    _process="$(echo "$_process" | cut -d ':' -f 1 2> /dev/null)"
 
                     echo "$_process" | grep -Fq ":" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
                 fi

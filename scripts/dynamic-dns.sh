@@ -63,7 +63,7 @@ case "$1" in
     ;;
     "start")
         [ ! -f "$CONFIG_FILE" ] && { logger -st "$script_name" "Unable to start - Inadyn config file ('$CONFIG_FILE') not found"; exit 1; }
-        inadyn -f "$CONFIG_FILE" --check-config >/dev/null || { logger -st "$script_name" "Unable to start - Inadyn config is not valid"; exit 1; }
+        inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logger -st "$script_name" "Unable to start - Inadyn config is not valid"; exit 1; }
         crontab_entry add "*/1 * * * * $script_path run"
         check_and_run
     ;;

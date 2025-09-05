@@ -31,7 +31,7 @@ firewall_rules() {
     for _iptables in $for_iptables; do
         case "$1" in
             "add")
-                if ! $_iptables -nL "$CHAIN" >/dev/null 2>&1; then
+                if ! $_iptables -nL "$CHAIN" > /dev/null 2>&1; then
                     _rules_modified=1
 
                     _forward_start="$($_iptables -nL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
@@ -45,7 +45,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                if $_iptables -nL "$CHAIN" >/dev/null 2>&1; then
+                if $_iptables -nL "$CHAIN" > /dev/null 2>&1; then
                     _rules_modified=-1
 
                     $_iptables -D FORWARD -i "$INTERFACE" -j "$CHAIN"

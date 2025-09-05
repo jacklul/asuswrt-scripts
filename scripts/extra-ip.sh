@@ -25,12 +25,12 @@ extra_ip() {
         _address=
 
         if echo "$_extra_ip" | grep -Fq "="; then
-            _address="$(echo "$_extra_ip" | cut -d '=' -f 2 2>/dev/null)"
-            _interface="$(echo "$_extra_ip" | cut -d '=' -f 1 2>/dev/null)"
+            _address="$(echo "$_extra_ip" | cut -d '=' -f 2 2> /dev/null)"
+            _interface="$(echo "$_extra_ip" | cut -d '=' -f 1 2> /dev/null)"
 
             if echo "$_interface" | grep -Fq ":"; then
                 _label="$_interface"
-                _interface="$(echo "$_label" | cut -d ':' -f 1 2>/dev/null)"
+                _interface="$(echo "$_label" | cut -d ':' -f 1 2> /dev/null)"
             fi
 
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?
@@ -72,12 +72,12 @@ extra_ip() {
         _address=
 
         if echo "$_extra_ip6" | grep -Fq "="; then
-            _address="$(echo "$_extra_ip6" | cut -d '=' -f 2 2>/dev/null)"
-            _interface="$(echo "$_extra_ip6" | cut -d '=' -f 1 2>/dev/null)"
+            _address="$(echo "$_extra_ip6" | cut -d '=' -f 2 2> /dev/null)"
+            _interface="$(echo "$_extra_ip6" | cut -d '=' -f 1 2> /dev/null)"
 
             if echo "$_interface" | grep -Fq ":"; then
                 _label="$_interface"
-                _interface="$(echo "$_label" | cut -d ':' -f 1 2>/dev/null)"
+                _interface="$(echo "$_label" | cut -d ':' -f 1 2> /dev/null)"
             fi
 
             echo "$_address" | grep -Fq "=" && { echo "Failed to parse list element: $_address"; exit 1; } # no 'cut' command?

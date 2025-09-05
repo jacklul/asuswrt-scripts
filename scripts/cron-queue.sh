@@ -61,10 +61,10 @@ case "$1" in
         exit 1
     ;;
     "start")
-        cru a "$script_name" "*/1 * * * * $script_path run" true # 4th argument instructs the function to not use cron-queue script (self)
+        cru a "jas-$script_name" "*/1 * * * * $script_path run"
     ;;
     "stop")
-        cru d "$script_name"
+        cru d "jas-$script_name"
     ;;
     "restart")
         sh "$script_path" stop

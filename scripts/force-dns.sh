@@ -83,7 +83,7 @@ iptables_chains() {
     for _iptables in $for_iptables; do
         case "$1" in
             "add")
-                if ! $_iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
+                if ! $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
                     _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
                     _forward_start_plus="$((_forward_start+1))"
 
@@ -95,7 +95,7 @@ iptables_chains() {
                     done
                 fi
 
-                if ! $_iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1; then
+                if ! $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
                     _prerouting_start="$($_iptables -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER" | tail -1 | awk '{print $1}')"
                     _prerouting_start_plus="$((_prerouting_start+1))"
 
@@ -108,7 +108,7 @@ iptables_chains() {
                     done
                 fi
 
-                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_iptables -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
+                if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
                     if [ "$_iptables" = "ip6tables" ]; then
                         _router_ip="$router_ip6"
                     else
@@ -128,7 +128,7 @@ iptables_chains() {
                 fi
             ;;
             "remove")
-                if $_iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
+                if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
                     for _target_interface in $TARGET_INTERFACES; do
                         $_iptables -D FORWARD -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
                     done
@@ -137,7 +137,7 @@ iptables_chains() {
                     $_iptables -X "$CHAIN_DOT"
                 fi
 
-                if $_iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1; then
+                if $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
                     for _target_interface in $TARGET_INTERFACES; do
                         $_iptables -t nat -D PREROUTING -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
                         $_iptables -t nat -D PREROUTING -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
@@ -147,7 +147,7 @@ iptables_chains() {
                     $_iptables -t nat -X "$CHAIN_DNAT"
                 fi
 
-                if $_iptables -nL "$CHAIN_BLOCK" >/dev/null 2>&1; then
+                if $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
                     if [ "$_iptables" = "ip6tables" ]; then
                         _router_ip="$router_ip6"
                     else
@@ -249,8 +249,8 @@ iptables_rules() {
 }
 
 rules_exist() {
-    if iptables -t nat -nL "$CHAIN_DNAT" >/dev/null 2>&1 && iptables -nL "$CHAIN_DOT" >/dev/null 2>&1; then
-        if iptables -t nat -C "$CHAIN_DNAT" ! -d "$1" -j DNAT --to-destination "$1" >/dev/null 2>&1; then
+    if iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1 && iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
+        if iptables -t nat -C "$CHAIN_DNAT" ! -d "$1" -j DNAT --to-destination "$1" > /dev/null 2>&1; then
             return 0
         fi
     fi

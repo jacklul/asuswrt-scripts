@@ -17,7 +17,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
 ALTERNATIVE=false # Perform alternative install (separated users from the system)
-USE_HTTPS=true # retrieve files using HTTPS, applies to OPKG repository and installation downloads
+USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 BASE_URL="http://bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no ending slash!)
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only)
 CACHE_FILE="$TMP_DIR/$script_name" # where to store last device Entware was mounted on
@@ -67,7 +67,7 @@ retry_command() {
 unmount_opt() {
     _timer=60
     while [ "$_timer" -gt 0 ] ; do
-        umount /opt 2>/dev/null && return 0
+        umount /opt 2> /dev/null && return 0
         _timer=$((_timer-1))
         sleep 1
     done
@@ -379,7 +379,7 @@ run_in_background() {
     lockfile check && { echo "Already running! ($_lockpid)"; exit 1; }
 
     if [ -n "$IN_RAM" ] && is_started_by_system && [ "$PPID" -ne 1 ]; then
-        nohup "$script_path" run >/dev/null 2>&1 &
+        nohup "$script_path" run > /dev/null 2>&1 &
     else
         entware_init
     fi
@@ -538,7 +538,7 @@ case "$1" in
         echo "Will install Entware to $target_path from $install_url"
         [ "$ALTERNATIVE" = true ] && echo "Using alternative install (separated users from the system)"
 
-        if [ -z "$IN_RAM" ] && [ "$(readlink -f /proc/$$/fd/0 2>/dev/null)" != "/dev/null" ]; then
+        if [ -z "$IN_RAM" ] && [ "$(readlink -f /proc/$$/fd/0 2> /dev/null)" != "/dev/null" ]; then
             echo "You can override target path and architecture by providing them as arguments."
 
             echo

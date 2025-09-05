@@ -290,7 +290,7 @@ get_curl_binary() {
         _curl_binary="/opt/bin/curl" # prefer Entware's curl
     elif [ -f /usr/bin/curl ]; then
         _curl_binary="/usr/bin/curl"
-    elif type curl >/dev/null 2>&1; then
+    elif type curl > /dev/null 2>&1; then
         _curl_binary="curl"
     else
         return 1
@@ -307,7 +307,7 @@ fetch() {
     _output="$2"
     _timeout="$3"
 
-    if [ -z "$curl_binary" ] && type get_curl_binary >/dev/null 2>&1; then
+    if [ -z "$curl_binary" ] && type get_curl_binary > /dev/null 2>&1; then
         curl_binary="$(get_curl_binary)"
     fi
 
@@ -318,10 +318,10 @@ fetch() {
             $curl_binary -fsSL "$_url" -o "$_output" $_timeout
             return $?
         else
-            $curl_binary -sfL --head "$_url" $_timeout >/dev/null
+            $curl_binary -sfL --head "$_url" $_timeout > /dev/null
             return $?
         fi
-    elif type wget >/dev/null 2>&1; then
+    elif type wget > /dev/null 2>&1; then
         [ -n "$_timeout" ] && _timeout="--timeout=$_timeout"
 
         if [ -n "$_output" ]; then

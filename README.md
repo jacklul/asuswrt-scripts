@@ -2,14 +2,14 @@
 
 This is a collection of custom scripts for ASUS routers running stock firmware that will enhance your router's functionality.
 
+> [!NOTE]
+> On **2025-09-05** this project went through an overhaul to make the installation and usage easier!  
+> New main script can migrate the old scripts but starting fresh is recommended!
+
 Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on older routers or firmware.  
 Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.  
 
 **A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com), [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki) or other sources. Scripts that are based on existing resource have the original linked in the header.**
-
-> [!NOTE]
-> On **2025-09-05** this project went through an overhaul to make the installation and usage easier!  
-> New main script can migrate the old scripts but starting fresh is recommended!
 
 ## Installation
 
@@ -95,12 +95,10 @@ Start everything up after you're done installing and configuring the scripts:
 </tr>
 </table>
 
-<br>
-
 > [!TIP]
 > You can override a script's configuration variables by creating `.conf` with the same name (for example: `conditional-reboot.conf`).  
 > Configuration variables are defined on top of each script - peek into the script to see what is available to change!  
-> You can also use `/jffs/scripts/jas.sh config <name>` command to open configuration file using available text editor program (`$EDITOR`).
+> You can also use `/jffs/scripts/jas.sh config <name>` command to open configuration file using available text editor (`$EDITOR`).
 
 > [!WARNING]
 > Some scripts have support for IPv6 added but it was not tested at all!
@@ -117,7 +115,7 @@ By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
 ## [`cron-queue`](/scripts/cron-queue.sh)
 
-When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).
+When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).  
 This script will run all "every minute" tasks sequentially which will reduce the CPU load in exchange for execution delays.
 
 All scripts from this repository integrate with this script and will use it instead of `cru` command when it's available.
@@ -191,7 +189,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 This script makes sure WPS stays disabled.
 
-By default, it runs at boot and at <ins>00:00 everyday</ins>.
+By default, it runs at boot and at <ins>00:00 everyday</ins>.  
 When `service-event.sh` is installed it also <ins>runs every time wireless is restarted</ins>.
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
@@ -202,7 +200,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 This script implements [custom DDNS feature from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/DDNS-services#using-one-of-the-services-supported-by-in-a-dyn-but-not-by-the-asuswrt-merlin-webui) that allows you to use custom [Inadyn](https://github.com/troglobit/inadyn) config file.
 
-Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`.
+Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`.  
 You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
 > [!TIP]
@@ -222,8 +220,8 @@ This script launches [Entware](https://github.com/Entware/Entware) or installs i
 To install Entware run `/jffs/scripts/jas/entware.sh install /tmp/mnt/sda1`, replace `/tmp/mnt/sda1` with path to your mounted storage.
 
 > [!TIP]
-> When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.
-> Create `.symlinkthisdir` file in directory's root to symlink it directly or `.copythisdir` to copy it instead.
+> When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.  
+> Create `.symlinkthisdir` file in directory's root to symlink it directly or `.copythisdir` to copy it instead.  
 > If you want a single file to be copied then create a file with the same name and `.copythisfile` extension, e.g. `file.txt.copythisfile`.
 
 > [!IMPORTANT]
@@ -310,6 +308,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 This script modifies some web UI elements.
 
 **Currently applied modifications:**
+
 - display CPU temperature on the system status screen (with realtime updates)
 - show connect QR code on guest network edit screen and hide the passwords on the main screen
 - add `notrendmicro` rc_support option (to be used with [`modify-features`](#user-content-modify-features)) that hides all Trend Micro services, **Speed Test** will be moved to **Network Tools** menu
@@ -346,7 +345,8 @@ This script can backup all NVRAM variables and selected `/jffs` contents to clou
 
 By default, it runs at <ins>06:00 every Sunday</ins>.
 
-You have to download the binary and place it on the USB drive. If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation.
+You have to download the binary and place it on the USB drive.  
+If you installed it through the **Entware** then it will be automatically detected, alternatively it will install it when it detects **Entware** installation.
 
 [Example configuration files](/extras/rclone-backup/) that can be used with this script.
 

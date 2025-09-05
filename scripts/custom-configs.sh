@@ -38,8 +38,8 @@ restart_process() {
         _cmdline="$(tr "\0" " " < "/proc/$_pid/cmdline")"
 
         killall "$1"
-        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGTERM "$_pid" 2>/dev/null
-        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGKILL "$_pid" 2>/dev/null
+        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGTERM "$_pid" 2> /dev/null
+        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGKILL "$_pid" 2> /dev/null
 
         if [ -z "$_started" ]; then
             # make sure we are executing build-in binary
@@ -219,11 +219,11 @@ modify_service_config_file() {
                         restart_process smbd
                     ;;
                     "ipsec")
-                        ipsec restart >/dev/null 2>&1
+                        ipsec restart > /dev/null 2>&1
                     ;;
                     "mcpd")
-                        killall -SIGKILL /bin/mcpd 2>/dev/null
-                        nohup /bin/mcpd >/dev/null 2>&1 &
+                        killall -SIGKILL /bin/mcpd 2> /dev/null
+                        nohup /bin/mcpd > /dev/null 2>&1 &
                     ;;
                     *)
                         restart_process "$2"
@@ -274,10 +274,10 @@ restore_service_config_file() {
     if /bin/ps w | grep -v "grep" | grep -q "$_match" && [ -f "$1.new" ]; then
         case "$_service" in
             "ipsec")
-                service "ipsec_restart" >/dev/null
+                service "ipsec_restart" > /dev/null
             ;;
             *)
-                service "restart_${_service}" >/dev/null
+                service "restart_${_service}" > /dev/null
             ;;
         esac
 

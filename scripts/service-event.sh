@@ -46,7 +46,7 @@ custom_checks() {
         change_interface=true
     fi
 
-    if ! iptables -nL "$_chain" >/dev/null 2>&1; then
+    if ! iptables -nL "$_chain" > /dev/null 2>&1; then
         iptables -N "$_chain"
         change_firewall=true
     fi
@@ -88,7 +88,7 @@ service_monitor() {
         last_line="$((last_line+1))"
     fi
 
-    custom_checks
+    custom_checks || true
 
     while true; do
         total_lines="$(wc -l < "$SYSLOG_FILE")"
@@ -209,7 +209,7 @@ run_in_background() {
     lockfile check && { echo "Already running! ($_lockpid)"; exit 1; }
 
     if is_started_by_system && [ "$PPID" -ne 1 ]; then
-        nohup "$script_path" run >/dev/null 2>&1 &
+        nohup "$script_path" run > /dev/null 2>&1 &
     else
         service_monitor
     fi
@@ -231,7 +231,7 @@ case "$1" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
                     timer=15; while { # wait till our chains disappear
-                        iptables -nL "$CHAINS_CHECK" >/dev/null 2>&1
+                        iptables -nL "$CHAINS_CHECK" > /dev/null 2>&1
                     } && [ "$timer" -ge 0 ]; do
                         timer=$((timer-1))
                         sleep 1

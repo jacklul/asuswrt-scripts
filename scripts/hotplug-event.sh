@@ -42,7 +42,7 @@ SUBSYSTEM == misc, DEVICENAME ~~ ^(tun|tap)$, ACTION ~~ ^(add|remove)$ {
 }
 EOT
 
-                killall hotplug2 2>/dev/null
+                killall hotplug2 2> /dev/null
 
                 logger -st "$script_name" "Modified hotplug configuration"
             fi
@@ -52,7 +52,7 @@ EOT
                 rm /etc/hotplug2.rules
                 cp /etc/hotplug2.rules.bak /etc/hotplug2.rules
 
-                killall hotplug2 2>/dev/null
+                killall hotplug2 2> /dev/null
 
                 logger -st "$script_name" "Restored original hotplug configuration"
             fi

@@ -31,7 +31,7 @@ process_killer() {
                 [ -n "$tmp" ] && filepath=$tmp
             fi
 
-            [ -f "$filepath" ] && mount | grep -F "$filepath" >/dev/null && continue
+            [ -f "$filepath" ] && mount | grep -F "$filepath" > /dev/null && continue
 
             filename="$(basename "$filepath")"
             fileext="${filename##*.}"

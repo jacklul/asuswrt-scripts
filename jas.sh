@@ -37,11 +37,6 @@ download_url="$BASE_URL/$BRANCH"
 tmp_file="$TMP_DIR/$script_name.tmp"
 check_file="$TMP_DIR/jas-started"
 
-log_and_echo() {
-    logger -t "$script_name" "$(echo "$1" | sed -r 's/\x1B\[[0-9;]*[mK]//g')"
-    echo "$1"
-}
-
 call_action() {
     _entry="$1"
     _action="$2"
@@ -56,13 +51,16 @@ call_action() {
                 fi
             fi
 
-            log_and_echo "Starting '${fwe}$_entry${frt}'..."
+            logger -t "$script_name" "Starting '$_entry'..."
+            echo "Starting '${fwe}$_entry${frt}'..."
         ;;
         "stop")
-            log_and_echo "Stopping '${fwe}$_entry${frt}'..."
+            logger -t "$script_name" "Stopping '$_entry'..."
+            echo "Stopping '${fwe}$_entry${frt}'..."
         ;;
         "restart")
-            log_and_echo "Restarting '${fwe}$_entry${frt}'..."
+            logger -t "$script_name" "Restarting '$_entry'..."
+            echo "Restarting '${fwe}$_entry${frt}'..."
         ;;
         *)
             echo "Unknown action: $_action"
@@ -135,7 +133,7 @@ md5sum_compare() {
     { [ ! -f "$1" ] || [ ! -f "$2" ] ; } && return 1
 
     if [ -n "$1" ] && [ -n "$2" ]; then
-        if [ "$(md5sum "$1" 2>/dev/null | awk '{print $1}')" = "$(md5sum "$2" 2>/dev/null | awk '{print $1}')" ]; then
+        if [ "$(md5sum "$1" 2> /dev/null | awk '{print $1}')" = "$(md5sum "$2" 2> /dev/null | awk '{print $1}')" ]; then
             return 0
         fi
     fi
@@ -144,16 +142,16 @@ md5sum_compare() {
 }
 
 download_file() {
-    if type fetch >/dev/null 2>&1; then
+    if type fetch > /dev/null 2>&1; then
         fetch "$1" "$2"
         return $?
     fi
 
     # fallback when common.sh does not yet exist
-    if type curl >/dev/null 2>&1; then
+    if type curl > /dev/null 2>&1; then
         curl -fsSL "$1" -o "$2"
         return $?
-    elif type wget >/dev/null 2>&1; then
+    elif type wget > /dev/null 2>&1; then
         wget -q "$1" -O "$2"
         return $?
     else
@@ -197,16 +195,22 @@ case "$1" in
             [ ! -t 0 ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
-        log_and_echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
+        logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
+        echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
+
         scripts_action start
     ;;
     "stop")
-        log_and_echo "Stopping scripts (${fwe}$SCRIPTS_DIR${frt})..."
+        logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
+        echo "Stopping scripts (${fwe}$SCRIPTS_DIR${frt})..."
+
         scripts_action stop
         [ -f "$check_file" ] && rm -f "$check_file"
     ;;
     "restart")
-        log_and_echo "Restarting scripts (${fwe}$SCRIPTS_DIR${frt})..."
+        logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
+        echo "Restarting scripts (${fwe}$SCRIPTS_DIR${frt})..."
+
         scripts_action restart
     ;;
     "exec")
@@ -335,6 +339,8 @@ case "$1" in
                 printf "%supdated, please re-run!%s\n" "$fcn" "$frt"
                 exit 0
             fi
+
+            printf "\n"
         fi
 
         for entry in "$SCRIPTS_DIR"/*.sh; do
@@ -371,11 +377,11 @@ case "$1" in
 
         if [ -f "$SCRIPTS_DIR/${name}.sh" ]; then
             if [ -z "$EDITOR" ]; then # Try to use one of the popular editors if $EDITOR is not set
-                if type nano >/dev/null 2>&1; then
+                if type nano > /dev/null 2>&1; then
                     export EDITOR="nano"
-                elif type vim >/dev/null 2>&1; then
+                elif type vim > /dev/null 2>&1; then
                     export EDITOR="vim"
-                elif type vi >/dev/null 2>&1; then
+                elif type vi > /dev/null 2>&1; then
                     export EDITOR="vi"
                 fi
             fi
@@ -387,7 +393,7 @@ case "$1" in
                     rm -f "$tmp_file"
 
                     if grep -q "^load_script_config" "$SCRIPTS_DIR/${name}.sh"; then
-                        sed '/load_script_config/q' "$SCRIPTS_DIR/${name}.sh" | grep -E '^[A-Z0-9_]+=.*#.*$' | sed 's/ # /     # /g' -e 's/^/#/g' > "$tmp_file"
+                        sed '/load_script_config/q' "$SCRIPTS_DIR/${name}.sh" | grep -E '^[A-Z0-9_]+=.*#.*$' | sed -e 's/ # /     # /g' -e 's/^/#/g' > "$tmp_file"
                     fi
 
                     if [ ! -f "$tmp_file" ] || [ ! -s "$tmp_file" ]; then
@@ -398,7 +404,7 @@ case "$1" in
                     $EDITOR "$tmp_file"
 
                     # Save the file if it contains valid content
-                    if grep -v '^[[:space:]]*#' "$tmp_file" | grep -v '^[[:space:]]*$' >/dev/null; then
+                    if grep -v '^[[:space:]]*#' "$tmp_file" | grep -v '^[[:space:]]*$' > /dev/null; then
                         echo "Saving configuration file: ${fwe}$SCRIPTS_DIR/${name}.conf${frt}"
                         mv -f "$tmp_file" "$SCRIPTS_DIR/${name}.conf"
                     else # otherwise discard it

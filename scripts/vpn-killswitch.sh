@@ -61,7 +61,7 @@ firewall_rules() {
     for _iptables in $for_iptables; do
         case "$1" in
             "add")
-                if ! $_iptables -nL "$CHAIN" >/dev/null 2>&1; then
+                if ! $_iptables -nL "$CHAIN" > /dev/null 2>&1; then
                     _rules_modified=1
 
                     $_iptables -N "$CHAIN"
@@ -78,7 +78,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                if $_iptables -nL "$CHAIN" >/dev/null 2>&1; then
+                if $_iptables -nL "$CHAIN" > /dev/null 2>&1; then
                     _rules_modified=-1
 
                     _wan_interface="$(get_wan_interface)"
