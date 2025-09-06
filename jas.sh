@@ -590,14 +590,14 @@ Available actions:
  ${fwe}start       ${frt}- start all scripts
  ${fwe}stop        ${frt}- stop all scripts
  ${fwe}restart     ${frt}- restart all scripts
+ ${fwe}exec        ${frt}- execute a script, with args
  ${fwe}status      ${frt}- prints status of all scripts
+ ${fwe}config      ${frt}- edit configuration file of a script
  ${fwe}update      ${frt}- update all scripts
  ${fwe}install     ${frt}- install script(s)
  ${fwe}remove      ${frt}- remove script(s)
  ${fwe}enable      ${frt}- enable script(s)
  ${fwe}disable     ${frt}- disable script(s)
- ${fwe}exec        ${frt}- execute a script, with args
- ${fwe}config      ${frt}- edit configuration file of a script
  ${fwe}setup       ${frt}- initial setup
 
 EOT
