@@ -22,7 +22,7 @@ SELF_UPDATE=true # self update when running 'update' action? when false this scr
 
 #shellcheck disable=SC1090
 [ -f "$script_config" ] && . "$script_config"
-readonly SCRIPTS_DIR # changing this in config.conf might lead to unexpected behavior so block it
+readonly SCRIPTS_DIR # changing this in common.conf might lead to unexpected behavior so block it
 [ -z "$SCRIPTS_DIR" ] && { echo "SCRIPTS_DIR is not set!"; exit 1; }
 
 # Load common.sh script if available and adjust some variables
@@ -398,6 +398,7 @@ case "$1" in
 
         name=$(echo "$2" | cut -d '.' -f 1)
 
+        # No support to edit jas.conf is deliberate as the only thing it should contain is SCRIPTS_DIR
         if [ -f "$SCRIPTS_DIR/${name}.sh" ]; then
             if [ -z "$EDITOR" ]; then # Try to use one of the popular editors if $EDITOR is not set
                 if type nano > /dev/null 2>&1; then
@@ -452,8 +453,8 @@ case "$1" in
         #shellcheck disable=SC2174
         [ ! -d "$SCRIPTS_DIR" ] && mkdir -pvm 755 "$SCRIPTS_DIR"
 
-        if [ ! -f "$SCRIPTS_DIR/config.conf" ]; then
-            cat <<EOT > "$SCRIPTS_DIR/config.conf"
+        if [ ! -f "$SCRIPTS_DIR/common.conf" ]; then
+            cat <<EOT > "$SCRIPTS_DIR/common.conf"
 # You can override configuration variables from jas.sh and common.sh here
 
 # Uncomment to use 'develop' branch when installing or updating scripts

@@ -21,10 +21,10 @@ if [ -z "$script_path" ]; then # sourced from a script
     readonly script_name="$(basename "$script_path" .sh)"
     #shellcheck disable=SC2034
     readonly script_config="$script_dir/$script_name.conf"
-    readonly common_config="$script_dir/config.conf"
+    readonly common_config="$script_dir/common.conf"
     readonly SCRIPTS_DIR="$script_dir"
 elif [ -n "$SCRIPTS_DIR" ]; then # inherited from jas.sh
-    readonly common_config="$SCRIPTS_DIR/config.conf"
+    readonly common_config="$SCRIPTS_DIR/common.conf"
 else
     echo "Cannot locate scripts directory!"
     exit 1
@@ -38,11 +38,18 @@ NO_COLORS=false # set to true to disable ANSI colors
 EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH
 DEBUG_LOG=false # set to true to enable debug logging to file
 
+# Migrate old config.conf to new name if it exists
+if [ -f "$SCRIPTS_DIR/config.conf" ] && [ ! -f "$common_config" ]; then
+    mv "$SCRIPTS_DIR/config.conf" "$common_config"
+fi
+
 #shellcheck disable=SC1090
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
 readonly TMP_DIR NO_COLORS EXCLUDE_OPT_FROM_PATH DEBUG_LOG
+
+####################
 
 #shellcheck disable=SC2174
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
@@ -73,6 +80,8 @@ fi
 
 ####################
 
+# Do not define any variables before this definition without whitespace
+# before it, otherwise 'jas.sh config common' will pick it up
 load_script_config() {
     #shellcheck disable=SC1090
     [ -f "$script_config" ] && . "$script_config"
