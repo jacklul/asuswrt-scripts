@@ -36,6 +36,7 @@ download_url="$BASE_URL/$BRANCH"
 [ -z "$TMP_DIR" ] && TMP_DIR=/tmp
 tmp_file="$TMP_DIR/$script_name.tmp"
 check_file="$TMP_DIR/jas-started"
+[ ! -t 0 ] && not_interactive=true
 
 call_action() {
     _entry="$1"
@@ -51,15 +52,15 @@ call_action() {
                 fi
             fi
 
-            [ ! -t 0 ] && logger -t "$script_name" "Starting '$_entry'..."
+            [ -n "$not_interactive" ] && logger -t "$script_name" "Starting '$_entry'..."
             echo "Starting '${fwe}$_entry${frt}'..."
         ;;
         "stop")
-            [ ! -t 0 ] && logger -t "$script_name" "Stopping '$_entry'..."
+            [ -n "$not_interactive" ] && logger -t "$script_name" "Stopping '$_entry'..."
             echo "Stopping '${fwe}$_entry${frt}'..."
         ;;
         "restart")
-            [ ! -t 0 ] && logger -t "$script_name" "Restarting '$_entry'..."
+            [ -n "$not_interactive" ] && logger -t "$script_name" "Restarting '$_entry'..."
             echo "Restarting '${fwe}$_entry${frt}'..."
         ;;
         *)
@@ -195,23 +196,23 @@ case "$1" in
     "start")
         if [ ! -f "$check_file" ]; then
             date "+%Y-%m-%d %H:%M:%S" > "$check_file"
-            [ ! -t 0 ] && export JAS_BOOT=1 # Assume started by system when non-interactive
+            [ -n "$not_interactive" ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
-        [ ! -t 0 ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
+        [ -n "$not_interactive" ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
         echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action start
     ;;
     "stop")
-        [ ! -t 0 ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
+        [ -n "$not_interactive" ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
         echo "Stopping scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action stop
         [ -f "$check_file" ] && rm -f "$check_file"
     ;;
     "restart")
-        [ ! -t 0 ] && logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
+        [ -n "$not_interactive" ] && logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
         echo "Restarting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action restart
