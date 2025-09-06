@@ -36,15 +36,20 @@ fi
 TMP_DIR=/tmp/jas # used by the scripts to store temporary data
 NO_COLORS=false # set to true to disable ANSI colors
 EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH
+DEBUG_LOG=false # set to true to enable debug logging to file
 
 #shellcheck disable=SC1090
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS EXCLUDE_OPT_FROM_PATH
+readonly TMP_DIR NO_COLORS EXCLUDE_OPT_FROM_PATH DEBUG_LOG
 
 #shellcheck disable=SC2174
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
+
+if [ "$DEBUG_LOG" = true ]; then
+    exec >> "$TMP_DIR/$script_name-debug.log" 2>&1
+fi
 
 if [ "$EXCLUDE_OPT_FROM_PATH" = true ]; then
     export PATH="$(echo "$PATH" | sed 's|:/opt[^:]*||g; s|^/opt[^:]*:||; s|^/opt[^:]*$||')"
