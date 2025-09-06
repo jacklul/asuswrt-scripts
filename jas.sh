@@ -538,7 +538,7 @@ EOT
             if ! grep -Fq "$script_path" "$write_to_script"; then
                 echo "Adding this script to '${fwe}$write_to_script${frt}'..."
 
-                echo "$script_path start & # github.com/jacklul/asuswrt-scripts" >> "$write_to_script"
+                echo "( $script_path start ) & # github.com/jacklul/asuswrt-scripts" >> "$write_to_script"
             else
                 echo "Script line already exists in '${fwe}$write_to_script${frt}'"
             fi
