@@ -156,6 +156,9 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
+    # build up cache of resolved script paths
+    [ -z "$scripts_resolved" ] && { resolve_script_basename "_____"; scripts_resolved=true; }
+
     # $1 = type, $2 = event, $3 = target, $4 = extra
     case "$1" in
         "firewall")

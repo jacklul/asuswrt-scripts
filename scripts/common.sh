@@ -369,21 +369,24 @@ resolve_script_basename() {
         done
     fi
 
-    # In case user renamed the script, we need to rescan all scripts and read jas-update tags
-    for _entry in "$SCRIPTS_DIR"/*.sh; do
-        _entry="$(readlink -f "$_entry")"
-        ! grep -Fq "jas-update=" "$_entry" && continue # skip scripts without the tag
+    if [ -z "$script_basename_cache" ]; then # generate cache only once
+        # In case user renamed the script, we need to rescan all scripts and read jas-update tags
+        for _entry in "$SCRIPTS_DIR"/*.sh; do
+            _entry="$(readlink -f "$_entry")"
+            ! grep -Fq "jas-update=" "$_entry" && continue # skip scripts without the tag
 
-        _entry_name="$(get_script_basename "$_entry")"
+            _entry_name="$(get_script_basename "$_entry")"
 
-        script_basename_cache="$(echo "$script_basename_cache" | sed "s/ $_entry_name=[^ ]*//g")"
-        script_basename_cache="$script_basename_cache $_entry_name=$_entry"
+            script_basename_cache="$(echo "$script_basename_cache" | sed "s/ $_entry_name=[^ ]*//g")"
+            script_basename_cache="$script_basename_cache $_entry_name=$_entry"
 
-        if [ "$_entry_name" = "$_name" ]; then
-            echo "$_entry"
-            return
-        fi
-    done
+            if [ "$_entry_name" = "$_name" ]; then
+                _found_entry="$_entry"
+            fi
+        done
+
+        [ -n "$_found_entry" ] && { echo "$_found_entry"; return; }
+    fi
 
     return 1
 }
