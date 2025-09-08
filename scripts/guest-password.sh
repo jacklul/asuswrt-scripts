@@ -38,13 +38,15 @@ rotate_passwords() {
                 nvram set "${interface}_wpa_psk"="$new_password"
 
                 changed=1
+                [ "$(nvram get "${interface}_bss_enabled")" = "1" ] && restart=1
             fi
         else
             logger -st "$script_name" "Invalid guest network interface: $interface"
         fi
     done
 
-    [ -n "$changed" ] && nvram commit && service restart_wireless
+    [ -n "$changed" ] && nvram commit
+    [ -n "$restart" ] && service restart_wireless
 }
 
 case "$1" in
