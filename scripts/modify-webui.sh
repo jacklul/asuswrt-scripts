@@ -103,7 +103,8 @@ notrendmicro_support() {
                 mount --bind "$TMP_WWW_PATH/state.js" /www/state.js
             fi
 
-            if ! mount | grep -Fq /www/require/modules/menuTree.js; then
+            # Doesn't matter if this is Merlin firmware and menuTree.js was already modified, we can still reference it by orignal path since it will be mounted
+            if ! mount | grep -Fq /www/require/modules/menuTree.js || ! grep -Fq 'notrendmicro_support' /www/require/modules/menuTree.js; then
                 mkdir -p "$TMP_WWW_PATH/require/modules"
                 [ ! -f "$TMP_WWW_PATH/require/modules/menuTree.js" ] && cp -f /www/require/modules/menuTree.js "$TMP_WWW_PATH/require/modules/menuTree.js"
 
@@ -118,8 +119,9 @@ notrendmicro_support() {
 
                 sed_and_check prepend 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_PATH/require/modules/menuTree.js"
 
-                if [ -n "$merlin" ]; then
+                if [ -n "$merlin" ]; then # but copy our modification to /tmp/menuTree.js and remount it
                     cp -f "$TMP_WWW_PATH/require/modules/menuTree.js" /tmp/menuTree.js
+                    umount /www/require/modules/menuTree.js 2> /dev/null
                     mount --bind /tmp/menuTree.js /www/require/modules/menuTree.js
                 else
                     mount --bind "$TMP_WWW_PATH/require/modules/menuTree.js" /www/require/modules/menuTree.js
@@ -127,7 +129,10 @@ notrendmicro_support() {
             fi
         ;;
         "unset")
-            [ -n "$merlin" ] && { logger -st "$script_name" "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - reboot is required!"; return; }
+            if [ -n "$merlin" ] || [ -f /tmp/menuTree.js ]; then
+                logger -st "$script_name" "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - reboot is required!"
+                return
+            fi
 
             if mount | grep -Fq /www/state.js; then
                 umount /www/state.js
