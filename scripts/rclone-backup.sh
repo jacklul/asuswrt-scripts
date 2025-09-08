@@ -27,20 +27,6 @@ RCLONE_PATH="" # path to Rclone binary
 
 load_script_config
 
-# @TODO remove it after some time
-if
-    { [ -f /jffs/rclone.conf ] && [ "$CONFIG_FILE" = "/jffs/rclone.conf" ] ; } ||
-    { [ -f /jffs/rclone.list ] && [ "$FILTER_FILE" = "/jffs/rclone.list" ] ; } ||
-    { [ -f /jffs/rclone-pre.sh ] && [ "$SCRIPT_PRE" = "/jffs/rclone-pre.sh" ] ; } ||
-    { [ -f /jffs/rclone-post.sh ] && [ "$SCRIPT_POST" = "/jffs/rclone-post.sh" ] ; }
-then
-    CONFIG_FILE="/jffs/rclone.conf"
-    FILTER_FILE="/jffs/rclone.list"
-    SCRIPT_PRE="/jffs/rclone-pre.sh"
-    SCRIPT_POST="/jffs/rclone-post.sh"
-    logger -st "$script_name" "Warning: Default configuration location has changed to /jffs/rclone-backup"
-fi
-
 case "$1" in
     "run")
         # Detect when installed through Entware
