@@ -35,7 +35,8 @@ fi
 # Shared configuration variables
 TMP_DIR=/tmp/jas # used by the scripts to store temporary data
 NO_COLORS=false # set to true to disable ANSI colors
-EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH
+RENAME_SUPPORT=false # set to true to enable support for renaming scripts
+EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
 DEBUG_LOG=false # set to true to enable debug logging to file
 
 # Migrate old config.conf to new name if it exists
@@ -47,7 +48,7 @@ fi
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS EXCLUDE_OPT_FROM_PATH DEBUG_LOG
+readonly TMP_DIR NO_COLORS RENAME_SUPPORT EXCLUDE_OPT_FROM_PATH DEBUG_LOG
 
 ####################
 
@@ -370,6 +371,10 @@ resolve_script_basename() {
     if [ -f "$SCRIPTS_DIR/$_name" ]; then
         echo "$SCRIPTS_DIR/$_name"
         return
+    fi
+
+    if [ "$RENAME_SUPPORT" != true ]; then
+        return 1
     fi
 
     # Read from cache if available
