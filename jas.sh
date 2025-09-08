@@ -163,8 +163,19 @@ download_file() {
 
 download_and_check() {
     if [ -n "$1" ]; then
-        if download_file "$download_url/$1?$(date +%s)" "$tmp_file"; then
-            if cat "$tmp_file" | grep -Fq "#jas-update"; then
+        _dirname="$(dirname "$1")"
+        _basename="$(basename "$1")"
+
+        if download_file "$download_url/$_dirname/$_basename?$(date +%s)" "$tmp_file"; then
+            if grep -Fq "#jas-update" "$tmp_file"; then
+                _remote_basename="$(get_script_basename "$tmp_file")"
+
+                # If the remote file has a different name than the requested one then download the correct one instead
+                if [ "$_basename" != "$_remote_basename" ] && [ -z "$3" ]; then # third parameter to avoid loops
+                    download_and_check "$_dirname/$_remote_basename" "$2" true
+                    return $?
+                fi
+
                 if [ -z "$2" ] || ! md5sum_compare "$tmp_file" "$2"; then
                     return 0 # checksums do not match or no local file to compare
                 else
