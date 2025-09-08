@@ -62,7 +62,6 @@ Start everything up after you're done installing and configuring the scripts:
 <table>
 <tr>
 <td>
-<a href="#user-content-conditional-reboot">conditional-reboot</a><br>
 <a href="#user-content-cron-queue">cron-queue</a><br>
 <a href="#user-content-custom-configs">custom-configs</a><br>
 <a href="#user-content-disable-wps">disable-wps</a><br>
@@ -71,9 +70,9 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-extra-ip">extra-ip</a><br>
 <a href="#user-content-force-dns">force-dns</a><br>
 <a href="#user-content-fstrim">fstrim</a><br>
+<a href="#user-content-guest-password">guest-password</a><br>
 </td>
 <td>
-<a href="#user-content-guest-password">guest-password</a><br>
 <a href="#user-content-hotplug-event">hotplug-event</a><br>
 <a href="#user-content-led-control">led-control</a><br>
 <a href="#user-content-modify-features">modify-features</a><br>
@@ -81,15 +80,16 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-process-affinity">process-affinity</a><br>
 <a href="#user-content-process-killer">process-killer</a><br>
 <a href="#user-content-rclone-backup">rclone-backup</a><br>
+<a href="#user-content-service-event">service-event</a><br>
 </td>
 <td>
-<a href="#user-content-samba-masquerade">samba-masquerade</a><br>
-<a href="#user-content-service-event">service-event</a><br>
 <a href="#user-content-swap">swap</a><br>
 <a href="#user-content-temperature-warning">temperature-warning</a><br>
 <a href="#user-content-update-notify">update-notify</a><br>
+<a href="#user-content-uptime-reboot">uptime-reboot</a><br>
 <a href="#user-content-usb-network">usb-network</a><br>
 <a href="#user-content-vpn-killswitch">vpn-killswitch</a><br>
+<a href="#user-content-vpn-samba">vpn-samba</a><br>
 <a href="#user-content-wgs-lanonly">wgs-lanonly</a><br>
 </td>
 </tr>
