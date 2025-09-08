@@ -14,7 +14,7 @@ stop_fsck="$(nvram get stop_fsck 2> /dev/null)"
 
 check_filesystem() {
     _device="$1"
-    _mount="$(cat /proc/mounts | grep "^$_device " | head -n 1)"
+    _mount="$(grep "^$_device " /proc/mounts | head -n 1)"
 
     [ -z "$_mount" ] && return 1 # not mounted
 
