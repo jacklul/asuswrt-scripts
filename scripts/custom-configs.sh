@@ -13,11 +13,14 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
+KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if process does not stop after SIGTERM
+# No RUN_EVERY_MINUTE option here as this script HAS to run every minute to check if any of the configs reverted to default
+
+load_script_config
+
 readonly ETC_FILES="profile hosts" # /etc files we can modify
 readonly NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
 readonly NOPOSTCONF_FILES="/etc/profile" # files that cannot run postconf script
-
-# No RUN_EVERY_MINUTE option here as this script has to run every minute to check if any of the configs reverted to default
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
@@ -35,10 +38,16 @@ restart_process() {
     _started=
     for _pid in $(/bin/ps w | grep -F "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
         [ ! -f "/proc/$_pid/cmdline" ] && continue
-        _cmdline="$(tr "\0" " " < "/proc/$_pid/cmdline")"
+        _cmdline="$(tr '\0' ' ' < "/proc/$_pid/cmdline")"
 
-        killall "$1"
-        [ -f "/proc/$_pid/cmdline" ] && kill -s SIGTERM "$_pid" 2> /dev/null
+        kill -s SIGTERM "$_pid" 2> /dev/null
+
+        timeout="$KILL_TIMEOUT"
+        while [ -f "/proc/$_pid/cmdline" ] && [ "$timeout" -ge 0 ]; do
+            sleep 1
+            timeout=$((timeout-1))
+        done
+
         [ -f "/proc/$_pid/cmdline" ] && kill -s SIGKILL "$_pid" 2> /dev/null
 
         if [ -z "$_started" ]; then
