@@ -18,7 +18,7 @@ RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty mean
 
 load_script_config
 
-readonly CHAIN="SAMBA_MASQUERADE"
+readonly CHAIN="VPN_SAMBA"
 for_iptables="iptables"
 [ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
