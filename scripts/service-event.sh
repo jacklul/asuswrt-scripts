@@ -75,7 +75,7 @@ trigger_event() {
 service_monitor() {
     [ ! -f "$SYSLOG_FILE" ] && { logger -st "$script_name" "Error: Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
-    lockfile lockfail || { echo "Already running! ($_lockpid)"; exit 1; }
+    lockfile lockfail || { echo "Already running! ($lockpid)"; exit 1; }
 
     set -e
 
@@ -209,7 +209,7 @@ integrated_event() {
 
 run_in_background() {
     [ -n "$merlin" ] && exit # Do not run on Asuswrt-Merlin firmware
-    lockfile check && { echo "Already running! ($_lockpid)"; exit 1; }
+    lockfile check && { echo "Already running! ($lockpid)"; exit 1; }
 
     if is_started_by_system && [ "$PPID" -ne 1 ]; then
         nohup "$script_path" run > /dev/null 2>&1 &

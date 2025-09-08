@@ -46,7 +46,7 @@ create_swap() {
 }
 
 enable_swap() {
-    lockfile lockfail || { echo "Already running! ($_lockpid)"; exit 1; }
+    lockfile lockfail || { echo "Already running! ($lockpid)"; exit 1; }
 
     if ! grep -Fq "file" /proc/swaps; then
         [ -z "$SWAP_FILE" ] && find_swap_file

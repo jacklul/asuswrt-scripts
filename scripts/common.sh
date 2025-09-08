@@ -130,8 +130,8 @@ lockfile() {
     [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
     [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
 
-    _lockpid=
-    [ -f "$_pidfile" ] && _lockpid="$(cat "$_pidfile")"
+    lockpid=
+    [ -f "$_pidfile" ] && lockpid="$(cat "$_pidfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
@@ -183,11 +183,11 @@ lockfile() {
             trap - INT TERM QUIT EXIT
         ;;
         "check")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && return 0
+            [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ] && return 0
             return 1
         ;;
         "kill")
-            [ -n "$_lockpid" ] && [ -f "/proc/$_lockpid/stat" ] && kill -9 "$_lockpid" && return 0
+            [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ] && kill -9 "$lockpid" && return 0
             return 1
         ;;
     esac
