@@ -165,7 +165,7 @@ integrated_event() {
             execute_script_basename "vpn-killswitch.sh" run &
             execute_script_basename "wgs-lanonly.sh" run &
             execute_script_basename "force-dns.sh" run &
-            execute_script_basename "samba-masquerade.sh" run &
+            execute_script_basename "vpn-samba.sh" run &
 
             sh "$script_path" event restart custom_configs "$4" &
         ;;
