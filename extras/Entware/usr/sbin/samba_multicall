@@ -21,15 +21,16 @@ custom_configs=/jffs/scripts/jas/custom-configs.sh
 
 smbconf=/tmp/etc/smb.conf
 args="$*"
+[ "$(uname -o)" = "ASUSWRT-Merlin" ] && merlin=true
 
 if [ "$replace_config" = true ] && [ -f /opt/etc/samba/smb.conf ]; then
     args="$(echo "$args" | sed "s#-s /etc/smb.conf#-s /opt/etc/samba/smb.conf#g")"
 else
     # Manually call custom-configs script if it exists
-    { [ ! -f /usr/sbin/helper.sh ] && [ -f "$custom_configs" ] ; } && "$custom_configs" modify /etc/smb.conf
+    { [ -z "$merlin" ] && [ -f "$custom_configs" ] ; } && "$custom_configs" modify /etc/smb.conf
 
     # Either we are on Asuswrt-Merlin or config got modified by custom-configs script
-    if [ -f /usr/sbin/helper.sh ] || grep -Fq "# Modified by" "$smbconf"; then
+    if [ -n "$merlin" ] || grep -Fq "# Modified by" "$smbconf"; then
         if ! grep -Fq "# Modified by samba_multicall" "$smbconf"; then
             # Remove options not supported by Samba 4.18
             sed '/^display charset/d' -i "$smbconf"

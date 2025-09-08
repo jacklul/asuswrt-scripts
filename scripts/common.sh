@@ -88,7 +88,9 @@ load_script_config() {
 }
 
 is_merlin_firmware() {
-    if [ -f /usr/sbin/helper.sh ]; then
+    [ -z "$merlin_uname_check" ] && merlin_uname_check="$(uname -o)" # cache in case of multiple calls
+
+    if [ "$merlin_uname_check" = "ASUSWRT-Merlin" ]; then
         return 0
     fi
 
