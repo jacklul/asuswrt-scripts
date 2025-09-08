@@ -214,6 +214,15 @@ case "$1" in
         echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action start
+
+        # Add alias to /etc/profile if not already present
+        if [ -f /etc/profile ] && ! grep -Fq "alias jas=" /etc/profile; then
+            cat <<EOT >> /etc/profile
+
+alias jas='$script_path'
+
+EOT
+        fi
     ;;
     "stop")
         [ -n "$not_interactive" ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
