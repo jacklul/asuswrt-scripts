@@ -105,14 +105,6 @@ Start everything up after you're done installing and configuring the scripts:
 
 ---
 
-## [`conditional-reboot`](/scripts/conditional-reboot.sh)
-
-This script will reboot your router at specified time if it's been running for a fixed amount of time.
-
-By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
-
-----
-
 ## [`cron-queue`](/scripts/cron-queue.sh)
 
 When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).  
@@ -355,16 +347,6 @@ If you installed it through the **Entware** then it will be automatically detect
 
 ---
 
-## [`samba-masquerade`](/scripts/samba-masquerade.sh)
-
-Enables masquerading for Samba ports to allow VPN clients to connect to your LAN shares.
-
-By default, default networks for WireGuard, OpenVPN and IPSec are allowed.
-
-_Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
-
----
-
 ## [`service-event`](/scripts/service-event.sh)
 
 This script works similarly to [service-event-end script from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#service-event-end), it watches the syslog for service related events and executes appropriate actions.  
@@ -409,6 +391,14 @@ By default, it runs every <ins>6 hours starting from 00:00</ins>.
 
 ---
 
+## [`uptime-reboot`](/scripts/uptime-reboot.sh)
+
+This script will reboot your router at specified time if it's been running for a fixed amount of time.
+
+By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
+
+----
+
 ## [`usb-network`](/scripts/usb-network.sh)
 
 This script will add any USB networking gadget to LAN bridge interface, making it member of your LAN network.
@@ -427,6 +417,16 @@ There will be a window before this script runs when you can connect through the 
 
 > [!TIP]
 > On Asuswrt-Merlin you should use build-in VPN killswitch function instead.
+
+_Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
+
+---
+
+## [`vpn-samba`](/scripts/vpn-samba.sh)
+
+Enables masquerading for Samba ports to allow VPN clients to connect to your LAN shares.
+
+By default, default networks for WireGuard, OpenVPN and IPSec are allowed.
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
