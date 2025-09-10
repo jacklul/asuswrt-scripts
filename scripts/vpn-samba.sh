@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Enables VPN clients to access Samba shares in LAN
+# Allow VPN clients to access Samba shares in LAN without reconfiguring each device
 #
 
 #jas-update=vpn-samba.sh
@@ -11,42 +11,51 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24 10.10.10.0/24" # VPN networks (IPv4) to allow access to Samba from, separated by spaces
-VPN_NETWORKS6="" # VPN networks (IPv6) to allow access to Samba from, separated by spaces
-BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default only LAN bridge ("br0") interface
-EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
+VPN_NETWORKS6="" # same as VPN_NETWORKS but for IPv6, separated by spaces
+LAN_NETWORK="" # IPv4 LAN network, in format '192.168.0.0/24', empty means auto calculate
+LAN_NETWORK6="" # IPv6 LAN network, in format 'fd12:3456:789a::/48', if left empty then IPv6 connections will not be handled
+BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default only LAN bridge (br0) interface
+EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
 
-readonly CHAIN="VPN_SAMBA"
+readonly CHAIN="jas-${script_name}"
 for_iptables="iptables"
 [ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
-get_destination_network() {
-    "$1" -t nat -nvL POSTROUTING --line-numbers | grep -E " MASQUERADE .*$BRIDGE_INTERFACE" | head -1 | awk '{print $9}'
-}
-
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Error: Bridge interface is not set"; exit 1; }
-    [ -z "$VPN_NETWORKS" ] && { logger -st "$script_name" "Error: Allowed VPN networks are not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logecho "Error: Bridge interface is not set"; exit 1; }
+    { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; } && { logecho "Error: Allowed VPN networks are not set"; exit 1; }
 
     lockfile lockwait
 
-    _rules_modified=0
     for _iptables in $for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_networks="$VPN_NETWORKS6"
+            _lan_network="$LAN_NETWORK6"
         else
             _vpn_networks="$VPN_NETWORKS"
+            _lan_network="$LAN_NETWORK"
+
+            if [ -z "$_lan_network" ]; then
+                _lan_ipaddr="$(nvram get lan_ipaddr)"
+                _lan_netmask="$(nvram get lan_netmask)"
+                _cidr=$(mask_to_cidr "$_lan_netmask")
+                _network=$(calculate_network "$_lan_ipaddr" "$_lan_netmask")
+
+                { [ -z "$_cidr" ] || [ -z "$_network" ] ; } && { logecho "Error: Failed to calculate destination IPv4 network"; exit 1; }
+
+                _lan_network="$_network/$_cidr"
+            fi
         fi
 
         [ -z "$_vpn_networks" ] && continue
+        [ -z "$_lan_network" ] && continue
 
         case "$1" in
             "add")
                 if ! $_iptables -t nat -nL "$CHAIN" > /dev/null 2>&1; then
-                    _rules_modified=1
-
                     $_iptables -t nat -N "$CHAIN"
                     $_iptables -t nat -A "$CHAIN" -p tcp --dport 445 -j MASQUERADE
                     $_iptables -t nat -A "$CHAIN" -p tcp --dport 139 -j MASQUERADE
@@ -55,43 +64,35 @@ firewall_rules() {
                     $_iptables -t nat -A "$CHAIN" -p icmp --icmp-type 1 -j MASQUERADE
                     $_iptables -t nat -A "$CHAIN" -j RETURN
 
-                    _destination_network="$(get_destination_network "$_iptables")"
-
                     for _vpn_network in $_vpn_networks; do
-                        if [ -n "$_destination_network" ]; then
-                            $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -d "$_destination_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
-                        else
-                            $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
-                        fi
+                        $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" && _rules_action=1 || _rules_error=1
                     done
                 fi
             ;;
             "remove")
                 if $_iptables -t nat -nL "$CHAIN" > /dev/null 2>&1; then
-                    _rules_modified=-1
-
                     for _vpn_network in $_vpn_networks; do
-                        _destination_network="$(get_destination_network "$_iptables")"
-
-                        if [ -n "$_destination_network" ] && $_iptables -t nat -C POSTROUTING -s "$_vpn_network" -d "$_destination_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1; then
-                            $_iptables -t nat -D POSTROUTING -s "$_vpn_network" -d "$_destination_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
-                        fi
-
-                        if $_iptables -t nat -C POSTROUTING -s "$_vpn_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1; then
-                            $_iptables -t nat -D POSTROUTING -s "$_vpn_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN"
-                        fi
+                        $_iptables -t nat -D POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" && _rules_action=-1 || _rules_error=1
                     done
 
                     $_iptables -t nat -F "$CHAIN"
-                    $_iptables -t nat -X "$CHAIN"
+                    $_iptables -t nat -X "$CHAIN" || _rules_error=1
                 fi
             ;;
         esac
     done
 
-    [ "$_rules_modified" = 1 ] && logger -st "$script_name" "Masquerading Samba connections from networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')"
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
 
-    [ -n "$EXECUTE_COMMAND" ] && [ "$_rules_modified" -ne 0 ] && $EXECUTE_COMMAND "$1"
+    if [ -n "$_rules_action" ]; then
+        if [ "$_rules_action" = 1 ]; then
+            logecho "Masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" true
+        else
+            logecho "Stopped masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" true
+        fi
+    fi
+
+    [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }

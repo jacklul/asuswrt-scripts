@@ -34,8 +34,8 @@ fi
 
 download_url="$BASE_URL/$BRANCH"
 [ -z "$TMP_DIR" ] && TMP_DIR=/tmp
+check_file="$TMP_DIR/$script_name"
 tmp_file="$TMP_DIR/$script_name.tmp"
-check_file="$TMP_DIR/jas-started"
 [ ! -t 0 ] && not_interactive=true
 
 call_action() {
@@ -78,7 +78,7 @@ scripts_action() {
     _action="$1"
 
     # Start scripts that must start first
-    if [ -n "$JAS_BOOT" ] && [ -n "$START_FIRST" ] && [ "$_action" = "start" ]; then
+    if [ -n "$START_FIRST" ] && [ "$_action" = "start" ]; then
         for _entry in $START_FIRST; do
             if [ -x "$SCRIPTS_DIR/$_entry" ]; then
                 call_action "$SCRIPTS_DIR/$_entry" start
@@ -90,7 +90,7 @@ scripts_action() {
         _entry="$(readlink -f "$_entry")"
 
         # Do not start scripts here that are in START_FIRST or START_LAST lists
-        if [ -n "$JAS_BOOT" ] && [ "$_action" = "start" ] && echo "$START_FIRST $START_LAST" | grep -Fq "$(basename "$_entry")"; then
+        if [ "$_action" = "start" ] && echo "$START_FIRST $START_LAST" | grep -Fq "$(basename "$_entry")"; then
             continue
         fi
 
@@ -104,7 +104,7 @@ scripts_action() {
     done
 
     # Start scripts that must start last
-    if [ -n "$JAS_BOOT" ] && [ -n "$START_LAST" ] && [ "$_action" = "start" ]; then
+    if [ -n "$START_LAST" ] && [ "$_action" = "start" ]; then
         for _entry in $START_LAST; do
             if [ -x "$SCRIPTS_DIR/$_entry" ]; then
                 call_action "$SCRIPTS_DIR/$_entry" start
@@ -210,19 +210,15 @@ case "$1" in
             [ -n "$not_interactive" ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
+        # Add alias to /etc/profile if not already present
+        if [ -f /etc/profile ] && ! grep -Fq "alias jas=" /etc/profile; then
+            echo "alias jas='$script_path'" >> /etc/profile
+        fi
+
         [ -n "$not_interactive" ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
         echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action start
-
-        # Add alias to /etc/profile if not already present
-        if [ -f /etc/profile ] && ! grep -Fq "alias jas=" /etc/profile; then
-            cat <<EOT >> /etc/profile
-
-alias jas='$script_path'
-
-EOT
-        fi
     ;;
     "stop")
         [ -n "$not_interactive" ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
@@ -248,6 +244,7 @@ EOT
         if [ -x "$SCRIPTS_DIR/${name}.sh" ]; then
             shift
             shift
+            lockfile unlock
             exec "$SCRIPTS_DIR/${name}.sh" "$@"
         else
             echo "Not found: ${fwe}${name}${frt}"
@@ -325,7 +322,6 @@ EOT
                         failure=true
                     elif [ ! -x "$SCRIPTS_DIR/${name}.sh" ]; then
                         chmod +x "$SCRIPTS_DIR/${name}.sh"
-                        /bin/sh "$SCRIPTS_DIR/${name}.sh" start
                         echo "Enabled: $colored"
                     else
                         echo "Already enabled: $colored"
@@ -375,16 +371,18 @@ EOT
 
             printf "%s " "${fwe}$basename${frt}"
 
-            download_and_check "scripts/$remote_basename" "$entry"
+            output="$(download_and_check "scripts/$remote_basename" "$entry")"
             status=$?
 
             if [ "$status" -eq 0 ]; then
                 cat "$tmp_file" > "$entry"
                 rm -f "$tmp_file"
-                printf "%s! updated%s" "$fcn" "$frt"
+                printf "%s!! updated%s" "$fcn" "$frt"
             elif [ "$status" -eq 2 ]; then
                 printf "%s✓%s" "$fgn" "$frt"
-            fi # else download failed, do nothing as error will be printed
+            else
+                printf "%s✗ %s%s" "$frd" "$output" "$frt"
+            fi
 
             printf "\n";
 
@@ -392,7 +390,7 @@ EOT
             if [ "$SELF_UPDATE" = true ] && [ "$basename" = "common.sh" ]; then
                 printf "%s " "${fwe}$(basename "$0")${frt}"
 
-                download_and_check "$(get_script_basename "$script_path")" "$script_path"
+                output="$(download_and_check "$(get_script_basename "$script_path")" "$script_path")"
                 status=$?
 
                 if [ "$status" -eq 0 ]; then
@@ -403,6 +401,8 @@ EOT
                     exit 0
                 elif [ "$status" -eq 2 ]; then
                     printf "%s✓%s" "$fgn" "$frt"
+                else
+                    printf "%s✗ %s%s" "$frd" "$output" "$frt"
                 fi
 
                 printf "\n"
@@ -598,6 +598,7 @@ EOT
 
         if [ -x "$SCRIPTS_DIR/${name}.sh" ]; then
             shift
+            lockfile unlock
             exec "$SCRIPTS_DIR/${name}.sh" "$@"
         fi
 

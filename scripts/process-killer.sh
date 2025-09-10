@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Kills specified processes/modules and prevents them from starting
+# Kill specified processes/modules and prevent them from restarting
 #
 # Based on:
 #  https://www.snbforums.com/threads/i-would-like-to-kill-some-of-the-processes-permanently.47616/#post-416517
@@ -19,6 +19,10 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 
 load_script_config
+
+validate_config() {
+    [ -z "$PROCESSES_TO_KILL" ] && { logecho "Error: Processes to kill are not set"; exit 1; }
+}
 
 process_killer() {
     if [ -n "$PROCESSES_TO_KILL" ]; then
@@ -41,11 +45,11 @@ process_killer() {
                 filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
 
                 if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                    lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logger -st "$script_name" "Blocked kernel module: $process" && usleep 250000
+                    lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logecho "Blocked kernel module: $process" true && usleep 250000
                     mount -o bind /dev/null "$filepath"
                 fi
             else
-                [ -n "$(pidof "$filename")" ] && killall "$filename" && logger -st "$script_name" "Killed process: $process"
+                [ -n "$(pidof "$filename")" ] && killall "$filename" && logecho "Killed process: $process" true
 
                 if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
                     usleep 250000
@@ -58,10 +62,11 @@ process_killer() {
 
 case "$1" in
     "run")
+        validate_config
         process_killer
     ;;
     "start")
-        [ -z "$PROCESSES_TO_KILL" ] && { logger -st "$script_name" "Unable to start - processes to kill are not set"; exit 1; }
+        validate_config
 
         if [ ! -t 0 ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && process_killer; } & # delay when freshly booted
@@ -70,7 +75,7 @@ case "$1" in
         fi
     ;;
     "stop")
-        logger -st "$script_name" "Operations made by this script cannot be reverted - disable it then reboot the router!"
+        logecho "Operations made by this script cannot be reverted - disable it then reboot the router!"
     ;;
     "restart")
         sh "$script_path" start

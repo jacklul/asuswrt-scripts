@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Sends update notification
+# Send update notification
 #
 # Based on:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Update-Notification-Example
@@ -27,7 +27,8 @@ PUSHOVER_TOKEN=""
 PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
 CUSTOM_COMMAND="" # command will receive the new firmware version as its first parameter
-CACHE_FILE="$TMP_DIR/$script_name" # where to cache last notified version
+STATE_FILE="$TMP_DIR/$script_name" # where to store last notified version
+EMAIL_FILE="$TMP_DIR/$script_name.eml" # where to store temporary email message file
 CRON="0 */6 * * *" # schedule as cron string
 
 load_script_config
@@ -39,7 +40,7 @@ curl_binary="$(get_curl_binary)"
 [ -z "$curl_binary" ] && { echo "curl not found"; exit 1; }
 
 send_email_message() {
-    cat <<EOT > /tmp/jacklul-asuswrt-scripts/mail.eml
+    cat <<EOT > "$EMAIL_FILE"
 From: "$EMAIL_FROM_NAME" <$EMAIL_FROM_ADDRESS>
 To: "$EMAIL_TO_NAME" <$EMAIL_TO_ADDRESS>
 Subject: New router firmware notification @ $router_name
@@ -49,8 +50,8 @@ Content-Transfer-Encoding: quoted-printable
 New firmware version <b>$1</b> is now available for your router at <a href="$router_ip">$router_ip</a>.
 EOT
 
-    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file /tmp/jacklul-asuswrt-scripts/mail.eml --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logger -st "$script_name" "Failed to send an email message"
-    rm -f /tmp/jacklul-asuswrt-scripts/mail.eml
+    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$EMAIL_FILE" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logecho "Failed to send an email message"
+    rm -f "$EMAIL_FILE"
 }
 
 send_telegram_message() {
@@ -61,50 +62,50 @@ send_telegram_message() {
 
     if ! echo "$_result" | grep -Fq '"ok":true'; then
         if echo "$_result" | grep -Fq '"ok":'; then
-            logger -st "$script_name" "Telegram API error: $_result"
+            logecho "Telegram API error: $_result"
         else
-            logger -st "$script_name" "Connection to Telegram API failed: $_result"
+            logecho "Connection to Telegram API failed: $_result"
         fi
     fi
 }
 
 send_pushover_message() {
-    $curl_binary --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logger -st "$script_name" "Failed to send Pushover message"
+    $curl_binary --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logecho "Failed to send Pushover message"
 }
 
 send_pushbullet_message () {
-    $curl_binary -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logger -st "$script_name" "Failed to send Pushbullet message"
+    $curl_binary -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logecho "Failed to send Pushbullet message"
 }
 
 send_notification() {
-    [ -z "$1" ] && { echo "Version not provided"; exit 1; }
+    [ -z "$1" ] && { echo "Version not passed"; exit 1; }
 
     if [ -n "$EMAIL_SMTP" ] && [ -n "$EMAIL_PORT" ] && [ -n "$EMAIL_USERNAME" ] && [ -n "$EMAIL_PASSWORD" ] && [ -n "$EMAIL_FROM_NAME" ] && [ -n "$EMAIL_FROM_ADDRESS" ] && [ -n "$EMAIL_TO_NAME" ] && [ -n "$EMAIL_TO_ADDRESS" ]; then
-        logger -st "$script_name" "Sending update notification through Email..."
+        logecho "Sending update notification through Email..."
 
         send_email_message "$1"
     fi
 
     if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-        logger -st "$script_name" "Sending update notification through Telegram..."
+        logecho "Sending update notification through Telegram..."
 
         send_telegram_message "$1"
     fi
 
     if [ -n "$PUSHOVER_TOKEN" ] && [ -n "$PUSHOVER_USERNAME" ]; then
-        logger -st "$script_name" "Sending update notification through Pushover..."
+        logecho "Sending update notification through Pushover..."
 
         send_pushover_message "$1"
     fi
 
     if [ -n "$PUSHBULLET_TOKEN" ]; then
-        logger -st "$script_name" "Sending update notification through Pushbullet..."
+        logecho "Sending update notification through Pushbullet..."
 
         send_pushbullet_message "$1"
     fi
 
     if [ -n "$CUSTOM_COMMAND" ]; then
-        logger -st "$script_name" "Sending update notification through custom command..."
+        logecho "Sending update notification through custom command..."
 
         $CUSTOM_COMMAND "$1"
     fi
@@ -123,16 +124,16 @@ check_and_notify() {
 
     if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] ||  [ "$buildno" -gt "$web_buildno" ]; then
         echo "Could not gather valid values from NVRAM"
-        exit
+        exit 1
     fi
 
     new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
     current_version="${buildno}_${extendno}"
 
-    if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$CACHE_FILE" ] || [ "$(cat "$CACHE_FILE")" != "$new_version" ] ; }; then
+    if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$STATE_FILE" ] || [ "$(cat "$STATE_FILE")" != "$new_version" ] ; }; then
         send_notification "$new_version"
 
-        echo "$new_version" > "$CACHE_FILE"
+        echo "$new_version" > "$STATE_FILE"
     fi
 }
 
@@ -142,7 +143,7 @@ case "$1" in
     ;;
     "test")
         if { is_started_by_system && cru l | grep -Fq "#$script_name-test#"; } || [ "$2" = "now" ]; then
-            logger -st "$script_name" "Testing notification..."
+            logecho "Testing notification..." true
 
             cru d "$script_name-test"
 
@@ -152,7 +153,7 @@ case "$1" in
             if [ -n "$buildno" ] && [ -n "$extendno" ]; then
                 send_notification "${buildno}_${extendno}"
             else
-                logger -st "$script_name" "Unable to obtain current version info"
+                logecho "Unable to obtain current version info"
             fi
         else
             cru a "$script_name-test" "*/1 * * * * sh $script_path test"

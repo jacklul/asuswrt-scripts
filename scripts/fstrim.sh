@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# This script runs fstrim on all mounted SSDs on a schedule
+# Run fstrim on all mounted SSDs on a schedule
 #
 # Based on:
 #  https://github.com/kuchkovsky/asuswrt-merlin-scripts/blob/main/jffs/scripts/trim_ssd.sh
@@ -20,6 +20,7 @@ CHANGE_PROVISIONING_MODE=false # set provisioning mode to 'unset' for applicable
 load_script_config
 
 is_valid_ssd_device() {
+    [ -z "$1" ] && { echo "Device name not provided"; return 1; }
     [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return 1; }
 
     _dev="/sys/block/$1"
@@ -42,7 +43,8 @@ is_valid_ssd_device() {
 }
 
 change_provisioning_mode() {
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return; }
+    [ -z "$1" ] && { echo "Device name not provided"; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return 1; }
 
     # Set provisioning_mode to 'unmap' to allow TRIM commands to go through
     find "/sys/block/$1/device" -type f -name "provisioning_mode" | while read -r file; do
@@ -51,7 +53,7 @@ change_provisioning_mode() {
         _contents=$(cat "$file" 2> /dev/null || echo "")
 
         if [ "$_contents" != "unmap" ]; then
-            echo "Writing 'unmap' to $file"
+            echo "Writing 'unmap' to '$file'"
             echo "unmap" > "$file"
         fi
     done
@@ -59,7 +61,7 @@ change_provisioning_mode() {
 
 case "$1" in
     "run")
-        type fstrim > /dev/null 2>&1 || { logger -st "$script_name" "Error: Command 'fstrim' not found"; exit 1; }
+        type fstrim > /dev/null 2>&1 || { logecho "Error: Command 'fstrim' not found"; exit 1; }
 
         lockfile lockfail
 
@@ -86,13 +88,16 @@ case "$1" in
 
                     trimmed="$trimmed $mount_device"
                     output="$(fstrim -v "$mount_point" 2>&1)"
+                    status=$?
+                    log="/tmp/fstrim_$name.log"
+                    #shellcheck disable=SC3037
+                    echo -e "$output" > "$log"
 
                     #shellcheck disable=SC2181
-                    if [ $? -ne 0 ]; then
-                        log="/tmp/fstrim_$name.log"
-                        #shellcheck disable=SC3037
-                        echo -e "$output" > "$log"
-                        logger -st "$script_name" "fstrim error on $mount_device - check $log for details"
+                    if [ "$status" -eq 0 ]; then
+                        logecho "Executed fstrim on '$mount_device' ($mount_point)" true
+                    else
+                        logecho "Failed to execute fstrim on '$mount_device' - check '$log' for details"
                     fi
                 done
             fi
@@ -110,7 +115,7 @@ case "$1" in
         fi
     ;;
     "start")
-        type fstrim > /dev/null 2>&1 || { echo "Warning: Command 'fstrim' not found"; }
+        type fstrim > /dev/null 2>&1 || echo "Warning: Command 'fstrim' not found"
 
         if [ "$CHANGE_PROVISIONING_MODE" = true ]; then
             for dev in /sys/block/*; do

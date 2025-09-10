@@ -44,7 +44,7 @@ EOT
 
                 killall hotplug2 2> /dev/null
 
-                logger -st "$script_name" "Modified hotplug configuration"
+                logecho "Modified hotplug configuration" true
             fi
         ;;
         "restore")
@@ -54,7 +54,7 @@ EOT
 
                 killall hotplug2 2> /dev/null
 
-                logger -st "$script_name" "Restored original hotplug configuration"
+                logecho "Restored original hotplug configuration" true
             fi
         ;;
     esac
@@ -73,7 +73,7 @@ case "$1" in
 
         case "$2" in
             "block"|"net"|"misc")
-                logger -st "$script_name" "Running script (args: '$2' '$3')"
+                logecho "Running script (args: '$2' '$3')"
             ;;
         esac
 

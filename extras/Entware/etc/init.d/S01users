@@ -37,7 +37,7 @@ case $1 in
 
         for new_user in $users; do
             if ! grep -q "$new_user:" /opt/etc/passwd; then
-                used_uids=$(cut -d: -f3 /opt/etc/passwd)
+                used_uids=$(cut -d ':' -f 3 /opt/etc/passwd)
                 next_uid=$min_uid
 
                 while is_uid_in_use "$next_uid" "$used_uids"; do

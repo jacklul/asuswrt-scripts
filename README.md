@@ -6,8 +6,8 @@ This is a collection of custom scripts for ASUS routers running stock firmware t
 > On **2025-09-05** this project went through an overhaul to make the installation and usage easier!  
 > New main script can migrate the old scripts but starting fresh is recommended!
 
-Most of the scripts were tested on **RT-AX58U v2** running official firmware - there is no guarantee that everything will work on older routers or firmware.  
-Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.  
+Most of the scripts were tested on **RT-AX58U v2** running recent official firmware - I give no guarantee that everything will work on other routers.  
+Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
 
 **A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com), [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki) or other sources. Scripts that are based on existing resource have the original linked in the header.**
 
@@ -81,16 +81,18 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-process-killer">process-killer</a><br>
 <a href="#user-content-rclone-backup">rclone-backup</a><br>
 <a href="#user-content-service-event">service-event</a><br>
+<a href="#user-content-swap">swap</a><br>
 </td>
 <td>
-<a href="#user-content-swap">swap</a><br>
 <a href="#user-content-temperature-warning">temperature-warning</a><br>
 <a href="#user-content-update-notify">update-notify</a><br>
 <a href="#user-content-uptime-reboot">uptime-reboot</a><br>
 <a href="#user-content-usb-network">usb-network</a><br>
-<a href="#user-content-vpn-killswitch">vpn-killswitch</a><br>
+<a href="#user-content-vpn-firewall">vpn-firewall</a><br>
+<a href="#user-content-vpn-ip-routes">vpn-ip-routes</a><br>
+<a href="#user-content-vpn-kill-switch">vpn-kill-switch</a><br>
 <a href="#user-content-vpn-samba">vpn-samba</a><br>
-<a href="#user-content-wgs-lanonly">wgs-lanonly</a><br>
+<a href="#user-content-wgs-lan-only">wgs-lan-only</a><br>
 </td>
 </tr>
 </table>
@@ -99,8 +101,9 @@ Start everything up after you're done installing and configuring the scripts:
 > You can override a script's configuration variables by creating `.conf` with the same name (for example: `conditional-reboot.conf`).  
 > Configuration variables are defined on top of each script - peek into the script to see what is available to change!  
 > You can also use `/jffs/scripts/jas.sh config <name>` command to open configuration file using available text editor (`$EDITOR`).
+> **Please note that most scripts do not validate values at all, it is your responsibility to make sure that the values you set are correct.**
 
-> [!WARNING]
+> [!CAUTION]
 > Some scripts have support for IPv6 added but it was not tested at all!
 
 ---
@@ -110,14 +113,15 @@ Start everything up after you're done installing and configuring the scripts:
 When running multiple scripts from this repository that run every minute via cron they can cause a CPU spike (and network wide ping spike on weaker devices).  
 This script will run all "every minute" tasks sequentially which will reduce the CPU load in exchange for execution delays.
 
-All scripts from this repository integrate with this script and will use it instead of `cru` command when it's available.
+All scripts from this repository integrate with this script and will use it instead of `cru` command when it's available.  
+It is recommended to use this script if you install multiple scripts that must run every minute (check `cru l` and look for `*/1 * * * *` entries).
 
 ---
 
 ## [`custom-configs`](/scripts/custom-configs.sh)
 
 This script implements [custom config files from Asuswrt-Merlin firmware](https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files) that allows you to edit config files for certain build-in services.  
-Unfortunately not everything will be possible as the services have to start first then be restarted manually to modify the configs.
+**Unfortunately not every modification will be possible as the services have to start first then be restarted by the script to modify the configs.**
 
 <details>
 <summary>Supported config files</summary>
@@ -142,6 +146,8 @@ Unfortunately not everything will be possible as the services have to start firs
 - vsftpd.conf
 - upnp
 - zebra.conf
+
+_Most of these were tested and confirmed working._
 
 </details>
 
@@ -182,7 +188,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 This script makes sure WPS stays disabled.
 
 By default, it runs at boot and at <ins>00:00 everyday</ins>.  
-When `service-event.sh` is installed it also <ins>runs every time wireless is restarted</ins>.
+When `service-event.sh` is installed then it also <ins>runs every time wireless is restarted</ins>.
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
@@ -196,7 +202,7 @@ Script checks <ins>every minute</ins> for new IP in NVRAM variable `wan0_ipaddr`
 You can alternatively configure it to use website API like "[ipecho.net/plain](https://ipecho.net/plain)".
 
 > [!TIP]
-> On Asuswrt-Merlin you should call this script from `/jffs/scripts/ddns-start` with `force` argument instead of `start`.
+> On Asuswrt-Merlin you should use `/jffs/scripts/ddns-start` instead.
 
 > [!IMPORTANT]
 > You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the stock firmware.
@@ -209,7 +215,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 This script launches [Entware](https://github.com/Entware/Entware) or installs it in RAM (`/tmp`) on start.
 
-To install Entware run `/jffs/scripts/jas/entware.sh install /tmp/mnt/sda1`, replace `/tmp/mnt/sda1` with path to your mounted storage.
+**This script does not install Entware automatically - run `./entware.sh install` manually.**
 
 > [!TIP]
 > When installing to RAM the script will automatically install specified packages from `IN_RAM` variable and symlink files from `/jffs/entware` to `/opt`.  
@@ -225,7 +231,7 @@ _Recommended to use [`hotplug-event`](#user-content-hotplug-event) as well for b
 
 ## [`extra-ip`](/scripts/extra-ip.sh)
 
-This script allows you to add an extra IP address to a specific interface (usually `br0`).  
+This script allows you to add an extra IP address(es) to a specific interface(s) (usually `br0`).  
 This is mainly for running services on ports normally taken by the firmware (like a webserver).
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
@@ -247,7 +253,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 ## [`fstrim`](/scripts/fstrim.sh)
 
-> [!WARNING]
+> [!CAUTION]
 > This script is currently untested.
 
 This script will run `fstrim` command on a schedule for all mounted SSD devices.
@@ -369,6 +375,9 @@ This script will send log message when CPU or WLAN chip temperatures reach speci
 
 Be default, the treshold is set to <ins>80C</ins>.
 
+> [!CAUTION]
+> This script might not work correctly with every device, run `./temperature-warning check` to see if it outputs anything.
+
 ---
 
 ## [`update-notify`](/scripts/update-notify.sh)
@@ -378,13 +387,15 @@ This script will send you a notification when new router firmware is available.
 By default, it runs every <ins>6 hours starting from 00:00</ins>.
 
 **Currently supported notification providers:**
+
 - Email
 - [Telegram](https://telegram.org)
 - [Pushover](https://pushover.net)
 - [Pushbullet](https://www.pushbullet.com)
+- Custom script
 
 > [!TIP]
-> You can test the notifications by running `/jffs/scripts/jas/update-notify.sh test` (if it works from the cron) and `update-notify.sh test now` (if it actually sends) commands.
+> You can test the notifications by running `./update-notify.sh test` (if it works from the cron) and `./update-notify.sh test now` (if it actually sends) commands.
 
 > [!IMPORTANT]
 > You might have to install Entware's `curl` (and `ca-bundle`) to bypass the security limitations of the one included in the stock firmware.
@@ -409,14 +420,43 @@ _Recommended to use [`service-event`](#user-content-service-event) and [`hotplug
 
 ---
 
-## [`vpn-killswitch`](/scripts/vpn-killswitch.sh)
+## [`vpn-firewall`](/scripts/vpn-firewall.sh)
+
+Prevents remote side of the VPN Fusion connection from initiating connections to the router or devices in LAN.  
+Has an option to allow specific ports in INPUT or FORWARD chains.
+
+By default, interfaces for WireGuard and OpenVPN clients are secured.
+
+> [!TIP]
+> On Asuswrt-Merlin you should use **VPN director** instead.
+
+_Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
+
+---
+
+## [`vpn-ip-routes`](/scripts/vpn-ip-routes.sh)
+
+Allows routing single IP addresses through specified VPN Fusion profiles.
+
+With extra scripting a basic version of domain based VPN routing can be created.  
+Please note that without `ipset` support adding too many rules will hurt the performance of routing.
+
+> [!TIP]
+> On Asuswrt-Merlin you should use **VPN director** instead.
+
+_Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
+
+---
+
+## [`vpn-kill-switch`](/scripts/vpn-kill-switch.sh)
 
 This script will prevent your LAN from accessing the internet through the WAN interface.
 
-There will be a window before this script runs when you can connect through the WAN interface, there is no way to avoid this on the official firmware.
+There will be a window before this script runs when you can connect through the WAN interface, there is no way to avoid this on the official firmware.  
+This also applies to situations where firmware resets firewall rules and they have to be re-added.
 
 > [!TIP]
-> On Asuswrt-Merlin you should use build-in VPN killswitch function instead.
+> On Asuswrt-Merlin you should use **VPN director** instead.
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
@@ -424,17 +464,21 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 ## [`vpn-samba`](/scripts/vpn-samba.sh)
 
-Enables masquerading for Samba ports to allow VPN clients to connect to your LAN shares.
+Masquerades Samba ports to allow VPN clients to connect to your LAN shares.
 
-By default, default networks for WireGuard, OpenVPN and IPSec are allowed.
+By default, default networks for WireGuard, OpenVPN and IPSec are allowed.  
+_PPTP has a build-in toggle for this feature in the WebUI so it is not included by default._
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
 ---
 
-## [`wgs-lanonly`](/scripts/wgs-lanonly.sh)
+## [`wgs-lan-only`](/scripts/wgs-lan-only.sh)
 
 This script will prevent clients connected to WireGuard server from accessing the internet through the router.
+
+> [!TIP]
+> On Asuswrt-Merlin you should use **VPN director** instead.
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 

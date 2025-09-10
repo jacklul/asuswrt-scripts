@@ -21,14 +21,14 @@ case "$1" in
             current_uptime=$(awk -F '.' '{print $1}' /proc/uptime)
 
             if [ "$current_uptime" -ge "$TARGET_UPTIME" ]; then
-                logger -st "$script_name" "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!"
+                logecho "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!" true
                 crontab_entry delete
                 service reboot
             fi
         fi
     ;;
     "start")
-        [ -z "$TARGET_UPTIME" ] && { logger -st "$script_name" "Error: Target uptime is not set"; exit 1; }
+        [ -z "$TARGET_UPTIME" ] && { logecho "Error: Target uptime is not set"; exit 1; }
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")

@@ -1,17 +1,13 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Forces LAN to use specified DNS server
+# Force LAN to use specified DNS server
 #
-# Implements DNS Director feature from Asuswrt-Merlin:
+# Can set rules depending on whenever specific interface is available and define a fallback DNS server when it is not
+# Can also prevent clients from querying router's DNS server while the rules are applied
+#
+# Based on DNS Director feature from Asuswrt-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/DNS-Director
-#
-# Can set rules depending on whenever specific interface is available and define a fallback DNS server when it is not.
-# Can also prevent clients from querying router's DNS server while the rules are applied.
-#
-# If you need per-device DNS settings then these will help you write your own script (which you can execute via EXECUTE_COMMAND variable):
-#  iptables -I "FORCEDNS" -m mac --mac-source "d9:32:cb:d0:fe:fe" -j DNAT --to-destination "1.1.1.1"
-#  iptables -I "FORCEDNS_DOT" -m mac --mac-source "d9:32:cb:d0:fe:fe" ! -d "1.1.1.1" -j REJECT
 #
 
 #jas-update=force-dns.sh
@@ -25,11 +21,11 @@ DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use route
 PERMIT_MAC="" # space separated allowed MAC addresses to bypass forced DNS
 PERMIT_IP="" # space separated allowed v4 IPs to bypass forced DNS, ranges supported
 PERMIT_IP6="" # space separated allowed v6 IPs to bypass forced DNS, ranges supported
-TARGET_INTERFACES="br+" # the target interface(s) to set rules for, separated by spaces
+TARGET_INTERFACES="br+" # the target interfaces to set rules for, separated by spaces
 REQUIRE_INTERFACE="" # rules will be removed if this interface is not up, wildcards accepted, set this to "usb*" when using usb-network script and Pi-hole on USB connected Raspberry Pi
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
-EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action)
+EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 VERIFY_DNS=false # verify that the DNS server is working before applying
 VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applying (fallback only)
@@ -48,9 +44,9 @@ if [ -z "$DNS_SERVER" ]; then
     fi
 fi
 
-readonly CHAIN_DNAT="FORCEDNS"
-readonly CHAIN_DOT="FORCEDNS_DOT"
-readonly CHAIN_BLOCK="FORCEDNS_BLOCK"
+readonly CHAIN_DNAT="jas-${script_name}-dnat"
+readonly CHAIN_DOT="jas-${script_name}-dot"
+readonly CHAIN_BLOCK="jas-${script_name}-block"
 
 router_ip="$(nvram get lan_ipaddr)"
 router_ip6="$(nvram get ipv6_rtr_addr)"
@@ -66,16 +62,9 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
     fi
 fi
 
-interface_exists() {
-    if [ "$(printf "%s" "$1" | tail -c 1)" = "*" ]; then
-        if ip link show | grep -F ": $1" | grep -Fq "mtu"; then
-            return 0
-        fi
-    elif ip link show | grep -F " $1:" | grep -Fq "mtu"; then
-        return 0
-    fi
-
-    return 1
+validate_config() {
+    [ -z "$DNS_SERVER" ] && { logecho "Error: Target DNS server is not set"; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: Target interfaces are not set"; exit 1; }
 }
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
@@ -84,28 +73,40 @@ iptables_chains() {
         case "$1" in
             "add")
                 if ! $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-                    _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "all.*state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
-                    _forward_start_plus="$((_forward_start+1))"
+                    # You would think there might be a possible race condition with vpn-firewall here and we should add one space
+                    # before 'state' but in reality it's good that this rule is inserted after vpn-firewall's rule
+                    _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "all .* state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
 
-                    $_iptables -N "$CHAIN_DOT"
+                    if [ -n "$_forward_start" ]; then
+                        _forward_start="$((_forward_start+1))"
 
-                    for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -I FORWARD "$_forward_start_plus" -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
-                        _forward_start_plus="$((_forward_start_plus+1))"
-                    done
+                        $_iptables -N "$CHAIN_DOT"
+
+                        for _target_interface in $TARGET_INTERFACES; do
+                            $_iptables -I FORWARD "$_forward_start" -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT" || _rules_error=1
+                            _forward_start="$((_forward_start+1))"
+                        done
+                    else
+                        logecho "Unable to find the 'state RELATED,ESTABLISHED' rule in the FORWARD FILTER chain"
+                    fi
                 fi
 
                 if ! $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
-                    _prerouting_start="$($_iptables -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER" | tail -1 | awk '{print $1}')"
-                    _prerouting_start_plus="$((_prerouting_start+1))"
+                    _prerouting_start="$($_iptables -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER .* all" | tail -1 | awk '{print $1}')"
 
-                    $_iptables -t nat -N "$CHAIN_DNAT"
+                    if [ -n "$_prerouting_start" ]; then
+                        _prerouting_start="$((_prerouting_start+1))"
 
-                    for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -t nat -I PREROUTING "$_prerouting_start_plus" -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
-                        $_iptables -t nat -I PREROUTING "$_prerouting_start_plus" -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
-                        _prerouting_start_plus="$((_prerouting_start_plus+2))"
-                    done
+                        $_iptables -t nat -N "$CHAIN_DNAT"
+
+                        for _target_interface in $TARGET_INTERFACES; do
+                            $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT" || _rules_error=1
+                            $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT" || _rules_error=1
+                            _prerouting_start="$((_prerouting_start+2))"
+                        done
+                    else
+                        logecho "Unable to find the 'target VSERVER' rule in the PREROUTING NAT chain"
+                    fi
                 fi
 
                 if [ "$BLOCK_ROUTER_DNS" = true ] && ! $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
@@ -115,36 +116,41 @@ iptables_chains() {
                         _router_ip="$router_ip"
                     fi
 
-                    _input_start="$($_iptables -nvL INPUT --line-numbers | grep -E "all.*state INVALID" | tail -1 | awk '{print $1}')"
-                    _input_start_plus="$((_input_start+1))"
+                    _input_start="$($_iptables -nvL INPUT --line-numbers | grep -E "all .* state INVALID" | tail -1 | awk '{print $1}')"
 
-                    $_iptables -N "$CHAIN_BLOCK"
+                    if [ -n "$_input_start" ]; then
+                        _input_start="$((_input_start+1))"
 
-                    for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -I INPUT "$_input_start_plus" -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
-                        $_iptables -I INPUT "$_input_start_plus" -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
-                        _input_start_plus="$((_input_start_plus+2))"
-                    done
+                        $_iptables -N "$CHAIN_BLOCK"
+
+                        for _target_interface in $TARGET_INTERFACES; do
+                            $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" || _rules_error=1
+                            $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" || _rules_error=1
+                            _input_start="$((_input_start+2))"
+                        done
+                    else
+                        logecho "Unable to find the 'state INVALID' rule in the INPUT FILTER chain"
+                    fi
                 fi
             ;;
             "remove")
                 if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
                     for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -D FORWARD -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
+                        $_iptables -D FORWARD -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT" || _rules_error=1
                     done
 
                     $_iptables -F "$CHAIN_DOT"
-                    $_iptables -X "$CHAIN_DOT"
+                    $_iptables -X "$CHAIN_DOT" || _rules_error=1
                 fi
 
                 if $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
                     for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
-                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
+                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT" || _rules_error=1
+                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT" || _rules_error=1
                     done
 
                     $_iptables -t nat -F "$CHAIN_DNAT"
-                    $_iptables -t nat -X "$CHAIN_DNAT"
+                    $_iptables -t nat -X "$CHAIN_DNAT" || _rules_error=1
                 fi
 
                 if $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
@@ -155,16 +161,19 @@ iptables_chains() {
                     fi
 
                     for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -D INPUT -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
-                        $_iptables -D INPUT -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
+                        $_iptables -D INPUT -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" || _rules_error=1
+                        $_iptables -D INPUT -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" || _rules_error=1
                     done
 
                     $_iptables -F "$CHAIN_BLOCK"
-                    $_iptables -X "$CHAIN_BLOCK"
+                    $_iptables -X "$CHAIN_BLOCK" || _rules_error=1
                 fi
             ;;
         esac
     done
+
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall chains ($1)"
+    _rules_error=0
 }
 
 iptables_rules() {
@@ -210,9 +219,12 @@ iptables_rules() {
             for _mac in $PERMIT_MAC; do
                 _mac="$(echo "$_mac" | awk '{$1=$1};1')"
 
-                $_iptables -t nat "$_action" "$CHAIN_DNAT" -m mac --mac-source "$_mac" -j RETURN
-                $_iptables "$_action" "$CHAIN_DOT" -m mac --mac-source "$_mac" -j RETURN
-                [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -m mac --mac-source "$_mac" -j RETURN
+                $_iptables -t nat "$_action" "$CHAIN_DNAT" -m mac --mac-source "$_mac" -j RETURN || _rules_error=1
+                $_iptables "$_action" "$CHAIN_DOT" -m mac --mac-source "$_mac" -j RETURN || _rules_error=1
+
+                if [ "$_block_router_dns" = true ]; then
+                    $_iptables "$_action" "$CHAIN_BLOCK" -m mac --mac-source "$_mac" -j RETURN || _rules_error=1
+                fi
             done
         fi
 
@@ -222,30 +234,47 @@ iptables_rules() {
                     _ip="$(echo "$_ip" | awk '{$1=$1};1')"
 
                     if [ "${_ip#*"-"}" != "$_ip" ]; then # IP range entry
-                        $_iptables -t nat "$_action" "$CHAIN_DNAT" -m iprange --src-range "$_ip" -j RETURN
-                        $_iptables "$_action" "$CHAIN_DOT" -m iprange --src-range "$_ip" -j RETURN
-                        [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -m iprange --src-range "$_ip" -j RETURN
+                        $_iptables -t nat "$_action" "$CHAIN_DNAT" -m iprange --src-range "$_ip" -j RETURN || _rules_error=1
+                        $_iptables "$_action" "$CHAIN_DOT" -m iprange --src-range "$_ip" -j RETURN || _rules_error=1
+
+                        if [ "$_block_router_dns" = true ]; then
+                            $_iptables "$_action" "$CHAIN_BLOCK" -m iprange --src-range "$_ip" -j RETURN || _rules_error=1
+                        fi
                     else # single IP entry
-                        $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_ip" -j RETURN
-                        $_iptables "$_action" "$CHAIN_DOT" -s "$_ip" -j RETURN
-                        [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_ip" -j RETURN
+                        $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_ip" -j RETURN || _rules_error=1
+                        $_iptables "$_action" "$CHAIN_DOT" -s "$_ip" -j RETURN || _rules_error=1
+
+                        if [ "$_block_router_dns" = true ]; then
+                            $_iptables "$_action" "$CHAIN_BLOCK" -s "$_ip" -j RETURN || _rules_error=1
+                        fi
                     fi
                 done
             else # no IP ranges found, conveniently iptables accept IPs separated by commas
                 _permit_ip="$(echo "$_permit_ip" | tr ' ' ',' | awk '{$1=$1};1')"
-                $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_permit_ip" -j RETURN
-                $_iptables "$_action" "$CHAIN_DOT" -s "$_permit_ip" -j RETURN
-                [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -s "$_permit_ip" -j RETURN
+
+                $_iptables -t nat "$_action" "$CHAIN_DNAT" -s "$_permit_ip" -j RETURN || _rules_error=1
+                $_iptables "$_action" "$CHAIN_DOT" -s "$_permit_ip" -j RETURN || _rules_error=1
+
+                if [ "$_block_router_dns" = true ]; then
+                    $_iptables "$_action" "$CHAIN_BLOCK" -s "$_permit_ip" -j RETURN || _rules_error=1
+                fi
             fi
         fi
 
-        [ "$_block_router_dns" = true ] && $_iptables -t nat "$_action" "$CHAIN_DNAT" -d "$_router_ip" -j RETURN
+        if [ "$_block_router_dns" = true ]; then
+            $_iptables -t nat "$_action" "$CHAIN_DNAT" -d "$_router_ip" -j RETURN || _rules_error=1
+        fi
 
-        $_iptables -t nat "$_action" "$CHAIN_DNAT" ! -d "$_set_dns_server" -j DNAT --to-destination "$_set_dns_server"
-        $_iptables "$_action" "$CHAIN_DOT" ! -d "$_set_dns_server" -j REJECT
+        $_iptables -t nat "$_action" "$CHAIN_DNAT" ! -d "$_set_dns_server" -j DNAT --to-destination "$_set_dns_server" || _rules_error=1
+        $_iptables "$_action" "$CHAIN_DOT" ! -d "$_set_dns_server" -j REJECT || _rules_error=1
 
-        [ "$_block_router_dns" = true ] && $_iptables "$_action" "$CHAIN_BLOCK" -j REJECT
+        if [ "$_block_router_dns" = true ]; then
+            $_iptables "$_action" "$CHAIN_BLOCK" -j REJECT
+        fi
     done
+
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
+    _rules_error=0
 }
 
 rules_exist() {
@@ -259,16 +288,14 @@ rules_exist() {
 }
 
 firewall_rules() {
-    [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Error: Target DNS server is not set"; exit 1; }
-    [ -z "$TARGET_INTERFACES" ] && { logger -st "$script_name" "Error: Target interfaces are not set"; exit 1; }
-
+    validate_config
     lockfile lockwait
 
-    _rules_modified=0
+    _rules_action=0
     case "$1" in
         "add")
             if ! rules_exist "$DNS_SERVER"; then
-                _rules_modified=1
+                _rules_action=1
 
                 iptables_chains remove
 
@@ -279,14 +306,14 @@ firewall_rules() {
                     _dns_server="$DNS_SERVER"
                     [ -n "$DNS_SERVER6" ] && _dns_server=" $DNS_SERVER6"
 
-                    logger -st "$script_name" "Forcing DNS server(s): $_dns_server"
+                    logecho "Forcing DNS servers: $_dns_server" true
                 fi
             fi
         ;;
         "remove")
             if [ -n "$FALLBACK_DNS_SERVER" ]; then
                 if ! rules_exist "$FALLBACK_DNS_SERVER"; then
-                    _rules_modified=-1
+                    _rules_action=-1
 
                     iptables_chains remove
 
@@ -297,12 +324,12 @@ firewall_rules() {
                         _fallback_dns_server="$FALLBACK_DNS_SERVER"
                         [ -n "$FALLBACK_DNS_SERVER6" ] && _fallback_dns_server=" $FALLBACK_DNS_SERVER6"
 
-                        logger -st "$script_name" "Forcing fallback DNS server(s): $_fallback_dns_server"
+                        logecho "Forcing fallback DNS servers: $_fallback_dns_server" true
                     fi
                 fi
             else
                 if rules_exist "$DNS_SERVER" || rules_exist "$FALLBACK_DNS_SERVER"; then
-                    _rules_modified=-1
+                    _rules_action=-1
 
                     iptables_chains remove
                 fi
@@ -310,7 +337,7 @@ firewall_rules() {
         ;;
     esac
 
-    [ -n "$EXECUTE_COMMAND" ] && [ "$_rules_modified" -ne 0 ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
 }
@@ -327,11 +354,12 @@ case "$1" in
         if [ -n "$FALLBACK_DNS_SERVER" ]; then
             firewall_rules remove
         else
-            logger -st "$script_name" "Fallback DNS server(s) not set!"
+            logecho "Fallback DNS servers are not set!"
+            exit 1
         fi
     ;;
     "start")
-        [ -z "$DNS_SERVER" ] && { logger -st "$script_name" "Unable to start - target DNS server is not set"; exit 1; }
+        validate_config
 
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
 

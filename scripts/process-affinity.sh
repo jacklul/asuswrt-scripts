@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Modifies CPU affinity mask of defined processes
+# Modify CPU affinity mask of defined processes
 #
 
 #jas-update=process-affinity.sh
@@ -10,7 +10,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-PROCESS_AFFINITIES="" # List of processes and affinity masks in format "process1:6 process2:4", specify only the process name to set it to /sbin/init affinity minus one
+PROCESS_AFFINITIES="" # List of processes and affinity masks, in format 'process1=6 process2=4', specify only the process name to set it to /sbin/init affinity minus one
 
 load_script_config
 
@@ -19,6 +19,11 @@ init_affinity="$(taskset -p 1 2> /dev/null | sed 's/.*: //')"
 if ! echo "$init_affinity" | grep -q '^[0-9]\+$'; then
     unset init_affinity
 fi
+
+validate_config() {
+    type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found"; exit 1; }
+    [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: Process affinities are not set"; exit 1; }
+}
 
 set_affinity() {
     [ -z "$1" ] && { echo "You must specify a process name"; exit 1; }
@@ -51,15 +56,17 @@ set_affinity() {
 
         if [ "$_pid_affinity" -ne "$2" ]; then
             if taskset -p "$2" "$_pid" > /dev/null; then
-                logger -st "$script_name" "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
+                logecho "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" true
             else
-                logger -st "$script_name" "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
+                logecho "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2"
             fi
         fi
     done
 }
 
 process_affinity() {
+    validate_config
+
     if [ -n "$init_affinity" ]; then
         init_affinity_minus_one=$((init_affinity - 1))
 
@@ -75,11 +82,11 @@ process_affinity() {
 
         case $1 in
             "set")
-                if echo "$_process" | grep -Fq ":"; then
-                    _affinity="$(echo "$_process" | cut -d ':' -f 2 2> /dev/null)"
-                    _process="$(echo "$_process" | cut -d ':' -f 1 2> /dev/null)"
+                if echo "$_process" | grep -Fq "="; then
+                    _affinity="$(echo "$_process" | cut -d '=' -f 2 2> /dev/null)"
+                    _process="$(echo "$_process" | cut -d '=' -f 1 2> /dev/null)"
 
-                    echo "$_process" | grep -Fq ":" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
+                    echo "$_process" | grep -Fq "=" && { echo "Failed to parse list element: $_process"; exit 1; } # no 'cut' command?
                 fi
             ;;
             "unset")
@@ -100,9 +107,6 @@ case $1 in
         process_affinity set
     ;;
     "start")
-        type taskset > /dev/null 2>&1 || { logger -st "$script_name" "Unable to start - command 'taskset' not found"; exit 1; }
-        [ -z "$PROCESS_AFFINITIES" ] && { logger -st "$script_name" "Unable to start - process affinities are not set"; exit 1; }
-
         process_affinity set
         crontab_entry add "*/1 * * * * $script_path run"
     ;;
@@ -112,7 +116,7 @@ case $1 in
         if [ -n "$init_affinity" ]; then
             process_affinity unset
         else
-            echo "Changes made by this script cannot be reverted because the initial affinity mask is unknown - restart the process(es) to restore the original affinity mask(s)"
+            echo "Changes made by this script cannot be reverted because the initial affinity mask is unknown - restart the process(es) to restore the original affinity masks"
         fi
     ;;
     "restart")

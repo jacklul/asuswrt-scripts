@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Install and enable Entware
+# Enable Entware on startup, with installer included
 #
 # Based on:
 #  https://bin.entware.net/armv7sf-k3.2/installer/generic.sh
@@ -19,8 +19,8 @@ ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) 
 ALTERNATIVE=false # Perform alternative install (separated users from the system)
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 BASE_URL="http://bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no ending slash!)
-WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only)
-CACHE_FILE="$TMP_DIR/$script_name" # where to store last device Entware was mounted on
+WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only), set to 0 to only attempt once
+STATE_FILE="$TMP_DIR/$script_name" # where to store last device Entware was mounted on
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
 REQUIRE_NTP=true # require time to be synchronized to start
 ENTWARE_DIR=entware # in case you want to change the directory name on the storage drive
@@ -29,9 +29,11 @@ load_script_config
 
 default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
 last_entware_device=""
-[ -f "$CACHE_FILE" ] && last_entware_device="$(cat "$CACHE_FILE")"
+[ -f "$STATE_FILE" ] && last_entware_device="$(cat "$STATE_FILE")"
+[ -z "$BASE_URL" ] && BASE_URL="$default_base_url"
 check_url="http://$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
+[ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
 
 is_entware_mounted() {
     if mount | grep -Fq "on /opt "; then
@@ -88,7 +90,7 @@ init_opt() {
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted; then
             if ! unmount_opt; then
-                logger -st "$script_name" "Failed to unmount /opt"
+                logecho "Failed to unmount /opt"
                 exit 1
             fi
         fi
@@ -96,16 +98,16 @@ init_opt() {
         if mount --bind "$1" /opt; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
                 _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
-                [ -n "$_mount_device" ] && basename "$_mount_device" > "$CACHE_FILE"
+                [ -n "$_mount_device" ] && basename "$_mount_device" > "$STATE_FILE"
             fi
 
-            logger -st "$script_name" "Mounted '$1' on /opt"
+            logecho "Mounted '$1' on /opt" true
         else
-            logger -st "$script_name" "Failed to mount '$1' on /opt"
+            logecho "Failed to mount '$1' on /opt"
             exit 1
         fi
     else
-        logger -st "$script_name" "Entware not found in '$1'"
+        logecho "Entware not found in '$1'"
         exit 1
     fi
 }
@@ -146,28 +148,28 @@ services() {
         "start")
             if is_entware_mounted; then
                 if [ -f /opt/etc/init.d/rc.unslung ]; then
-                    logger -st "$script_name" "Starting services..."
+                    logecho "Starting services..." true
 
                     /opt/etc/init.d/rc.unslung start "$script_path"
 
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
                 else
-                    logger -st "$script_name" "Unable to start services - Entware is not installed"
+                    logecho "Unable to start services - Entware is not installed"
                     return 1
                 fi
             else
-                logger -st "$script_name" "Unable to start services - Entware is not mounted"
+                logecho "Unable to start services - Entware is not mounted"
                 return 1
             fi
         ;;
         "stop")
             if [ -f /opt/etc/init.d/rc.unslung ]; then
-                logger -st "$script_name" "Stopping services..."
+                logecho "Stopping services..." true
 
                 /opt/etc/init.d/rc.unslung stop "$script_path"
             elif [ -d "/tmp/$script_name-init.d-backup" ]; then
-                logger -st "$script_name" "Killing services..."
+                logecho "Killing services..." true
 
                 if "/tmp/$script_name-init.d-backup/rc.unslung" kill "$script_path"; then
                     rm -rf "/tmp/$script_name-init.d-backup"
@@ -198,13 +200,13 @@ entware() {
 
             if is_entware_mounted; then
                 if unmount_opt; then
-                    logger -st "$script_name" "Unmounted /opt"
+                    logecho "Unmounted /opt" true
                 else
-                    logger -st "$script_name" "Failed to unmount /opt"
+                    logecho "Failed to unmount /opt"
                 fi
             fi
 
-            echo "" > "$CACHE_FILE"
+            echo "" > "$STATE_FILE"
             last_entware_device=""
         ;;
     esac
@@ -222,7 +224,7 @@ echo_and_log() {
 
 symlink_data() {
     if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
-        logger -st "$script_name" "Symlinking data from /jffs/entware..."
+        logecho "Symlinking data from /jffs/entware..."
 
         find /jffs/entware -type f -exec sh -c '
             echo "$1" | grep -q "\.copythisfile$" && exit
@@ -282,6 +284,8 @@ symlink_data() {
 }
 
 entware_in_ram() {
+    [ -z "$INSTALL_LOG" ] && { logecho "Error: Install log file is not set"; exit 1; }
+
     # Prevent the log file from growing above 1MB
     if [ -f "$INSTALL_LOG" ] && [ "$(wc -c < "$INSTALL_LOG")" -gt 1048576 ]; then
         echo_and_log "Truncating $LOG_FILE to 1MB..." "$INSTALL_LOG"
@@ -300,27 +304,27 @@ entware_in_ram() {
 
     if [ ! -f /opt/etc/init.d/rc.unslung ]; then # is it not mounted?
         if [ ! -f /tmp/entware/etc/init.d/rc.unslung ]; then # is it not installed?
-            logger -st "$script_name" "Installing Entware in /tmp/entware..."
+            logecho "Installing Entware in /tmp/entware..."
 
             echo "---------- Installation started at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
 
             if ! sh "$script_path" install /tmp >> "$INSTALL_LOG" 2>&1; then
-                logger -st "$script_name" "Installation failed, check '$INSTALL_LOG' for details"
+                logecho "Installation failed, check '$INSTALL_LOG' for details"
                 return 1
             fi
 
             echo "---------- Installation finished at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
 
-            logger -st "$script_name" "Installation successful"
+            logecho "Installation successful"
         fi
 
         # In case of script restart - /tmp/entware will already exist but won't be mounted
         ! is_entware_mounted && init_opt /tmp/entware
 
-        logger -st "$script_name" "Starting services..."
+        logecho "Starting services..."
 
         if ! /opt/etc/init.d/rc.unslung start "$script_path" >> "$INSTALL_LOG" 2>&1; then
-            logger -st "$script_name" "Failed to start services, check '$INSTALL_LOG' for details"
+            logecho "Failed to start services, check '$INSTALL_LOG' for details"
         fi
 
         echo "---------- Services started at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
@@ -348,7 +352,7 @@ entware_init() {
                 timeout=$((timeout-1))
             done
 
-            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logger -st "$script_name" "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
+            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
         fi
 
         lockfile unlock inram
@@ -435,7 +439,7 @@ case "$1" in
 
         for arg in "$@"; do
             [ "$arg" = "install" ] && continue
-            arg_first="$(echo "$arg" | cut -c1)"
+            arg_first="$(echo "$arg" | cut -c 1)"
 
             if [ "$arg" = "alt" ]; then
                 ALTERNATIVE=true
@@ -476,7 +480,7 @@ case "$1" in
                 "armv7l")
                     ARCHITECTURE="armv7sf-k2.6"
 
-                    if [ "$(echo "$KERNEL" | cut -d'.' -f1)" -gt 2 ]; then
+                    if [ "$(echo "$KERNEL" | cut -d '.' -f 1)" -gt 2 ]; then
                         ARCHITECTURE="armv7sf-k3.2"
                     fi
                 ;;

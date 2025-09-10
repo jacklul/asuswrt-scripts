@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Runs "every minute" jobs one after another to decrease performance impact
+# Run "every minute" jobs one after another to decrease performance impact
 # This only applies to scripts from jacklul/asuswrt-script repository
 #
 
@@ -14,6 +14,8 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 QUEUE_FILE="$TMP_DIR/$script_name" # where to store the queue
 
 load_script_config
+
+[ -z "$QUEUE_FILE" ] && { echo "Queue file is not set"; exit 1; }
 
 case "$1" in
     "run")

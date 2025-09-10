@@ -13,13 +13,13 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-WPS_INTERFACES="wl0 wl0.1 wl0.2 wl0.3 wl0.4 wl1 wl1.1 wl1.2 wl1.3 wl1.4" # interfaces to disable WPS on, usually wl0 for 2.4GHz and wl1 for 5GHz
+WL_INTERFACES="wl0 wl0.1 wl0.2 wl0.3 wl0.4 wl1 wl1.1 wl1.2 wl1.3 wl1.4" # interfaces to disable WPS on, usually wl0 for 2.4GHz and wl1 for 5GHz
 CRON="0 0 * * *" # schedule as cron string
 
 load_script_config
 
 disable_wps() {
-    for _iface in $WPS_INTERFACES; do
+    for _iface in $WL_INTERFACES; do
         _value="$(nvram get "${_iface}_wps_mode")"
 
         if [ -n "$_value" ] && [ "$_value" != "disabled" ]; then
@@ -35,7 +35,7 @@ disable_wps() {
         nvram commit
         service restart_wireless
 
-        logger -st "$script_name" "WPS has been disabled"
+        logecho "WPS has been disabled" true
     fi
 }
 

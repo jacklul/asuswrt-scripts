@@ -3,6 +3,8 @@
 #
 # This script has been renamed to uptime-reboot.sh
 #
+# @TODO Remove after some time
+#
 
 #jas-update=uptime-reboot.sh
 #shellcheck disable=SC2155

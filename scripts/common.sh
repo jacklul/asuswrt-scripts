@@ -79,6 +79,8 @@ if [ "$NO_COLORS" != true ]; then
     frt="[0m"
 fi
 
+[ -t 0 ] && console_is_interactive=true
+
 ####################
 
 # Do not define any variables before this definition without whitespace
@@ -86,6 +88,16 @@ fi
 load_script_config() {
     #shellcheck disable=SC1090
     [ -f "$script_config" ] && . "$script_config"
+}
+
+logecho() { # $2 = force logging to syslog even if interactive
+    [ -z "$1" ] && return 1
+
+    if [ -z "$console_is_interactive" ] || [ -n "$2" ]; then
+        logger -t "$script_name" "$1"
+    fi
+
+    echo "$1"
 }
 
 is_merlin_firmware() {
@@ -140,7 +152,7 @@ lockfile() {
         "lockwait"|"lockfail"|"lockexit")
             for _fd_test in "/proc/$$/fd"/*; do
                 if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logger -st "$script_name" "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
+                    logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
                     exit 1
                 fi
             done
@@ -156,7 +168,7 @@ lockfile() {
                         _lockwait=$((_lockwait-1))
 
                         if [ "$_lockwait" -lt 0 ]; then
-                            logger -st "$script_name" "Failed to acquire a lock after 60 seconds ($_lockfile)"
+                            logecho "Failed to acquire a lock after 60 seconds ($_lockfile)"
                             exit 1
                         fi
 
@@ -202,7 +214,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logger -st "$script_name" "Error: No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logecho "Error: No free file descriptors available"; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -353,7 +365,7 @@ fetch() {
 }
 
 get_script_basename() {
-    [ ! -f "$1" ] && return
+    { [ -z "$1" ] || [ ! -f "$1" ] ; } && return 1
 
     _basename="$(basename "$1")"
     _new_basename="$(grep -E '^#(\s+)?jas-update=' "$1" | sed 's/.*jas-update=//' | sed 's/[[:space:]]*$//')"
@@ -367,6 +379,7 @@ get_script_basename() {
 
 resolve_script_basename() {
     _name="$(basename "$1")"
+    [ -z "$_name" ] && return 1
 
     if [ -f "$SCRIPTS_DIR/$_name" ]; then
         echo "$SCRIPTS_DIR/$_name"
@@ -380,8 +393,8 @@ resolve_script_basename() {
     # Read from cache if available
     if [ -n "$script_basename_cache" ] && echo "$script_basename_cache" | grep -Fq " $_name="; then
         for _entry in $script_basename_cache; do
-            _path="$(echo "$_entry" | cut -d'=' -f2)"
-            _entry="$(echo "$_entry" | cut -d'=' -f1)"
+            _path="$(echo "$_entry" | cut -d '=' -f 2)"
+            _entry="$(echo "$_entry" | cut -d '=' -f 1)"
 
             if [ "$_entry" = "$_name" ]; then
                 echo "$_path"
@@ -423,4 +436,73 @@ execute_script_basename() {
     fi
 
     return 1
+}
+
+interface_exists() {
+    [ -z "$1" ] && return 1
+    _iface="$1"
+
+    if [ "$(printf "%s" "$_iface" | tail -c 1)" = "*" ]; then
+        _iface="${_iface%?}"
+
+        if ip link show | grep -Fq ": $_iface"; then
+            return 0
+        fi
+    elif ip link show $_iface >/dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
+get_wan_interface() {
+    _id="$1"
+    [ -z "$_id" ] && _id=0
+
+    _interface="$(nvram get wan${_id}_ifname)"
+
+    _test="$(nvram get wan${_id}_gw_ifname)"
+    if [ "$_test" != "$_interface" ]; then
+        _interface="$_test"
+    fi
+
+    echo "$_interface"
+}
+
+mask_to_cidr() {
+    [ -z "$1" ] && return 1
+    _mask="$1"
+    _cidr=0
+    IFS='.'
+    for _octet in $_mask; do
+        case $_octet in
+            255) _cidr=$((_cidr + 8)) ;;
+            254) _cidr=$((_cidr + 7)) ;;
+            252) _cidr=$((_cidr + 6)) ;;
+            248) _cidr=$((_cidr + 5)) ;;
+            240) _cidr=$((_cidr + 4)) ;;
+            224) _cidr=$((_cidr + 3)) ;;
+            192) _cidr=$((_cidr + 2)) ;;
+            128) _cidr=$((_cidr + 1)) ;;
+            0) ;;
+            *) echo "Invalid subnet mask octet: $_octet"; return 1 ;;
+        esac
+    done
+    echo "$_cidr"
+}
+
+calculate_network() {
+    { [ -z "$1" ] || [ -z "$2" ] ; } && return 1
+    _ip="$1"
+    _mask="$2"
+    IFS='.'
+    set -- $_ip
+    _ip1=$1; _ip2=$2; _ip3=$3; _ip4=$4
+    set -- $_mask
+    _mask1=$1; _mask2=$2; _mask3=$3; _mask4=$4
+    _net1=$((_ip1 & _mask1))
+    _net2=$((_ip2 & _mask2))
+    _net3=$((_ip3 & _mask3))
+    _net4=$((_ip4 & _mask4))
+    echo "$_net1.$_net2.$_net3.$_net4"
 }

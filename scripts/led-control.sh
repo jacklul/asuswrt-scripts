@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Automatically turns LEDs on/off on by schedule
+# Automatically turn LEDs on/off on by schedule
 #
 # WARNING: This is hit-or-miss on stock firmware as every model does things differently,
 # consider this script proof-of-concept quality
@@ -29,7 +29,7 @@ persistent_state="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
 
 if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
     persistent_state=""
-    logger -st "$script_name" "Persistent LED state is only supported on Asuswrt-Merlin firmware"
+    logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware"
 fi
 
 set_wl_leds() {
@@ -70,7 +70,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logger -st "$script_name" "LEDs are now ON$persistent_state"
+            logecho "LEDs are now ON$persistent_state" true
         ;;
         "off")
             if [ -n "$merlin" ]; then
@@ -84,7 +84,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logger -st "$script_name" "LEDs are now OFF$persistent_state"
+            logecho "LEDs are now OFF$persistent_state" true
         ;;
     esac
 }
@@ -122,7 +122,7 @@ run_schedule() {
                 fi
             fi
         else
-            logger -st "$script_name" "Time is not synchronized after 60 seconds, LEDs will switch state with cron"
+            logecho "Time is not synchronized after 60 seconds, LEDs will switch state with cron"
         fi
     fi
 }
@@ -142,11 +142,11 @@ case "$1" in
             crontab_entry add "${script_name}-On" "$ON_MINUTE $ON_HOUR * * * $script_path on"
             crontab_entry add "${script_name}-Off" "$OFF_MINUTE $OFF_HOUR * * * $script_path off"
 
-            logger -st "$script_name" "LED control schedule has been enabled"
+            logecho "LED control schedule has been enabled" true
 
             run_schedule
         else
-            logger -st "$script_name" "LED control schedule is not set"
+            logecho "LED control schedule is not set"
         fi
     ;;
     "stop")
@@ -158,7 +158,7 @@ case "$1" in
             switch_leds on
         fi
 
-        logger -st "$script_name" "LED control schedule has been disabled"
+        logecho "LED control schedule has been disabled" true
     ;;
     "restart")
         sh "$script_path" stop

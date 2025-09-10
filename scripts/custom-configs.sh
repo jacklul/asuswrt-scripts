@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Modify configuration files of some services
+# Modify configuration files of some selected services
 #
 # Implements Custom config files feature from Asuswrt-Merlin:
 #  https://github.com/RMerl/asuswrt-merlin.ng/wiki/Custom-config-files
@@ -13,10 +13,12 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if process does not stop after SIGTERM
+KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if process does not stop after SIGTERM, empty or -1 means no waiting
 # No RUN_EVERY_MINUTE option here as this script HAS to run every minute to check if any of the configs reverted to default
 
 load_script_config
+
+[ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
 
 readonly ETC_FILES="profile hosts" # /etc files we can modify
 readonly NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
@@ -42,10 +44,10 @@ restart_process() {
 
         kill -s SIGTERM "$_pid" 2> /dev/null
 
-        timeout="$KILL_TIMEOUT"
-        while [ -f "/proc/$_pid/cmdline" ] && [ "$timeout" -ge 0 ]; do
+        _timeout="$KILL_TIMEOUT"
+        while [ -f "/proc/$_pid/cmdline" ] && [ "$_timeout" -ge 0 ]; do
             sleep 1
-            timeout=$((timeout-1))
+            _timeout=$((_timeout-1))
         done
 
         [ -f "/proc/$_pid/cmdline" ] && kill -s SIGKILL "$_pid" 2> /dev/null
@@ -53,7 +55,7 @@ restart_process() {
         if [ -z "$_started" ]; then
             # make sure we are executing build-in binary
             _full_binary_path=
-            if [ "$(echo "$_cmdline" | cut -c1-1)" != "/" ]; then
+            if [ "$(echo "$_cmdline" | cut -c 1-1)" != "/" ]; then
                 _full_binary_path="$(get_binary_location "$_cmdline")"
             fi
 
@@ -61,9 +63,9 @@ restart_process() {
                 _cmdline="$(echo "$_cmdline" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')"
 
                 #shellcheck disable=SC2086
-                "$_full_binary_path" $_cmdline && _started=1 && logger -st "$script_name" "Restarted process: $_full_binary_path $_cmdline"
+                "$_full_binary_path" $_cmdline && _started=1 && logecho "Restarted process: $_full_binary_path $_cmdline" true
             else
-                $_cmdline && _started=1 && logger -st "$script_name" "Restarted process: $_cmdline"
+                $_cmdline && _started=1 && logecho "Restarted process: $_cmdline" true
             fi
         fi
     done
@@ -113,11 +115,11 @@ modify_config_file() {
     fi
 
     if [ -f "/jffs/configs/$_basename" ] && is_file_replace_supported "$1"; then
-        logger -st "$script_name" "Replacing '$1' with '/jffs/configs/$_basename'..."
+        logecho "Replacing '$1' with '/jffs/configs/$_basename'..." true
 
         cat "/jffs/configs/$_basename" > "$1.new"
     elif [ -f "/jffs/configs/$_basename.add" ]; then
-        logger -st "$script_name" "Appending '/jffs/configs/$_basename.add' to '$1'..."
+        logecho "Appending '/jffs/configs/$_basename.add' to '$1'..." true
 
         cp "$1" "$1.new"
         cat "/jffs/configs/$_basename.add" >> "$1.new"
@@ -132,10 +134,10 @@ run_postconf_script() {
         return
     fi
 
-    _basename="$(basename "$1" | cut -d. -f1)"
+    _basename="$(basename "$1" | cut -d '.' -f 1)"
 
     if [ -x "/jffs/scripts/$_basename.postconf" ]; then
-        logger -st "$script_name" "Running '/jffs/scripts/$_basename.postconf' script..."
+        logecho "Running '/jffs/scripts/$_basename.postconf' script..." true
 
         [ ! -f "$1.new" ] && cp "$1" "$1.new"
         sh "/jffs/scripts/$_basename.postconf" "$1.new"
@@ -146,7 +148,7 @@ add_modified_mark() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
     [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
 
-    _basename="$(basename "$1" | cut -d. -f1)"
+    _basename="$(basename "$1" | cut -d '.' -f 1)"
     _comment="#"
 
     case "$_basename" in
@@ -187,7 +189,7 @@ restore_etc_files() {
         if  [ -f "/etc/$_file.bak" ] && [ -f "/etc/$_file.new" ]; then
             cp -f "/etc/$_file.bak" "/etc/$_file"
             rm -f "/etc/$_file.new"
-            logger -st "$script_name" "Restored: /etc/$_file"
+            logecho "Restored: /etc/$_file" true
         fi
     done
 }
@@ -221,7 +223,7 @@ modify_service_config_file() {
 
                 case "$2" in
                     "avahi-daemon")
-                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logger -st "$script_name" "Restarted process: avahi-daemon"
+                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logecho "Restarted process: avahi-daemon" true
                     ;;
                     "samba")
                         restart_process nmbd
@@ -292,7 +294,7 @@ restore_service_config_file() {
 
         rm -f "$1.new"
 
-        logger -st "$script_name" "Restarted service: $_service"
+        logecho "Restarted service: $_service" true
     fi
 }
 
@@ -375,10 +377,10 @@ case "$1" in
     ;;
     "modify")
         lockfile lockfail modify
-        modify_config_file "$1"
-        run_postconf_script "$1"
-        add_modified_mark "$1.new"
-        commit_new_file "$1"
+        modify_config_file "$2"
+        run_postconf_script "$2"
+        add_modified_mark "$2.new"
+        commit_new_file "$2"
         lockfile unlock modify
     ;;
     "start")

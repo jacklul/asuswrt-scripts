@@ -2,7 +2,9 @@
 # Made by Jack'lul <jacklul.github.io>
 #
 # On 2025-09-05 project went through an overhaul and this script is no longer maintained.
-# This script will fetch itself from legacy branch for existing users to keep it working
+# This script will fetch itself from legacy branch for existing users to keep old scripts working
+#
+# @TODO Remove after some time
 #
 
 #jacklul-asuswrt-scripts-update=update-scripts.sh

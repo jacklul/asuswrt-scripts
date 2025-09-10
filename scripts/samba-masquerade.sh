@@ -3,6 +3,8 @@
 #
 # This script has been renamed to vpn-samba.sh
 #
+# @TODO Remove after some time
+#
 
 #jas-update=vpn-samba.sh
 #shellcheck disable=SC2155

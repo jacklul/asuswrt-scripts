@@ -1,9 +1,8 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Modify rc_support nvram variable
-#
-# This does not unlock any features, mostly useful to hide stuff from the WebUI
+# Modify rc_support nvram variable to show/hide features in the WebUI
+# This does not unlock any hidden features
 #
 
 #jas-update=modify-features.sh
@@ -14,15 +13,21 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
-CACHE_FILE="$TMP_DIR/$script_name" # file to store last contents of the variable in
+STATE_FILE="$TMP_DIR/$script_name" # file to store last contents of the variable in
 BACKUP_FILE="/tmp/rc_support.bak" # file to store backup of the variable in
 RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
 
+validate_config() {
+    { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: Configuration is not set"; exit 1; }
+}
+
 rc_support() {
     case "$1" in
         "modify")
+            validate_config
+
             if [ ! -f "$BACKUP_FILE" ]; then
                 rc_support="$(nvram get rc_support)"
                 echo "$rc_support" > "$BACKUP_FILE"
@@ -31,8 +36,8 @@ rc_support() {
                 rc_support="$(cat "$BACKUP_FILE")"
             fi
 
-            if [ -f "$CACHE_FILE" ]; then
-                rc_support_last="$(cat "$CACHE_FILE")"
+            if [ -f "$STATE_FILE" ]; then
+                rc_support_last="$(cat "$STATE_FILE")"
             fi
 
             [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit
@@ -51,23 +56,23 @@ rc_support() {
 
             rc_support="$(echo "$rc_support" | tr -s ' ')"
 
-            echo "$rc_support" > "$CACHE_FILE"
+            echo "$rc_support" > "$STATE_FILE"
 
             nvram set rc_support="$rc_support"
 
-            logger -st "$script_name" "Modified rc_support"
+            logecho "Modified rc_support" true
         ;;
         "restore")
-            rm -f "$CACHE_FILE"
+            rm -f "$STATE_FILE"
 
             if [ -f "$BACKUP_FILE" ]; then
                 rc_support="$(cat "$BACKUP_FILE")"
 
                 nvram set rc_support="$rc_support"
 
-                logger -st "$script_name" "Restored original rc_support"
+                logecho "Restored original rc_support" true
             else
-                logger -st "$script_name" "Could not find '$BACKUP_FILE' - cannot restore original rc_support!"
+                logecho "Could not find '$BACKUP_FILE' - cannot restore original rc_support!"
             fi
         ;;
     esac
@@ -75,12 +80,11 @@ rc_support() {
 
 case "$1" in
     "run")
-        [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] && exit
         rc_support modify
     ;;
     "check") # used by service-event script
-        if [ -f "$CACHE_FILE" ]; then
-            rc_support_last="$(cat "$CACHE_FILE")"
+        if [ -f "$STATE_FILE" ]; then
+            rc_support_last="$(cat "$STATE_FILE")"
 
             [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit 0
         fi
@@ -88,8 +92,6 @@ case "$1" in
         exit 1
     ;;
     "start")
-        { [ -z "$FEATURES_REMOVE" ] || [ -z "$FEATURES_ADD" ] ; } && { logger -st "$script_name" "Unable to start - configuration is not set"; exit 1; }
-
         rc_support modify
 
         # Set value of empty RUN_EVERY_MINUTE depending on situation

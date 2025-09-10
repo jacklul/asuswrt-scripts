@@ -69,7 +69,7 @@ for file in $(/opt/bin/find /opt/etc/init.d/ -perm '-u+x' -name 'S*'); do
             exec "$file" "$action" "$caller"
         fi
 
-        check="$(echo "$check" | cut -c2-)"
+        check="$(echo "$check" | cut -c 2-)"
         max=$((max-1))
     done
 done

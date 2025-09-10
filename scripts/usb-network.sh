@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Connects any USB networking device to your LAN
+# Connect any USB networking gadget device to your LAN
 #
 # To be used with devices that can use USB Gadget mode.
 # Raspberry Pi Zero will probably be the best for this.
@@ -14,8 +14,8 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-BRIDGE_INTERFACE="br0" # bridge interface to add into, by default LAN bridge ("br0") interface
-EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action, $2 = interface)
+BRIDGE_INTERFACE="br0" # bridge interface to add into, by default LAN bridge (br0) interface
+EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action (add/remove), $2 = interface)
 RUN_EVERY_MINUTE= # scan for new interfaces to add to bridge periodically (true/false), empty means false when hotplug-event and service-event script are available but otherwise true
 
 load_script_config
@@ -39,7 +39,7 @@ is_interface_up() {
 }
 
 setup_inteface() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Error: Bridge interface is not set"; exit 1; }
+    [ -z "$BRIDGE_INTERFACE" ] && { logecho "Error: Bridge interface is not set"; exit 1; }
     [ -z "$2" ] && { echo "You must specify a network interface"; exit 1; }
 
     lockfile lockwait
@@ -49,21 +49,21 @@ setup_inteface() {
             [ ! -d "/sys/class/net/$2" ] && return
 
             if ! is_interface_up "$2"; then
-                logger -st "$script_name" "Bringing interface $2 up..."
+                logecho "Bringing interface '$2' up..."
                 ifconfig "$2" up
             fi
 
             if ! brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
-                logger -st "$script_name" "Added interface $2 to bridge $BRIDGE_INTERFACE"
+                logecho "Added interface '$2' to bridge '$BRIDGE_INTERFACE'" true
             fi
         ;;
         "remove")
             if brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
-                logger -st "$script_name" "Removed interface $2 from bridge $BRIDGE_INTERFACE"
+                logecho "Removed interface '$2' from bridge '$BRIDGE_INTERFACE'" true
             fi
 
             if [ -d "/sys/class/net/$2" ] && is_interface_up "$2"; then
-                logger -st "$script_name" "Taking interface $2 down..."
+                logecho "Taking interface '$2' down..."
                 ifconfig "$2" down
             fi
         ;;
@@ -108,8 +108,6 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -z "$BRIDGE_INTERFACE" ] && { logger -st "$script_name" "Unable to start - bridge interface is not set"; exit 1; }
-
         setup_interfaces add
 
         # Set value of empty RUN_EVERY_MINUTE depending on situation

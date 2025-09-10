@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made by Jack'lul <jacklul.github.io>
 #
-# Setup and enable swap file on startup
+# Enable swap file on startup
 #
 # Based on:
 #  https://github.com/decoderman/amtm/blob/master/amtm_modules/swap.mod
@@ -29,13 +29,13 @@ find_swap_file() {
 }
 
 create_swap() {
-    [ -z "$SWAP_FILE" ] && { logger -st "$script_name" "Error: Swap file is not set"; exit 1; }
-    [ -z "$SWAP_SIZE" ] && { logger -st "$script_name" "Error: Swap size is not set"; exit 1; }
-    grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps && { logger -st "$script_name" "Error: Swap file is mounted"; exit 1; }
+    [ -z "$SWAP_FILE" ] && { logecho "Error: Swap file is not set"; exit 1; }
+    [ -z "$SWAP_SIZE" ] && { logecho "Error: Swap size is not set"; exit 1; }
+    grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps && { logecho "Error: Swap file is mounted"; exit 1; }
 
     set -e
 
-    logger -st "$script_name" "Creating swap file... ($SWAP_SIZE KB)"
+    logecho "Creating swap file... ($SWAP_SIZE KB)"
 
     touch "$SWAP_FILE"
     dd if=/dev/zero of="$SWAP_FILE" bs=1k count="$SWAP_SIZE"
@@ -58,14 +58,14 @@ enable_swap() {
         if [ -f "$SWAP_FILE" ]; then
             if swapon "$SWAP_FILE" ; then
                 #shellcheck disable=SC2012
-                logger -st "$script_name" "Enabled swap file '$SWAP_FILE' ($(/bin/ls -lh "$SWAP_FILE" | awk '{print $5}'))"
+                logecho "Enabled swap file '$SWAP_FILE' ($(/bin/ls -lh "$SWAP_FILE" | awk '{print $5}'))" true
 
                 if [ -n "$SWAPPINESS" ]; then
                     echo "$SWAPPINESS" > /proc/sys/vm/swappiness
-                    logger -st "$script_name" "Set swappiness to $SWAPPINESS"
+                    logecho "Set swappiness to: $SWAPPINESS" true
                 fi
             else
-                logger -st "$script_name" "Failed to enable swap on '$SWAP_FILE'"
+                logecho "Failed to enable swap on '$SWAP_FILE'"
             fi
         fi
     fi
@@ -85,9 +85,9 @@ disable_swap() {
     echo 3 > /proc/sys/vm/drop_caches
 
     if swapoff "$_swap_file" ; then
-        logger -st "$script_name" "Disabled swap on '$_swap_file'"
+        logecho "Disabled swap on '$_swap_file'" true
     else
-        logger -st "$script_name" "Failed to disable swap on '$_swap_file'"
+        logecho "Failed to disable swap on '$_swap_file'"
     fi
 }
 
@@ -112,7 +112,7 @@ case "$1" in
                         exit
                     fi
 
-                    [ "$timeout" -le 0 ] && logger -st "$script_name" "Device /dev/$DEVICENAME did not mount within 60 seconds"
+                    [ "$timeout" -le 0 ] && logecho "Device '/dev/$DEVICENAME' did not mount within 60 seconds"
                 ;;
                 "remove")
                     # officially multiple swap files are not supported but try to handle it...
@@ -134,10 +134,7 @@ case "$1" in
         create_swap
     ;;
     "start")
-        if [ "$(nvram get usb_idle_enable)" != "0" ]; then
-            logger -st "$script_name" "Unable to enable swap - USB idle timeout is set"
-            exit 1
-        fi
+        [ "$(nvram get usb_idle_enable)" != "0" ] && { logecho "Error: USB idle timeout is set"; exit 1; }
 
         crontab_entry add "*/1 * * * * $script_path run"
         enable_swap

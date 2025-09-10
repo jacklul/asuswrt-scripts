@@ -18,36 +18,28 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
-CACHE_FILE="$TMP_DIR/$script_name" # where to store last parsed log line in case of crash
+STATE_FILE="$TMP_DIR/$script_name" # where to store last parsed log line in case of crash
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
 
 load_script_config
 
-if [ -n "$CUSTOM_CHECKS" ]; then
-    logger -st "$script_name" "Config variable CUSTOM_CHECKS has been deprecated, the functionality is now always active!"
-fi
-
 is_merlin_firmware && merlin=true
-
-# Chain names definitions, must be changed if they were modified in their scripts
-readonly CHAINS_CHECK="SERVICE_EVENT_CHECK"
+readonly CHECK_CHAIN="jas-$script_name"
+readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
 
 custom_checks() {
     change_interface=false
     change_firewall=false
 
-    _addr="127.83.69.33/8" # asci SE! - service event !
-    _chain="$CHAINS_CHECK"
-
-    if ! ip addr show dev lo | grep -Fq "inet $_addr "; then
-        ip -4 addr add "$_addr" dev lo label lo:se
+    if ! ip addr show dev lo | grep -Fq "inet $CHECK_IP "; then
+        ip -4 addr add "$CHECK_IP" dev lo label lo:se
         change_interface=true
     fi
 
-    if ! iptables -nL "$_chain" > /dev/null 2>&1; then
-        iptables -N "$_chain"
+    if ! iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1; then
+        iptables -N "$CHECK_CHAIN"
         change_firewall=true
     fi
 
@@ -63,9 +55,11 @@ trigger_event() {
     _target="$2"
 
     if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
-        logger -st "$script_name" "Running script (args: '${_action}' '${_target}') [custom check]"
+        lockfile check "event_${_action}_${_target}" && return # already processing this event
+
+        logecho "Running script (args: '$_action' '$_target') [custom check]" true
     else
-        logger -st "$script_name" "Running script (args: '${_action}' '${_target}')"
+        logecho "Running script (args: '$_action' '$_target')" true
     fi
 
     sh "$script_path" event "$_action" "$_target" "$3" &
@@ -73,27 +67,27 @@ trigger_event() {
 }
 
 service_monitor() {
-    [ ! -f "$SYSLOG_FILE" ] && { logger -st "$script_name" "Error: Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
 
     lockfile lockfail || { echo "Already running! ($lockpid)"; exit 1; }
 
     set -e
 
-    logger -st "$script_name" "Started service event monitoring..."
+    logecho "Started service event monitoring..." true
 
-    if [ -f "$CACHE_FILE" ]; then
-        last_line="$(cat "$CACHE_FILE")"
+    if [ -f "$STATE_FILE" ]; then
+        last_line="$(cat "$STATE_FILE")"
+        initialized=true
     else
         last_line="$(wc -l < "$SYSLOG_FILE")"
         last_line="$((last_line+1))"
+        custom_checks || true # init custom checks only on new launch
     fi
-
-    custom_checks || true
 
     while true; do
         total_lines="$(wc -l < "$SYSLOG_FILE")"
         if [ "$total_lines" -lt "$((last_line-1))" ]; then
-            logger -st "$script_name" "Log file has been rotated, resetting line pointer..."
+            logecho "Log file has been rotated, resetting line pointer..." true
             last_line=1
             continue
         fi
@@ -108,18 +102,18 @@ service_monitor() {
 
                 IFS="$(printf '\n\b')"
                 for new_line in $matching_lines; do
-                    line_number="$(echo "$new_line" | cut -f1 -d:)"
+                    line_number="$(echo "$new_line" | cut -d ':' -f 1)"
                     last_line="$((last_line_old+line_number))"
 
-                    events="$(echo "$new_line" | awk -F 'notify_rc ' '{print $2}')"
+                    if [ -n "$initialized" ]; then
+                        events="$(echo "$new_line" | awk -F 'notify_rc ' '{print $2}')"
 
-                    if [ -n "$init" ]; then
                         oldifs=$IFS
                         IFS=';'
                         for event in $events; do
                             if [ -n "$event" ]; then
-                                event_action="$(echo "$event" | cut -d'_' -f1)"
-                                event_target="$(echo "$event" | cut -d'_' -f2- | cut -d' ' -f1)"
+                                event_action="$(echo "$event" | cut -d '_' -f 1)"
+                                event_target="$(echo "$event" | cut -d '_' -f 2- | cut -d ' ' -f 1)"
 
                                 trigger_event "$event_action" "$event_target"
                             fi
@@ -143,9 +137,9 @@ service_monitor() {
             fi
         fi
 
-        echo "$last_line" > "$CACHE_FILE"
+        echo "$last_line" > "$STATE_FILE"
 
-        [ -z "$init" ] && init=1
+        [ -z "$initialized" ] && initialized=true
 
         sleep "$SLEEP"
     done
@@ -156,27 +150,26 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
-    # build up cache of resolved script paths
-    [ -z "$scripts_resolved" ] && { resolve_script_basename "_____"; scripts_resolved=true; }
-
     # $1 = type, $2 = event, $3 = target, $4 = extra
     case "$1" in
         "firewall")
-            execute_script_basename "vpn-killswitch.sh" run &
-            execute_script_basename "wgs-lanonly.sh" run &
-            execute_script_basename "force-dns.sh" run &
-            execute_script_basename "vpn-samba.sh" run &
+            execute_script_basename "vpn-kill-switch.sh" run
+            execute_script_basename "vpn-firewall.sh" run
+            execute_script_basename "wgs-lan-only.sh" run
+            execute_script_basename "force-dns.sh" run
+            execute_script_basename "vpn-ip-routes.sh" run
+            execute_script_basename "vpn-samba.sh" run
 
-            sh "$script_path" event restart custom_configs "$4" &
+            sh "$script_path" event restart custom_configs "$4"
         ;;
         "network")
-            execute_script_basename "usb-network.sh" run &
-            execute_script_basename "extra-ip.sh" run &
-            execute_script_basename "dynamic-dns.sh" run &
+            execute_script_basename "usb-network.sh" run
+            execute_script_basename "extra-ip.sh" run
+            execute_script_basename "dynamic-dns.sh" run
         ;;
         "wireless")
             # probably a good idea to run this just in case
-            execute_script_basename "disable-wps.sh" run &
+            execute_script_basename "disable-wps.sh" run
 
             # this service event recreates rc_support so we have to re-run this script
             _tmp_script_path="$(resolve_script_basename "modify-features.sh")"
@@ -190,12 +183,12 @@ integrated_event() {
                     done
                 fi
 
-                sh "$_tmp_script_path" run &
+                sh "$_tmp_script_path" run
             fi
         ;;
         "usb_idle")
             # re-run in case script exited due to USB idle being set and now it has been disabled
-            execute_script_basename "swap.sh" run &
+            execute_script_basename "swap.sh" run
         ;;
         "custom_configs")
             _tmp_script_path="$(resolve_script_basename "custom-configs.sh")"
@@ -224,7 +217,7 @@ case "$1" in
     ;;
     "event")
         if [ "$4" = "ccheck" ]; then
-            lockfile lockfail "event_${2}_${3}" || { logger -st "$script_name" "Error: This event is already being processed (args: '$2' '$3')"; exit 1; }
+            lockfile lockfail "event_${2}_${3}" || { echo "Error: This event is already being processed (args: '$2' '$3')"; exit 1; }
         else
             lockfile lockwait "event_${2}_${3}"
         fi
@@ -233,19 +226,21 @@ case "$1" in
         case "$3" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
-                    timer=15; while { # wait till our chains disappear
-                        iptables -nL "$CHAINS_CHECK" > /dev/null 2>&1
+                    timer=10; while { # wait till our chains disappear
+                        iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1
                     } && [ "$timer" -ge 0 ]; do
                         timer=$((timer-1))
                         sleep 1
                     done
+                else
+                    sleep 5
                 fi
 
                 integrated_event firewall "$2" "$3" "$4"
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
-                    timer=15; while { # wait until wan goes down
+                    timer=10; while { # wait until wan goes down
                         { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
                         { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
                     } && [ "$timer" -ge 0 ]; do
@@ -260,6 +255,8 @@ case "$1" in
                         timer=$((timer-1))
                         sleep 1
                     done
+                else
+                    sleep 5
                 fi
 
                 integrated_event network "$2" "$3" "$4"
