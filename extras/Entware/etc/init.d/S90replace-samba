@@ -9,11 +9,17 @@
 [ ! -x /opt/usr/sbin/samba_multicall ] && exit 0
 { [ ! -x /opt/sbin/smbd ] || [ ! -x /opt/sbin/nmbd ] ; } && exit 0
 
+mkdir -p /opt/var/log/samba
+mkdir -p /opt/var/lib/samba/private
+mkdir -p /opt/var/cache/samba
+mkdir -p /opt/var/run/samba/ncalrpc
+
 case $1 in
     start|restart)
         chmod -x /opt/etc/init.d/S91smb # Disable Entware's smb init script
 
         if ! mount | grep -Fq "on /usr/sbin/samba_multicall "; then
+            cp /usr/sbin/smbpasswd /opt/var/run/smbpasswd
             mount -o bind /opt/usr/sbin/samba_multicall /usr/sbin/samba_multicall
             service restart_samba
         fi
@@ -23,6 +29,8 @@ case $1 in
             umount /usr/sbin/samba_multicall
             service restart_samba
         fi
+
+        rm -f /opt/var/run/smbpasswd
     ;;
     check)
         if ! mount | grep -Fq "on /usr/sbin/samba_multicall "; then
