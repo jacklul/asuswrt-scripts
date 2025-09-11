@@ -20,54 +20,47 @@ PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 
 load_script_config
 
-validate_config() {
-    [ -z "$PROCESSES_TO_KILL" ] && { logecho "Error: Processes to kill are not set"; exit 1; }
-}
-
 process_killer() {
-    if [ -n "$PROCESSES_TO_KILL" ]; then
-        for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
-            filepath="$process"
+    [ -z "$PROCESSES_TO_KILL" ] && { logecho "Error: PROCESSES_TO_KILL is not set"; exit 1; }
 
-            if [ ! -f "$filepath" ]; then
-                tmp=$(which "$process")
+    for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
+        filepath="$process"
 
-                [ -n "$tmp" ] && filepath=$tmp
+        if [ ! -f "$filepath" ]; then
+            tmp=$(which "$process")
+
+            [ -n "$tmp" ] && filepath=$tmp
+        fi
+
+        [ -f "$filepath" ] && mount | grep -F "$filepath" > /dev/null && continue
+
+        filename="$(basename "$filepath")"
+        fileext="${filename##*.}"
+
+        if [ "$fileext" = "ko" ]; then
+            modulename="${filename%.*}"
+            filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
+
+            if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
+                lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logecho "Blocked kernel module: $process" true && usleep 250000
+                mount -o bind /dev/null "$filepath"
             fi
+        else
+            [ -n "$(pidof "$filename")" ] && killall "$filename" && logecho "Killed process: $process" true
 
-            [ -f "$filepath" ] && mount | grep -F "$filepath" > /dev/null && continue
-
-            filename="$(basename "$filepath")"
-            fileext="${filename##*.}"
-
-            if [ "$fileext" = "ko" ]; then
-                modulename="${filename%.*}"
-                filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
-
-                if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                    lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logecho "Blocked kernel module: $process" true && usleep 250000
-                    mount -o bind /dev/null "$filepath"
-                fi
-            else
-                [ -n "$(pidof "$filename")" ] && killall "$filename" && logecho "Killed process: $process" true
-
-                if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                    usleep 250000
-                    mount -o bind /dev/null "$filepath"
-                fi
+            if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
+                usleep 250000
+                mount -o bind /dev/null "$filepath"
             fi
-        done
-    fi
+        fi
+    done
 }
 
 case "$1" in
     "run")
-        validate_config
         process_killer
     ;;
     "start")
-        validate_config
-
         if [ ! -t 0 ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && process_killer; } & # delay when freshly booted
         else

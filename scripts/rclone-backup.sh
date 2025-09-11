@@ -52,7 +52,7 @@ case "$1" in
             fi
         fi
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logecho "Error: WAN network is not connected"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logecho "Error: WAN network is not connected"; return 1; }
         [ ! -f "$RCLONE_PATH" ] && { logecho "Error: Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
         [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
         [ ! -f "$FILTER_FILE" ] && { logecho "Error: Could not find filter file: $FILTER_FILE"; exit 1; }

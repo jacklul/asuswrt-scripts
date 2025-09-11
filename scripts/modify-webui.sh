@@ -14,6 +14,7 @@ TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_al
 TMP_WWW_DIR="$TMP_DIR/$script_name-www" # directory to store modified files in
 
 load_script_config
+
 is_merlin_firmware && merlin=true
 
 sed_and_check() {

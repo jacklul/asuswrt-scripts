@@ -11,6 +11,9 @@
 [ -n "$JAS_COMMON" ] && return
 readonly JAS_COMMON=1
 
+# Prevent direct execution
+[ "$(basename "$0")" = "common.sh" ] && { echo "This file is not meant to be executed directly"; exit 1; }
+
 # Force a safer umask
 umask 022
 
@@ -37,6 +40,7 @@ TMP_DIR=/tmp/jas # used by the scripts to store temporary data
 NO_COLORS=false # set to true to disable ANSI colors
 RENAME_SUPPORT=false # set to true to enable support for renaming scripts
 EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
+SUPPRESS_LOGGER=false # suppress messages sent via logger command
 DEBUG_LOG=false # set to true to enable debug logging to file
 
 # Migrate old config.conf to new name if it exists
@@ -93,7 +97,7 @@ load_script_config() {
 logecho() { # $2 = force logging to syslog even if interactive
     [ -z "$1" ] && return 1
 
-    if [ -z "$console_is_interactive" ] || [ -n "$2" ]; then
+    if { [ -z "$console_is_interactive" ] || [ -n "$2" ] ; } && [ -z "$SUPPRESS_LOGGER" ]; then
         logger -t "$script_name" "$1"
     fi
 
@@ -473,6 +477,7 @@ mask_to_cidr() {
     [ -z "$1" ] && return 1
     _mask="$1"
     _cidr=0
+    _oldIFS=$IFS
     IFS='.'
     for _octet in $_mask; do
         case $_octet in
@@ -488,21 +493,30 @@ mask_to_cidr() {
             *) echo "Invalid subnet mask octet: $_octet"; return 1 ;;
         esac
     done
+    IFS=$_oldIFS
     echo "$_cidr"
 }
 
+#shellcheck disable=SC2086
 calculate_network() {
     { [ -z "$1" ] || [ -z "$2" ] ; } && return 1
     _ip="$1"
     _mask="$2"
+    _oldIFS=$IFS
     IFS='.'
     set -- $_ip
     _ip1=$1; _ip2=$2; _ip3=$3; _ip4=$4
     set -- $_mask
     _mask1=$1; _mask2=$2; _mask3=$3; _mask4=$4
+    IFS=$_oldIFS
     _net1=$((_ip1 & _mask1))
     _net2=$((_ip2 & _mask2))
     _net3=$((_ip3 & _mask3))
     _net4=$((_ip4 & _mask4))
     echo "$_net1.$_net2.$_net3.$_net4"
+}
+
+get_vpnc_clientlist() {
+    [ -z "$vpnc_clientlist" ] && vpnc_clientlist="$(nvram get vpnc_clientlist | tr '<' '\n')"
+    echo "$vpnc_clientlist"
 }

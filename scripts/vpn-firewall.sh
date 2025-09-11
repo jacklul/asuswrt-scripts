@@ -10,18 +10,13 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-VPN_INTERFACES="wgc+ tun1+"  # VPN interfaces to affect, separated by spaces
+VPN_INTERFACES=""  # VPN interfaces to affect, separated by spaces, empty means auto detect
 ALLOW_INPUT_PORTS="" # allow connections on these ports in the INPUT chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
 ALLOW_FORWARD_PORTS="" # allow connections on these ports in the FORWARD chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
-
-readonly CHAIN_INPUT="jas-${script_name}-input"
-readonly CHAIN_FORWARD="jas-${script_name}-forward"
-for_iptables="iptables"
-[ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
 iptables_chain() {
     # inherited: _iptables
@@ -130,9 +125,26 @@ iptables_rule() {
 }
 
 firewall_rules() {
-    [ -z "$VPN_INTERFACES" ] && { logecho "Error: VPN interfaces are not set"; exit 1; }
+    if [ -z "$VPN_INTERFACES" ]; then
+        vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2}' | grep "^1")" # get only active ones
+
+        if echo "$vpnc_profiles" | grep -Fq "WireGuard"; then
+            VPN_INTERFACES="$VPN_INTERFACES wgc+"
+        fi
+
+        if echo "$vpnc_profiles" | grep -Fq "OpenVPN"; then
+            VPN_INTERFACES="$VPN_INTERFACES tun1+"
+        fi
+
+        [ -z "$VPN_INTERFACES" ] && { echo "Error: VPN_INTERFACES is not set"; exit 1; }
+    fi
 
     lockfile lockwait
+
+    readonly CHAIN_INPUT="jas-${script_name}-input"
+    readonly CHAIN_FORWARD="jas-${script_name}-forward"
+    for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
     for _iptables in $for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then

@@ -15,7 +15,7 @@ QUEUE_FILE="$TMP_DIR/$script_name" # where to store the queue
 
 load_script_config
 
-[ -z "$QUEUE_FILE" ] && { echo "Queue file is not set"; exit 1; }
+[ -z "$QUEUE_FILE" ] && { echo "QUEUE_FILE is not set"; exit 1; }
 
 case "$1" in
     "run")

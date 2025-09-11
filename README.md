@@ -6,10 +6,10 @@ This is a collection of custom scripts for ASUS routers running stock firmware t
 > On **2025-09-05** this project went through an overhaul to make the installation and usage easier!  
 > New main script can migrate the old scripts but starting fresh is recommended!
 
-Most of the scripts were tested on **RT-AX58U v2** running recent official firmware - I give no guarantee that everything will work on other routers.  
+Most of the scripts were tested on **RT-AX58U v2** running recent official firmware - I give no guarantee that everything will work on other routers or older firmware versions.  
 Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as well as [RMerl/asuswrt-merlin.ng](https://github.com/RMerl/asuswrt-merlin.ng) repository.
 
-**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com), [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki) or other sources. Scripts that are based on existing resource have the original linked in the header.**
+**A lot of scripts here are based on resources from [SNBForums](https://www.snbforums.com), [asuswrt-merlin.ng wiki](https://github.com/RMerl/asuswrt-merlin.ng/wiki) or other sources. Scripts based on an existing resource have it linked in the header.**
 
 ## Installation
 
@@ -18,9 +18,10 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as
 > This is not required on Asuswrt-Merlin as you can use [services-start](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start) script.
 
 > [!WARNING]
-> Newer versions of the official firmware have blocked the ability to run scripts using `script_usbmount` NVRAM variable and require a workaround - [look here](/asusware-usbmount).
+> Newer versions of the official firmware have blocked the ability to run scripts using `script_usbmount` NVRAM variable and require a [workaround](/asusware-usb-mount-script).
 >
-> You can check if your router is affected by doing the following:
+> <details>
+> <summary>Instructions to check if your router is affected</summary>
 >
 > - SSH into the router
 > - Run `nvram set script_usbmount="/bin/touch /tmp/yesitworks"`
@@ -28,7 +29,7 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as
 > - Plug in any USB storage - make sure the router mounts it as storage (needs supported filesystem)
 > - Run `cat /tmp/yesitworks` - **if you see `No such file or directory` message then your router is affected**
 >
-> If your router is affected then [apply this workaround](/asusware-usbmount) first.
+> </details>
 
 Run this simple installer to install the main script (`jas.sh`):
 
@@ -425,7 +426,7 @@ _Recommended to use [`service-event`](#user-content-service-event) and [`hotplug
 Prevents remote side of the VPN Fusion connection from initiating connections to the router or devices in LAN.  
 Has an option to allow specific ports in INPUT or FORWARD chains.
 
-By default, interfaces for WireGuard and OpenVPN clients are secured.
+By default, interfaces for WireGuard and OpenVPN clients are affected.
 
 > [!TIP]
 > On Asuswrt-Merlin you should use **VPN director** instead.
@@ -438,8 +439,8 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 Allows routing single IP addresses through specified VPN Fusion profiles.
 
-With extra scripting a basic version of domain based VPN routing can be created.  
-Please note that without `ipset` support adding too many rules will hurt the performance of routing.
+With extra scripting a basic version of domain based VPN routing can be achieved.  
+Please note that without `ipset` support adding too many rules will hurt the routing performance.
 
 > [!TIP]
 > On Asuswrt-Merlin you should use **VPN director** instead.
@@ -464,7 +465,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 ## [`vpn-samba`](/scripts/vpn-samba.sh)
 
-Masquerades Samba ports to allow VPN clients to connect to your LAN shares.
+Masquerades Samba ports to allow VPN clients to connect to your LAN shares without reconfiguring each device.
 
 By default, default networks for WireGuard, OpenVPN and IPSec are allowed.  
 _PPTP has a build-in toggle for this feature in the WebUI so it is not included by default._

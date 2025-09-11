@@ -24,8 +24,9 @@ OFF_MINUTE=0 # minute to turn off the leds
 PERSISTENT=false # should the LED status be persistent between reboots (makes extra writes to the nvram)
 
 load_script_config
+
 is_merlin_firmware && merlin=true
-persistent_state="$([ "$PERSISTENT" = true ] && echo " (preserved)")"
+[ "$PERSISTENT" = true ] && persistent_state=" (preserved)"
 
 if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
     persistent_state=""

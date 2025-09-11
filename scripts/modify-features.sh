@@ -13,20 +13,16 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
-STATE_FILE="$TMP_DIR/$script_name" # file to store last contents of the variable in
 BACKUP_FILE="/tmp/rc_support.bak" # file to store backup of the variable in
+STATE_FILE="$TMP_DIR/$script_name" # file to store last contents of the variable in
 RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
 
-validate_config() {
-    { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: Configuration is not set"; exit 1; }
-}
-
 rc_support() {
     case "$1" in
         "modify")
-            validate_config
+            { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set"; exit 1; }
 
             if [ ! -f "$BACKUP_FILE" ]; then
                 rc_support="$(nvram get rc_support)"

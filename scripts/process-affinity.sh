@@ -20,11 +20,6 @@ if ! echo "$init_affinity" | grep -q '^[0-9]\+$'; then
     unset init_affinity
 fi
 
-validate_config() {
-    type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found"; exit 1; }
-    [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: Process affinities are not set"; exit 1; }
-}
-
 set_affinity() {
     [ -z "$1" ] && { echo "You must specify a process name"; exit 1; }
     [ -z "$2" ] && { echo "You must specify an affinity mask"; exit 1; }
@@ -65,7 +60,8 @@ set_affinity() {
 }
 
 process_affinity() {
-    validate_config
+    type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found"; exit 1; }
+    [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: PROCESS_AFFINITIES is not set"; exit 1; }
 
     if [ -n "$init_affinity" ]; then
         init_affinity_minus_one=$((init_affinity - 1))

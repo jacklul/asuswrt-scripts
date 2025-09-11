@@ -1,14 +1,28 @@
 # What is this?
 
-This is my current workaround for **ASUS routers** that no longer execute command in `script_usbmount` NVRAM variable on USB mount.  
+This is my current workaround for **ASUS routers** that no longer execute commands in the `script_usbmount` NVRAM variable on USB mount.  
 Additionally, the variable is now being cleaned by (most likely) `asd` (**Asus Security Daemon**) on newer firmware.
 
-_Last updated: **2025-09-05**_
+_Last updated: **2025-09-12**_
 
-## How to use this?
+## Installation
 
 **Your router must have a USB port and support ASUS Download Master.**  
-Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
+
+### Automatic
+
+The easiest way to install this is to run the installer while having <ins>only one</ins> USB storage plugged in:
+
+```sh
+# using curl:
+curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/asusware-usb-mount-script/asusware-usb-mount-script.sh" | sh
+# or wget:
+wget "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/asusware-usb-mount-script/asusware-usb-mount-script.sh" -O - | sh
+```
+
+### Manual
+
+If the installer fails for some reason then you can download **[asusware-usb-mount-script.zip](asusware-usb-mount-script.zip)** then extract **asusware.arm** directory to the root of your USB storage device.
 
 > [!IMPORTANT]
 > If your router's architecture is not ARM then you will have to replace it with the correct one in these files:
@@ -22,9 +36,11 @@ Download **[asusware-usbmount.zip](asusware-usbmount.zip)** then extract **asusw
 > Known supported architecture values are `arm, mipsbig, mipsel`.  
 > For `mipsel`, the directory has to be called just **asusware** (no suffix).
 
-**The script is hardcoded to launch `/jffs/scripts/usb-mount-script` script.**  
+## Usage
+
+**The script is hardcoded to launch `/jffs/scripts/usb-mount-script` script after USB storage is mounted.**  
 You can modify `asusware.arm/etc/init.d/S50usb-mount-script` script to run your own logic.  
-You can also add more scripts to `asusware.arm/etc/init.d` directory.
+You can also add more scripts to `asusware.arm/etc/init.d` directory if you wish.
 
 ### If the script does not seem to start...
 

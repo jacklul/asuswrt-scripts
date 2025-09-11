@@ -16,13 +16,13 @@ RUN_EVERY_MINUTE= # verify that the addresses are still set (true/false), empty 
 
 load_script_config
 
-for_ip="ip"
-[ "$(nvram get ipv6_service)" != "disabled" ] && for_ip="$for_ip ip6"
-
 extra_ip() {
-    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: Extra IP addresses are not set"; exit 1; }
+    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: EXTRA_IPS/EXTRA_IPS6 is not set"; exit 1; }
 
-    for _ip in $for_ip; do
+    _for_ip="ip"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_ip="$_for_ip ip6"
+
+    for _ip in $_for_ip; do
         if [ "$_ip" = "ip6" ]; then
             _extra_ips="$EXTRA_IPS6"
             _ip="ip -6"

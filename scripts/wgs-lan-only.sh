@@ -10,23 +10,32 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-WG_INTERFACES="wgs1" # WireGuard server interfaces to set rules for (find it through 'nvram show | grep wgs' or 'ifconfig' command)
-BRIDGE_INTERFACE="br0" # the bridge interface to limit access to, by default only LAN bridge (br0) interface, use br+ to also allow access to guest networks
+WG_INTERFACES="" # WireGuard server interfaces to set rules for (find it through 'ifconfig' command), empty means auto detect
+BRIDGE_INTERFACE="" # the bridge interface to limit access to, set 'br+' to also allow access to guest networks, empty means set to LAN bridge interface
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
 
-for_iptables="iptables"
-[ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
-
 firewall_rules() {
-    [ -z "$WG_INTERFACES" ] && { logecho "Error: WireGuard interfaces are not set"; exit 1; }
-    [ -z "$BRIDGE_INTERFACE" ] && { logecho "Error: Bridge interface is not set"; exit 1; }
+    if [ -z "$WG_INTERFACES" ]; then
+        wgs_unit="$(nvram get wgs_unit)"
+
+        if [ -n "$wgs_unit" ] && [ "$(nvram get "wgs${wgs_unit}_enable")" = "1" ]; then
+            WG_INTERFACES="wgs$wgs_unit"
+        fi
+
+        [ -z "$WG_INTERFACES" ] && { echo "Error: WG_INTERFACES is not set"; exit 1; }
+    fi
+
+    [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
 
     lockfile lockwait
 
-    for _iptables in $for_iptables; do
+    _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    for _iptables in $_for_iptables; do
         case "$1" in
             "add")
                 for _wg_interface in $WG_INTERFACES; do

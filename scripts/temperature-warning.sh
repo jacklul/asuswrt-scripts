@@ -11,15 +11,15 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 TRIGGER_TEMPERATURE=80 # target temperature at which log the warning
-COOLDOWN=300 # how long to wait (seconds) before logging another warning
-STATE_FILE="$TMP_DIR/$script_name" # where to store last warning uptime value
+WARNING_COOLDOWN=300 # how long to wait (seconds) before logging another warning
 EXECUTE_COMMAND="" # execute a command each time warning is issued
+STATE_FILE="$TMP_DIR/$script_name" # where to store last warning uptime value
 
 load_script_config
 
 validate_config() {
-    [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: Target temperature is not set"; exit 1; }
-    [ -z "$COOLDOWN" ] && { logecho "Error: Warning cooldown is not set"; exit 1; }
+    [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set"; exit 1; }
+    [ -z "$WARNING_COOLDOWN" ] && { logecho "Error: WARNING_COOLDOWN is not set"; exit 1; }
 }
 
 get_temperatures() {
@@ -57,7 +57,7 @@ case "$1" in
         uptime="$(awk -F '.' '{print $1}' /proc/uptime)"
         uptime_cached="$([ -f "$STATE_FILE" ] && cat "$STATE_FILE" || echo "0")"
 
-        if [ -z "$uptime_cached" ] || [ "$((uptime_cached+COOLDOWN))" -le "$uptime" ]; then
+        if [ -z "$uptime_cached" ] || [ "$((uptime_cached+WARNING_COOLDOWN))" -le "$uptime" ]; then
             get_temperatures
 
             if [ "$(printf "%.0f" "$cpu_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then

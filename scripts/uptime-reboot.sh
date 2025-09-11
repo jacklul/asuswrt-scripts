@@ -17,7 +17,7 @@ load_script_config
 
 case "$1" in
     "run")
-        if [ -n "$TARGET_UPTIME" ] && [ "$TARGET_UPTIME" != "0" ]; then
+        if [ -n "$TARGET_UPTIME" ] && [ "$TARGET_UPTIME" -gt 3600 ]; then
             current_uptime=$(awk -F '.' '{print $1}' /proc/uptime)
 
             if [ "$current_uptime" -ge "$TARGET_UPTIME" ]; then
@@ -28,7 +28,8 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -z "$TARGET_UPTIME" ] && { logecho "Error: Target uptime is not set"; exit 1; }
+        [ -z "$TARGET_UPTIME" ] && { logecho "Error: TARGET_UPTIME is not set"; exit 1; }
+        [ "$TARGET_UPTIME" -le 3600 ] && { logecho "Error: TARGET_UPTIME must be bigger than 3600"; exit 1; }
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")

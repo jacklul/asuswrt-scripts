@@ -18,10 +18,10 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
-STATE_FILE="$TMP_DIR/$script_name" # where to store last parsed log line in case of crash
-EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
 SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
+EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
+STATE_FILE="$TMP_DIR/$script_name" # where to store last parsed log line in case of crash
 
 load_script_config
 
@@ -32,18 +32,41 @@ readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
 custom_checks() {
     change_interface=false
     change_firewall=false
+    change_wan=false
 
     if ! ip addr show dev lo | grep -Fq "inet $CHECK_IP "; then
-        ip -4 addr add "$CHECK_IP" dev lo label lo:se
-        change_interface=true
+        if [ -n "$change_interface_detected" ]; then
+            ip -4 addr add "$CHECK_IP" dev lo label lo:se
+            change_interface=true
+            change_interface_detected=
+        else
+            change_interface_detected=true
+        fi
     fi
 
     if ! iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1; then
-        iptables -N "$CHECK_CHAIN"
-        change_firewall=true
+        if [ -n "$change_firewall_detected" ]; then
+            iptables -N "$CHECK_CHAIN"
+            change_firewall=true
+            change_firewall_detected=
+        else
+            change_firewall_detected=true
+        fi
     fi
 
-    if [ "$change_interface" = true ] || [ "$change_firewall" = true ]; then
+    # Currently disabled as it triggers on script start because $wan_state_last is not stored persistently
+    #wan_state="$(nvram get wan0_state_t 2> /dev/null)$(nvram get wan1_state_t 2> /dev/null)"
+    #if [ "$wan_state" != "$wan_state_last" ]; then
+    #    if [ -n "$change_wan_detected" ]; then
+    #        wan_state_last="$wan_state"
+    #        change_wan=true
+    #        change_wan_detected=
+    #    else
+    #        change_wan_detected=true
+    #    fi
+    #fi
+
+    if [ "$change_interface" = true ] || [ "$change_firewall" = true ] || [ "$change_wan" = true ]; then
         return 1
     fi
 
@@ -57,7 +80,7 @@ trigger_event() {
     if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
         lockfile check "event_${_action}_${_target}" && return # already processing this event
 
-        logecho "Running script (args: '$_action' '$_target') [custom check]" true
+        logecho "Running script (args: '$_action' '$_target') *" true
     else
         logecho "Running script (args: '$_action' '$_target')" true
     fi
@@ -81,7 +104,7 @@ service_monitor() {
     else
         last_line="$(wc -l < "$SYSLOG_FILE")"
         last_line="$((last_line+1))"
-        custom_checks || true # init custom checks only on new launch
+        custom_checks init || true
     fi
 
     while true; do
@@ -116,6 +139,7 @@ service_monitor() {
                                 event_target="$(echo "$event" | cut -d '_' -f 2- | cut -d ' ' -f 1)"
 
                                 trigger_event "$event_action" "$event_target"
+                                event_triggered=true
                             fi
                         done
                         IFS=$oldifs
@@ -127,8 +151,8 @@ service_monitor() {
             fi
         fi
 
-        if ! custom_checks; then
-            if [ "$change_interface" = true ]; then
+        if [ -z "$event_triggered" ] && ! custom_checks; then
+            if [ "$change_interface" = true ] || [ "$change_wan" = true ]; then
                 trigger_event "restart" "net" "ccheck"
             fi
 
@@ -140,6 +164,7 @@ service_monitor() {
         echo "$last_line" > "$STATE_FILE"
 
         [ -z "$initialized" ] && initialized=true
+        event_triggered=
 
         sleep "$SLEEP"
     done
@@ -160,7 +185,7 @@ integrated_event() {
             execute_script_basename "vpn-ip-routes.sh" run
             execute_script_basename "vpn-samba.sh" run
 
-            sh "$script_path" event restart custom_configs "$4"
+            #sh "$script_path" event restart custom_configs "$4"
         ;;
         "network")
             execute_script_basename "usb-network.sh" run
@@ -232,8 +257,6 @@ case "$1" in
                         timer=$((timer-1))
                         sleep 1
                     done
-                else
-                    sleep 5
                 fi
 
                 integrated_event firewall "$2" "$3" "$4"
@@ -255,8 +278,6 @@ case "$1" in
                         timer=$((timer-1))
                         sleep 1
                     done
-                else
-                    sleep 5
                 fi
 
                 integrated_event network "$2" "$3" "$4"
@@ -302,7 +323,7 @@ EOT
             fi
 
             if ! grep -Fq "$script_path" /jffs/scripts/service-event-end; then
-                echo "$script_path event \"\$1\" \"\$2\" & # github.com/jacklul/asuswrt-scripts" >> /jffs/scripts/service-event-end
+                echo "$script_path event \"\$1\" \"\$2\" & # https://github.com/jacklul/asuswrt-scripts" >> /jffs/scripts/service-event-end
             fi
         else
             crontab_entry add "*/1 * * * * $script_path run"

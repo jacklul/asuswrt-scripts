@@ -20,10 +20,10 @@ ALTERNATIVE=false # Perform alternative install (separated users from the system
 USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 BASE_URL="http://bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no ending slash!)
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only), set to 0 to only attempt once
-STATE_FILE="$TMP_DIR/$script_name" # where to store last device Entware was mounted on
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
 REQUIRE_NTP=true # require time to be synchronized to start
 ENTWARE_DIR=entware # in case you want to change the directory name on the storage drive
+STATE_FILE="$TMP_DIR/$script_name" # where to store last device Entware was mounted on
 
 load_script_config
 
@@ -509,12 +509,6 @@ case "$1" in
             "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
                 install_url="http://$BASE_URL/$ARCHITECTURE/installer"
             ;;
-            #"mipsel"|"armv5"|"armv7"|"x86-32"|"x86-64")
-            #    install_url="http://pkg.entware.net/binaries/$ARCHITECTURE/installer"
-            #;;
-            #"mips")
-            #    install_url="http://pkg.entware.net/binaries/mipsel/installer"
-            #;;
             *)
                 echo "Unsupported architecture: $ARCHITECTURE";
                 exit 1;

@@ -10,27 +10,65 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-VPN_NETWORKS="10.6.0.0/24 10.8.0.0/24 10.10.10.0/24" # VPN networks (IPv4) to allow access to Samba from, separated by spaces
-VPN_NETWORKS6="" # same as VPN_NETWORKS but for IPv6, separated by spaces
-LAN_NETWORK="" # IPv4 LAN network, in format '192.168.0.0/24', empty means auto calculate
+VPN_NETWORKS="" # VPN networks (IPv4) to allow access to Samba from, separated by spaces, empty means auto detect
+VPN_NETWORKS6="" # same as VPN_NETWORKS but for IPv6, separated by spaces, no auto detect available
+LAN_NETWORK="" # IPv4 LAN network, in format '192.168.0.0/24', empty means auto detect
 LAN_NETWORK6="" # IPv6 LAN network, in format 'fd12:3456:789a::/48', if left empty then IPv6 connections will not be handled
-BRIDGE_INTERFACE="br0" # the bridge interface to set rules for, by default only LAN bridge (br0) interface
+BRIDGE_INTERFACE="" # the bridge interface to set rules for, empty means set to LAN bridge interface
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
 
-readonly CHAIN="jas-${script_name}"
-for_iptables="iptables"
-[ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
-
 firewall_rules() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logecho "Error: Bridge interface is not set"; exit 1; }
-    { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; } && { logecho "Error: Allowed VPN networks are not set"; exit 1; }
+    if { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; }; then
+        if [ "$(nvram get wgs_enable)" = "1" ]; then
+            wgs_addr="$(nvram get wgs_addr)" # WireGuard - 10.6.0.1/32
+
+            if [ -n "$wgs_addr" ]; then
+                VPN_NETWORKS="$VPN_NETWORKS $(echo "$wgs_addr" | cut -d '.' -f -3).0/24"
+            fi
+        fi
+
+        if [ "$(nvram get vpn_server_state)" = "2" ]; then
+            vpn_server_sn="$(nvram get vpn_server_sn)" # OpenVPN - 10.8.0.0
+            vpn_server_nm="$(nvram get vpn_server_nm)" # OpenVPN - 255.255.255.0
+
+            if [ -n "$vpn_server_sn" ] && [ -n "$vpn_server_nm" ]; then
+                openvpn_network="$vpn_server_sn/$(mask_to_cidr "$vpn_server_nm")"
+                [ -n "$openvpn_network" ] && VPN_NETWORKS="$VPN_NETWORKS $openvpn_network"
+            fi
+        fi
+
+        if [ "$(nvram get ipsec_server_enable)" = "1" ]; then
+            ipsec_profile=s"$(nvram get ipsec_profile_1)" # IPSec - after 14th '>' is 10.10.10
+
+            if [ -n "$ipsec_profile" ]; then
+                VPN_NETWORKS="$VPN_NETWORKS $(echo "$ipsec_profile" | cut -d '>' -f 15).0/24"
+            fi
+        fi
+
+        # PPTP has build-in toggle for Samba access, so this is not needed
+        #if [ "$(nvram get pptpd_enable)" = "1" ]; then
+        #    pptpd_clients="$(nvram get pptpd_clients)"
+        #
+        #    if [ -n "$pptpd_clients" ]; then
+        #        VPN_NETWORKS="$VPN_NETWORKS $(echo "$pptpd_clients" | cut -d '.' -f -3).0/24"
+        #    fi
+        #fi
+
+        { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; } && { echo "Error: VPN_NETWORKS/VPN_NETWORKS6 is not set"; exit 1; }
+    fi
+
+    [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
 
     lockfile lockwait
 
-    for _iptables in $for_iptables; do
+    readonly CHAIN="jas-${script_name}"
+    _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_networks="$VPN_NETWORKS6"
             _lan_network="$LAN_NETWORK6"

@@ -13,6 +13,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
+CRON="0 */6 * * *" # schedule as cron string
 EMAIL_SMTP=""
 EMAIL_PORT=""
 EMAIL_USERNAME=""
@@ -27,9 +28,8 @@ PUSHOVER_TOKEN=""
 PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
 CUSTOM_COMMAND="" # command will receive the new firmware version as its first parameter
-STATE_FILE="$TMP_DIR/$script_name" # where to store last notified version
 EMAIL_FILE="$TMP_DIR/$script_name.eml" # where to store temporary email message file
-CRON="0 */6 * * *" # schedule as cron string
+STATE_FILE="$TMP_DIR/$script_name" # where to store last notified version
 
 load_script_config
 

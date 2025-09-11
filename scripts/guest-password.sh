@@ -21,18 +21,16 @@ CRON="0 4 * * *" # schedule as cron string
 
 load_script_config
 
-validate_config() {
-    [ -z "$WL_INTERFACES" ] && { logecho "Error: No guest networks to rotate password for are set"; exit 1; }
-    [ -z "$CHARACTER_LIST" ] && { logecho "Error: Characters list is not set"; exit 1; }
-    [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: Password length is not set"; exit 1; }
-}
-
 get_random_password() {
     #shellcheck disable=SC2002
     cat /dev/urandom | env LC_CTYPE=C tr -dc "$CHARACTER_LIST" | head -c $PASSWORD_LENGTH; echo;
 }
 
 rotate_passwords() {
+    [ -z "$WL_INTERFACES" ] && { logecho "Error: WL_INTERFACES is not set"; exit 1; }
+    [ -z "$CHARACTER_LIST" ] && { logecho "Error: CHARACTER_LIST is not set"; exit 1; }
+    [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: PASSWORD_LENGTH is not set"; exit 1; }
+
     for interface in $WL_INTERFACES; do
         ssid="$(nvram get "${interface}_ssid")"
 
@@ -57,12 +55,9 @@ rotate_passwords() {
 
 case "$1" in
     "run")
-        validate_config
         rotate_passwords
     ;;
     "start")
-        validate_config
-
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
 
         if [ "$ROTATE_ON_START" = true ]; then

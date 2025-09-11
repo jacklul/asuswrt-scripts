@@ -390,7 +390,8 @@ case "$1" in
             if [ "$SELF_UPDATE" = true ] && [ "$basename" = "common.sh" ]; then
                 printf "%s " "${fwe}$(basename "$0")${frt}"
 
-                output="$(download_and_check "$(get_script_basename "$script_path")" "$script_path")"
+                remote_basename="$(get_script_basename "$script_path")" # remote file name
+                output="$(download_and_check "$remote_basename" "$script_path")"
                 status=$?
 
                 if [ "$status" -eq 0 ]; then
@@ -517,21 +518,43 @@ EOT
 
                     nvram set script_usbmount="$nvram_script"
 
-                    echo "Waiting for 15 seconds to verify that the value is still set..."
+                    echo "${fwe}Waiting 15 seconds to verify that the value is not getting erased...${frt}"
                     sleep 15
 
                     if [ -z "$(nvram get script_usbmount)" ]; then
                         cat <<EOT
 
 ${fyw}Value has been cleaned by the router - you will have to use a workaround:${frt}
-${fcn}https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usbmount${frt}
+${fcn}https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usb-mount-script${frt}
 
 EOT
-                    else
+
+                        #shellcheck disable=SC3045,SC2162
+                        read -p "${fwe}Do you wish to install the workaround now ?${frt} [y/N] " response
+
+                        case "$response" in
+                            [Yy]*|[Yy][Ee][Ss]*) 
+                                echo # insert empty line after prompt
+
+                                if download_file "$download_url/asusware-usb-mount-script/asusware-usb-mount-script.sh" /tmp/asusware-usb-mount-script.sh; then
+                                    if ! sh /tmp/asusware-usb-mount-script.sh "$BRANCH"; then
+                                        cat <<EOT
+
+${frd}Workaround installation failed!${frt}
+If you wish to re-run the installer execute: '${fwe}sh /tmp/asusware-usb-mount-script.sh${frt}'
+
+EOT
+                                    fi
+                                else
+                                    echo "${frd}Failed to download the installer, you will have to install manually!${frt}"
+                                fi
+                            ;;
+                        esac
+                    else # no workaround needed
                         nvram commit
                         write_to_script=
                     fi
-                else
+                else # do not touch if the variable is already set
                     echo "NVRAM variable '${fwe}script_usbmount${frt}' is set to '${fwe}$current_value${frt}', not touching it!"
                     echo "You will have to make sure that '${fwe}$nvram_script${frt}' command also runs on USB mount!"
                     write_to_script=
@@ -548,19 +571,12 @@ EOT
 
 EOT
                 chmod +x "$write_to_script"
-
-                if [ "$write_to_script" = "/jffs/scripts/usb-mount-script" ]; then
-                    cat <<EOT >> "$write_to_script"
-[ -t 0 ] && exit 1 # Prevent manual execution
-
-EOT
-                fi
             fi
 
             if ! grep -Fq "$script_path" "$write_to_script"; then
                 echo "Adding this script to '${fwe}$write_to_script${frt}'..."
 
-                echo "( $script_path start ) & # github.com/jacklul/asuswrt-scripts" >> "$write_to_script"
+                echo "( $script_path start ) # https://github.com/jacklul/asuswrt-scripts" >> "$write_to_script"
             else
                 echo "Script line already exists in '${fwe}$write_to_script${frt}'"
             fi
@@ -590,8 +606,10 @@ EOT
         if [ -n "$migrated" ]; then
             echo "Running '${fwe}$0 update${frt}':"
 
-            exec /bin/sh "$script_path" update
+            /bin/sh "$script_path" update
         fi
+
+        echo "${fgn}Setup finished!${frt}"
     ;;
     *)
         name="$(basename "$1" .sh)"

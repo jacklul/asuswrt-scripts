@@ -13,26 +13,33 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-TARGET_INTERFACES="br0" # the interfaces to set rules for, by default only LAN bridge (br0) interface, separated by spaces
-WAN_INTERFACES="" # WAN interfaces to block the access to, when empty it will use the main WAN interface, separated by spaces
+TARGET_INTERFACES="" # the interfaces to set rules for, separated by spaces, empty means set to LAN bridge interface
+WAN_INTERFACES="" # WAN interfaces to block the access to, separated by spaces, empty means auto detect
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
 
-for_iptables="iptables"
-[ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
-
 firewall_rules() {
-    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: Target interfaces are not set"; exit 1; }
-    echo "$TARGET_INTERFACES" | grep -Fq "br+" && TARGET_INTERFACES="br+" # sanity set, just in case one sets "br0 br+ br23"
+    if [ -z "$TARGET_INTERFACES" ]; then
+        TARGET_INTERFACES="$(nvram get lan_ifname)"
+    else
+        echo "$TARGET_INTERFACES" | grep -Fq "br+" && TARGET_INTERFACES="br+" # sanity set, just in case one sets "br1 br+ br2"
+    fi
+
+    if [ -z "$WAN_INTERFACES" ]; then
+        [ "$(nvram get wan0_state_t)" != "0" ] && WAN_INTERFACES="$WAN_INTERFACES $(get_wan_interface 0)"
+        [ "$(nvram get wan1_state_t)" != "0" ] && WAN_INTERFACES="$WAN_INTERFACES $(get_wan_interface 1)"
+
+        [ -z "$WAN_INTERFACES" ] && { logecho "Error: WAN_INTERFACES is not set"; exit 1; }
+    fi
 
     lockfile lockwait
 
-    [ -z "$WAN_INTERFACES" ] && WAN_INTERFACES="$(get_wan_interface 0)"
-    [ -z "$WAN_INTERFACES" ] && { logecho "Error: Couldn't get WAN interface name"; exit 1; }
+    _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
-    for _iptables in $for_iptables; do
+    for _iptables in $_for_iptables; do
         case "$1" in
             "add")
                 for _target_interface in $TARGET_INTERFACES; do

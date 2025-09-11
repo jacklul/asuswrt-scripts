@@ -16,12 +16,12 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-DNS_SERVER="" # when left empty will use DNS server set in DHCP DNS1 (or router's address if that field is empty)
+DNS_SERVER="" # when left empty it will use DNS server set on DHCP page or router's address if those fields is empty
 DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use router's address, set to "block" to block IPv6 DNS traffic
 PERMIT_MAC="" # space separated allowed MAC addresses to bypass forced DNS
 PERMIT_IP="" # space separated allowed v4 IPs to bypass forced DNS, ranges supported
 PERMIT_IP6="" # space separated allowed v6 IPs to bypass forced DNS, ranges supported
-TARGET_INTERFACES="br+" # the target interfaces to set rules for, separated by spaces
+TARGET_INTERFACES="br+" # the target interfaces to set rules for, separated by spaces, by default all bridge interfaces (includes guest networks)
 REQUIRE_INTERFACE="" # rules will be removed if this interface is not up, wildcards accepted, set this to "usb*" when using usb-network script and Pi-hole on USB connected Raspberry Pi
 FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
 FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
@@ -34,27 +34,24 @@ RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty mean
 
 load_script_config
 
+router_ip="$(nvram get lan_ipaddr)"
+router_ip6="$(nvram get ipv6_rtr_addr)"
+ipv6_service="$(nvram get ipv6_service)"
+
 if [ -z "$DNS_SERVER" ]; then
     dhcp_dns1="$(nvram get dhcp_dns1_x)"
+    dhcp_dns2="$(nvram get dhcp_dns2_x)"
 
     if [ -n "$dhcp_dns1" ]; then
         DNS_SERVER="$dhcp_dns1"
+    elif [ -n "$dhcp_dns2" ]; then
+        DNS_SERVER="$dhcp_dns2"
     else
         DNS_SERVER="$router_ip"
     fi
 fi
 
-readonly CHAIN_DNAT="jas-${script_name}-dnat"
-readonly CHAIN_DOT="jas-${script_name}-dot"
-readonly CHAIN_BLOCK="jas-${script_name}-block"
-
-router_ip="$(nvram get lan_ipaddr)"
-router_ip6="$(nvram get ipv6_rtr_addr)"
-for_iptables="iptables"
-
-if [ "$(nvram get ipv6_service)" != "disabled" ]; then
-    for_iptables="$for_iptables ip6tables"
-
+if [ "$ipv6_service" != "disabled" ]; then
     if [ -z "$DNS_SERVER6" ]; then
         DNS_SERVER6="$router_ip6"
     elif [ "$DNS_SERVER6" = "block" ]; then
@@ -62,13 +59,10 @@ if [ "$(nvram get ipv6_service)" != "disabled" ]; then
     fi
 fi
 
-validate_config() {
-    [ -z "$DNS_SERVER" ] && { logecho "Error: Target DNS server is not set"; exit 1; }
-    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: Target interfaces are not set"; exit 1; }
-}
-
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
+    _rules_error=
+
     for _iptables in $for_iptables; do
         case "$1" in
             "add")
@@ -173,12 +167,12 @@ iptables_chains() {
     done
 
     [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall chains ($1)"
-    _rules_error=0
 }
 
 iptables_rules() {
     _dns_server="$2"
     _dns_server6="$3"
+    _rules_error=
 
     case "$1" in
         "add")
@@ -274,7 +268,6 @@ iptables_rules() {
     done
 
     [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
-    _rules_error=0
 }
 
 rules_exist() {
@@ -288,8 +281,17 @@ rules_exist() {
 }
 
 firewall_rules() {
-    validate_config
+    [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set"; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set"; exit 1; }
+
     lockfile lockwait
+
+    readonly CHAIN_DNAT="jas-${script_name}-dnat"
+    readonly CHAIN_DOT="jas-${script_name}-dot"
+    readonly CHAIN_BLOCK="jas-${script_name}-block"
+
+    for_iptables="iptables"
+    [ "$ipv6_service" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
     _rules_action=0
     case "$1" in
@@ -359,8 +361,6 @@ case "$1" in
         fi
     ;;
     "start")
-        validate_config
-
         { [ -z "$REQUIRE_INTERFACE" ] || interface_exists "$REQUIRE_INTERFACE" ; } && firewall_rules add
 
         # Set value of empty RUN_EVERY_MINUTE depending on situation

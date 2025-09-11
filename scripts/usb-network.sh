@@ -14,11 +14,15 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-BRIDGE_INTERFACE="br0" # bridge interface to add into, by default LAN bridge (br0) interface
+BRIDGE_INTERFACE="" # bridge interface to add into, by default LAN bridge interface
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action (add/remove), $2 = interface)
 RUN_EVERY_MINUTE= # scan for new interfaces to add to bridge periodically (true/false), empty means false when hotplug-event and service-event script are available but otherwise true
 
 load_script_config
+
+require_bridge_interface() {
+    [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
+}
 
 is_interface_up() {
     [ ! -d "/sys/class/net/$1" ] && return 1
@@ -39,8 +43,8 @@ is_interface_up() {
 }
 
 setup_inteface() {
-    [ -z "$BRIDGE_INTERFACE" ] && { logecho "Error: Bridge interface is not set"; exit 1; }
     [ -z "$2" ] && { echo "You must specify a network interface"; exit 1; }
+    require_bridge_interface
 
     lockfile lockwait
 
@@ -83,6 +87,7 @@ setup_interfaces() {
 
 case "$1" in
     "run")
+        require_bridge_interface
         bridge_members="$(brctl show "$BRIDGE_INTERFACE")"
 
         for interface in /sys/class/net/usb*; do
