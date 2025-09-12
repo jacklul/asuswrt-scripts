@@ -104,8 +104,6 @@ firewall_rules() {
                         $_iptables -t nat -A "$CHAIN" -p udp --dport 137 -j MASQUERADE
                     fi
 
-                    $_iptables -t nat -A "$CHAIN" -j RETURN
-
                     for _vpn_network in $_vpn_networks; do
                         $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" && _rules_action=1 || _rules_error=1
                     done
