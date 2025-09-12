@@ -14,10 +14,7 @@ _Last updated: **2025-09-12**_
 The easiest way to install this is to run the installer while having <ins>only one</ins> USB storage plugged in:
 
 ```sh
-# using curl:
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/asusware-usb-mount-script/asusware-usb-mount-script.sh" | sh
-# or wget:
-wget "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/asusware-usb-mount-script/asusware-usb-mount-script.sh" -O - | sh
 ```
 
 ### Manual

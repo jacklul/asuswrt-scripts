@@ -34,10 +34,7 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as
 Run this simple installer to install the main script (`jas.sh`):
 
 ```sh
-# using curl:
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/install.sh" | sh
-# or wget:
-wget "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/install.sh" -O - | sh
 ```
 
 Then you can proceed to install scripts you want to use:
