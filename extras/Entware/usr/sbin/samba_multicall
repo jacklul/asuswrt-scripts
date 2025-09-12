@@ -6,7 +6,7 @@
 # This script is to replace /usr/sbin/samba_multicall so that Entware's Samba
 # is used instead of the firmware's one
 #
-# You will need to have /opt/etc/init.d/S90replace-samba script to mount this
+# You will also need to have /opt/etc/init.d/S90replace-samba script to mount this
 #
 # Samba 4 config docs: https://www.samba.org/samba/docs/4.18/man-html/smb.conf.5.html
 #
@@ -16,92 +16,72 @@
 
 #shellcheck disable=SC2086
 
-replace_config=false
+# Path to custom-configs script from https://github.com/jacklul/asuswrt-scripts
 custom_configs=/jffs/scripts/jas/custom-configs.sh
 
 #########################
 
-smbconf=/tmp/etc/smb.conf
-target="$(basename "$0")"
-args="$*"
-[ "$(uname -o)" = "ASUSWRT-Merlin" ] && merlin=true
+# Modify config for Samba 4 compatibility if not already done
+# Check for '--version' is added just to let us use 'smbd --version' in the postconf script
+if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep -q "\-\-version"; then
+    fd=1000
+    lockfile=/var/lock/samba_multicall.lock
+    eval exec "$fd>$lockfile"
 
-if [ "$replace_config" = true ] && [ -f /opt/etc/samba/smb.conf ]; then
-    args="$(echo "$args" | sed "s#-s /etc/smb.conf#-s /opt/etc/samba/smb.conf#g")"
-else
-    timeout=60
-    while [ -f /tmp/samba_multicall_lock ] && [ "$timeout" -ge 0 ]; do
-        /opt/bin/find /tmp -maxdepth 1 -name samba_multicall_lock -type f -mmin +1 -exec rm -f {} \; 2> /dev/null
-        sleep 1
+    timeout=15
+    while ! flock -nx "$fd" && [ "$timeout" -ge 0 ]; do
         timeout=$((timeout-1))
+        sleep 1
     done
+    [ "$timeout" -le 0 ] && exit 1
 
-    if [ ! -f /tmp/samba_multicall_lock ]; then
-        touch /tmp/samba_multicall_lock
-        trap 'rm -f /tmp/samba_multicall_lock' EXIT HUP INT TERM
-
-        # Manually call custom-configs script if it exists
-        if [ -z "$merlin" ] && [ -f "$custom_configs" ] && ! grep -Fq "# Modified by" "$smbconf"; then
-            logger -st "$target" "Running custom-configs script on $smbconf"
-            "$custom_configs" modify "$smbconf"
-        fi
-
-        # Either we are on Asuswrt-Merlin or config got modified by custom-configs script
-        if [ -n "$merlin" ] || grep -Fq "# Modified by" "$smbconf"; then
-            if ! grep -Fq "# Modified by samba_multicall" "$smbconf"; then
-                logger -st "$target" "Modifying config for Samba 4.18 compatibility"
-
-                # Remove options not supported by Samba 4.18
-                sed '/^display charset/d' -i "$smbconf"
-                sed '/^use spnego/d' -i "$smbconf"
-                sed '/^auth methods/d' -i "$smbconf"
-
-                # Logging is not enabled by default in Samba 4.18
-                sed "/^log file/a logging = file" -i "$smbconf"
-
-                # Do not limit max protocol to SMB2
-                sed '/^max protocol = SMB2/d' -i "$smbconf"
-
-                # Set private directory to /etc/samba
-                if ! grep -q "^private dir = /etc/samba" "$smbconf"; then
-                    sed '/^private dir =/ s/^/#/' -i "$smbconf"
-                    sed "/^\[global\]/a private dir = /etc/samba" -i "$smbconf"
-                fi
-
-                # Ensure SMB1 is allowed for clients
-                if grep -q "^min protocol = NT1" "$smbconf"; then
-                    sed "/^min protocol = NT1/a client min protocol = NT1" -i "$smbconf"
-                fi
-
-                # Set smbpasswd file to /etc/samba/smbpasswd if using smbpasswd backend
-                if grep -q "^passdb backend = smbpasswd" "$smbconf"; then
-                    sed "/^passdb backend = smbpasswd/a smb passwd file = /etc/samba/smbpasswd" -i "$smbconf"
-                fi
-
-                # Set pid directory to /var/run/samba
-                if ! grep -q "^pid directory = /var/run/samba" "$smbconf"; then
-                    sed '/^pid directory =/ s/^/#/' -i "$smbconf"
-                    sed "/^\[global\]/a pid directory = /var/run/samba" -i "$smbconf"
-                fi
-
-                echo "# Modified by samba_multicall" >> "$smbconf"
-            fi
-        fi
-
-        rm -f /tmp/samba_multicall_lock
+    # Manually call custom-configs script if it exists
+    if [ "$(uname -o)" != "ASUSWRT-Merlin" ] && [ -x "$custom_configs" ] && ! grep -Fq "Modified by" /etc/smb.conf; then
+        "$custom_configs" modify /etc/smb.conf
     fi
+
+    # Remove options not supported by Samba 4
+    sed '/^display charset/d' -i /etc/smb.conf
+    sed '/^use spnego/d' -i /etc/smb.conf
+    sed '/^auth methods/d' -i /etc/smb.conf
+
+    # Logging is not enabled by default in Samba 4
+    sed "/^log file/a logging = file" -i /etc/smb.conf
+
+    # Do not limit max protocol to SMB2
+    sed '/^max protocol = SMB2/d' -i /etc/smb.conf
+
+    # Set private directory to /etc/samba
+    if ! grep -q "^private dir = /etc/samba" /etc/smb.conf; then
+        sed '/^private dir =/ s/^/#/' -i /etc/smb.conf
+        sed "/^\[global\]/a private dir = /etc/samba" -i /etc/smb.conf
+    fi
+
+    # Set smbpasswd file to /etc/samba/smbpasswd if using smbpasswd backend
+    if grep -q "^passdb backend = smbpasswd" /etc/smb.conf; then
+        sed "/^passdb backend = smbpasswd/a smb passwd file = /etc/samba/smbpasswd" -i /etc/smb.conf
+    fi
+
+    # Set pid directory to /var/run/samba
+    if ! grep -q "^pid directory = /var/run/samba" /etc/smb.conf; then
+        sed '/^pid directory =/ s/^/#/' -i /etc/smb.conf
+        sed "/^\[global\]/a pid directory = /var/run/samba" -i /etc/smb.conf
+    fi
+
+    echo "# Modified by samba_multicall" >> /etc/smb.conf
+    flock -u "$fd"
+    rm -f "$lockfile"
 fi
 
-case "$target" in
+case "$(basename "$0")" in
     smbd)
-        exec /opt/sbin/smbd $args
+        exec /opt/sbin/smbd "$@"
     ;;
     nmbd)
-        exec /opt/sbin/nmbd $args
+        exec /opt/sbin/nmbd "$@"
     ;;
     smbpasswd)
-        { [ -x /opt/var/run/smbpasswd ] && [ "$replace_config" != true ] ; } && exec /opt/var/run/smbpasswd $args
-
-        exec /opt/sbin/smbpasswd $args
+        [ -x /opt/var/run/smbpasswd ] && exec /opt/var/run/smbpasswd "$@"
+        exec /opt/sbin/smbpasswd "$@"
     ;;
 esac
