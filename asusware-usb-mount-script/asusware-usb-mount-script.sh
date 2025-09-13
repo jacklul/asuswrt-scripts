@@ -66,6 +66,8 @@ case "$response" in
             fi
 
             if [ ! -f /jffs/scripts/usb-mount-script ]; then
+                [ ! -d /jffs/scripts ] && mkdir -p /jffs/scripts
+
                 cat <<EOT > "/jffs/scripts/usb-mount-script"
 #!/bin/sh
 # https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usb-mount-script
