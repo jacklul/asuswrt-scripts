@@ -105,7 +105,7 @@ Start everything up after you're done installing and configuring the scripts:
 </table>
 
 > [!TIP]
-> You can override a script's configuration variables by creating `.conf` with the same name (for example: `conditional-reboot.conf`).  
+> You can override a script's configuration variables by creating `.conf` with the same name (for example: `uptime-reboot.conf`).  
 > Configuration variables are defined on top of each script - peek into the script to see what is available to change!  
 > You can also use `/jffs/scripts/jas.sh config <name>` command to open configuration file using available text editor (`$EDITOR`).  
 > **Please note that most scripts do not validate values at all, it is your responsibility to make sure that the values you set are correct.**
