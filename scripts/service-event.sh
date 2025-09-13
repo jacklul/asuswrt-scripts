@@ -99,59 +99,59 @@ service_monitor() {
     logecho "Started service event monitoring..." true
 
     if [ -f "$STATE_FILE" ]; then
-        last_line="$(cat "$STATE_FILE")"
-        initialized=true
+        _last_line="$(cat "$STATE_FILE")"
+        _initialized=true
     else
-        last_line="$(wc -l < "$SYSLOG_FILE")"
-        last_line="$((last_line+1))"
+        _last_line="$(wc -l < "$SYSLOG_FILE")"
+        _last_line="$((_last_line+1))"
         custom_checks init || true
     fi
 
     while true; do
-        total_lines="$(wc -l < "$SYSLOG_FILE")"
-        if [ "$total_lines" -lt "$((last_line-1))" ]; then
+        _total_lines="$(wc -l < "$SYSLOG_FILE")"
+        if [ "$_total_lines" -lt "$((_last_line-1))" ]; then
             logecho "Log file has been rotated, resetting line pointer..." true
-            last_line=1
+            _last_line=1
             continue
         fi
 
-        new_lines="$(tail "$SYSLOG_FILE" -n "+$last_line")"
+        _new_lines="$(tail "$SYSLOG_FILE" -n "+$_last_line")"
 
-        if [ -n "$new_lines" ]; then
-            matching_lines="$(echo "$new_lines" | grep -En 'rc_service.*notify_rc' || echo '')"
+        if [ -n "$_new_lines" ]; then
+            _matching_lines="$(echo "$_new_lines" | grep -En 'rc_service.*notify_rc' || echo '')"
 
-            if [ -n "$matching_lines" ]; then
-                last_line_old=$last_line
+            if [ -n "$_matching_lines" ]; then
+                _last_line_old=$_last_line
 
                 IFS="$(printf '\n\b')"
-                for new_line in $matching_lines; do
-                    line_number="$(echo "$new_line" | cut -d ':' -f 1)"
-                    last_line="$((last_line_old+line_number))"
+                for _new_line in $_matching_lines; do
+                    _line_number="$(echo "$_new_line" | cut -d ':' -f 1)"
+                    _last_line="$((_last_line_old+_line_number))"
 
-                    if [ -n "$initialized" ]; then
-                        events="$(echo "$new_line" | awk -F 'notify_rc ' '{print $2}')"
+                    if [ -n "$_initialized" ]; then
+                        _events="$(echo "$_new_line" | awk -F 'notify_rc ' '{print $2}')"
 
-                        oldifs=$IFS
+                        _oldIFS=$IFS
                         IFS=';'
-                        for event in $events; do
-                            if [ -n "$event" ]; then
-                                event_action="$(echo "$event" | cut -d '_' -f 1)"
-                                event_target="$(echo "$event" | cut -d '_' -f 2- | cut -d ' ' -f 1)"
+                        for _event in $_events; do
+                            if [ -n "$_event" ]; then
+                                _event_action="$(echo "$_event" | cut -d '_' -f 1)"
+                                _event_target="$(echo "$_event" | cut -d '_' -f 2- | cut -d ' ' -f 1)"
 
-                                trigger_event "$event_action" "$event_target"
-                                event_triggered=true
+                                trigger_event "$_event_action" "$_event_target"
+                                _event_triggered=true
                             fi
                         done
-                        IFS=$oldifs
+                        IFS=$_oldIFS
                     fi
                 done
             else
-                total_lines="$(echo "$new_lines" | wc -l)"
-                last_line="$((last_line+total_lines))"
+                _total_lines="$(echo "$_new_lines" | wc -l)"
+                _last_line="$((_last_line+_total_lines))"
             fi
         fi
 
-        if [ -z "$event_triggered" ] && ! custom_checks; then
+        if [ -z "$_event_triggered" ] && ! custom_checks; then
             if [ "$change_interface" = true ] || [ "$change_wan" = true ]; then
                 trigger_event "restart" "net" "ccheck"
             fi
@@ -161,10 +161,10 @@ service_monitor() {
             fi
         fi
 
-        echo "$last_line" > "$STATE_FILE"
+        echo "$_last_line" > "$STATE_FILE"
 
-        [ -z "$initialized" ] && initialized=true
-        event_triggered=
+        [ -z "$_initialized" ] && _initialized=true
+        _event_triggered=
 
         sleep "$SLEEP"
     done
