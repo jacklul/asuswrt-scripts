@@ -134,23 +134,8 @@ is_started_by_system() {
 lockfile() {
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
     _lockfile="/var/lock/jas-$script_name.lock"
-    _pidfile="/var/run/jas-$script_name.pid"
-    _fd_min=100
-    _fd_max=200
-
-    if [ -n "$2" ]; then
-        _lockfile="/var/lock/jas-$script_name-$2.lock"
-        _pidfile="/var/run/jas-$script_name-$2.lock"
-    fi
-
-    [ -n "$3" ] && _fd_min="$3" && _fd_max="$3"
-    [ -n "$4" ] && _fd_max="$4"
-
-    [ ! -d /var/lock ] && { mkdir -p /var/lock || exit 1; }
-    [ ! -d /var/run ] && { mkdir -p /var/run || exit 1; }
-
-    lockpid=
-    [ -f "$_pidfile" ] && lockpid="$(cat "$_pidfile")"
+    [ -n "$2" ] && _lockfile="/var/lock/jas-$script_name-$2.lock"
+    [ -f "$_lockfile" ] && lockpid="$(cat "$_lockfile")"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
@@ -161,7 +146,7 @@ lockfile() {
                 fi
             done
 
-            _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
+            _fd=$(lockfile_fd)
             eval exec "$_fd>$_lockfile"
 
             case "$1" in
@@ -177,7 +162,7 @@ lockfile() {
                         fi
 
                         sleep 1
-                        _fd=$(lockfile_fd "$_fd_min" "$_fd_max")
+                        _fd=$(lockfile_fd)
                         eval exec "$_fd>$_lockfile"
                     done
                 ;;
@@ -189,16 +174,16 @@ lockfile() {
                 ;;
             esac
 
-            echo $$ > "$_pidfile"
-            chmod 644 "$_pidfile"
+            echo $$ > "$_lockfile"
+            chmod 644 "$_lockfile"
 
             #shellcheck disable=SC2154
-            trap 'code=$?; flock -u $_fd; rm -f "$_lockfile" "$_pidfile"; exit $code' INT TERM QUIT EXIT
+            trap 'code=$?; flock -u $_fd; rm -f "$_lockfile"; exit $code' INT TERM QUIT EXIT
         ;;
         "unlock")
             flock -u "$_fd"
             eval exec "$_fd>&-"
-            rm -f "$_lockfile" "$_pidfile"
+            rm -f "$_lockfile"
             trap - INT TERM QUIT EXIT
         ;;
         "check")
@@ -213,8 +198,8 @@ lockfile() {
 }
 
 lockfile_fd() {
-    _lfd_min=$1
-    _lfd_max=$2
+    _lfd_min=100
+    _lfd_max=200
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
