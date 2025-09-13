@@ -40,16 +40,18 @@ if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep 
         "$custom_configs" modify /etc/smb.conf
     fi
 
-    # Remove options not supported by Samba 4
-    sed '/^display charset/d' -i /etc/smb.conf
-    sed '/^use spnego/d' -i /etc/smb.conf
-    sed '/^auth methods/d' -i /etc/smb.conf
+    # Disable options not supported by Samba 4
+    sed '/^display charset/ s/^/#/' -i /etc/smb.conf
+    sed '/^use spnego/ s/^/#/' -i /etc/smb.conf
+    sed '/^auth methods/ s/^/#/' -i /etc/smb.conf
+
+    # Do not limit max protocol
+    sed '/^max protocol =/ s/^/#/' -i /etc/smb.conf
 
     # Logging is not enabled by default in Samba 4
-    sed "/^log file/a logging = file" -i /etc/smb.conf
-
-    # Do not limit max protocol to SMB2
-    sed '/^max protocol = SMB2/d' -i /etc/smb.conf
+    if ! grep -q "^logging =" /etc/smb.conf; then
+        sed "/^log file/a logging = file" -i /etc/smb.conf
+    fi
 
     # Set private directory to /etc/samba
     if ! grep -q "^private dir = /etc/samba" /etc/smb.conf; then
@@ -57,9 +59,10 @@ if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep 
         sed "/^\[global\]/a private dir = /etc/samba" -i /etc/smb.conf
     fi
 
-    # Set smbpasswd file to /etc/samba/smbpasswd if using smbpasswd backend
-    if grep -q "^passdb backend = smbpasswd" /etc/smb.conf; then
-        sed "/^passdb backend = smbpasswd/a smb passwd file = /etc/samba/smbpasswd" -i /etc/smb.conf
+    # Set smbpasswd file to /etc/samba/smbpasswd
+    if ! grep -q "^smb passwd file = /etc/samba/smbpasswd" /etc/smb.conf; then
+        sed '/^smb passwd file =/ s/^/#/' -i /etc/smb.conf
+        sed "/^\[global\]/a smb passwd file = /etc/samba/smbpasswd" -i /etc/smb.conf
     fi
 
     # Set pid directory to /var/run/samba
