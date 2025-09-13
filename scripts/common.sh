@@ -40,7 +40,7 @@ TMP_DIR=/tmp/jas # used by the scripts to store temporary data
 NO_COLORS=false # set to true to disable ANSI colors
 RENAME_SUPPORT=false # set to true to enable support for renaming scripts
 EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
-SUPPRESS_LOGGER=false # suppress messages sent via logger command
+NO_LOGGER=false # disable messages sent via logger command
 CAPTURE_OUTPUT=false # set to true to enable logging of stdout/stderr when not running interactively
 
 # Migrate old config.conf to new name if it exists
@@ -52,7 +52,7 @@ fi
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS RENAME_SUPPORT EXCLUDE_OPT_FROM_PATH CAPTURE_OUTPUT
+readonly TMP_DIR NO_COLORS RENAME_SUPPORT EXCLUDE_OPT_FROM_PATH NO_LOGGER CAPTURE_OUTPUT
 
 ####################
 
@@ -97,7 +97,7 @@ load_script_config() {
 logecho() { # $2 = force logging to syslog even if interactive
     [ -z "$1" ] && return 1
 
-    if { [ -z "$console_is_interactive" ] || [ -n "$2" ] ; } && [ "$SUPPRESS_LOGGER" != true ]; then
+    if [ "$NO_LOGGER" != true ] && { [ -z "$console_is_interactive" ] || [ -n "$2" ] ; }; then
         logger -t "$script_name" "$1"
     fi
 
