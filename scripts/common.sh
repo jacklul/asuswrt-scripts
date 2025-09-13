@@ -41,7 +41,7 @@ NO_COLORS=false # set to true to disable ANSI colors
 RENAME_SUPPORT=false # set to true to enable support for renaming scripts
 EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
 SUPPRESS_LOGGER=false # suppress messages sent via logger command
-DEBUG_LOG=false # set to true to enable debug logging to file
+DEBUG_LOG=false # set to true to enable debug logging to file instead of stdout/stderr
 
 # Migrate old config.conf to new name if it exists
 if [ -f "$SCRIPTS_DIR/config.conf" ] && [ ! -f "$common_config" ]; then
