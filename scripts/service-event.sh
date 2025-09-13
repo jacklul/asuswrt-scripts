@@ -86,7 +86,6 @@ trigger_event() {
     fi
 
     sh "$script_path" event "$_action" "$_target" "$3" &
-    [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$_action" "$_target" &
 }
 
 service_monitor() {
@@ -184,13 +183,16 @@ integrated_event() {
             execute_script_basename "force-dns.sh" run
             execute_script_basename "vpn-ip-routes.sh" run
             execute_script_basename "vpn-samba.sh" run
-
-            #sh "$script_path" event restart custom_configs "$4"
         ;;
         "network")
             execute_script_basename "usb-network.sh" run
             execute_script_basename "extra-ip.sh" run
             execute_script_basename "dynamic-dns.sh" run
+
+            # most services here also restart firewall, wireless and/or recreate configs so execute these too
+            integrated_event firewall "$2" "$3" "$4"
+            integrated_event wireless "$2" "$3" "$4"
+            integrated_event custom_configs "$2" "$3" "$4"
         ;;
         "wireless")
             # probably a good idea to run this just in case
@@ -281,33 +283,25 @@ case "$1" in
                 fi
 
                 integrated_event network "$2" "$3" "$4"
-
-                # most services here also restart firewall, wireless and/or recreate configs so execute these too
-                sh "$script_path" event restart wireless "$4" &
-                sh "$script_path" event restart firewall "$4" &
-                #sh "$script_path" event restart custom_configs "$4" & # this is already executed by 'restart firewall' event
+            ;;
+            "wireless")
+                integrated_event wireless "$2" "$3" "$4"
+            ;;
+            "usb_idle")
+                integrated_event usb_idle "$2" "$3" "$4"
+            ;;
+            "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
+                integrated_event custom_configs "$2" "$3" "$4"
             ;;
         esac
-
-        if [ "$NO_INTEGRATION" != true ]; then
-            case "$3" in
-                "wireless")
-                    integrated_event wireless "$2" "$3" "$4"
-                ;;
-                "usb_idle")
-                    integrated_event usb_idle "$2" "$3" "$4"
-                ;;
-                "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
-                    integrated_event custom_configs "$2" "$3" "$4"
-                ;;
-            esac
-        fi
 
         case "${2}_${3}" in
-            "ipsec_set"|"ipsec_start"|"ipsec_restart") # these do not follow the naming scheme ("ACTION_SERVICE")
-                sh "$script_path" event restart firewall "$4" &
+            "ipsec_set"|"ipsec_start"|"ipsec_restart") # these do not follow the naming scheme ("<ACTION>_<SERVICE>")
+                integrated_event firewall "$2" "$3" "$4"
             ;;
         esac
+
+        [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$2" "$3"
 
         lockfile unlock "event_${2}_${3}"
         exit
