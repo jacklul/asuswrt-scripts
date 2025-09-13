@@ -12,7 +12,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 VPN_INTERFACES=""  # VPN interfaces to affect, separated by spaces, empty means auto detect
 ALLOW_INPUT_PORTS="" # allow connections on these ports in the INPUT chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
-ALLOW_FORWARD_PORTS="" # allow connections on these ports in the FORWARD chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
+ALLOW_FORWARD_PORTS="" # same as ALLOW_INPUT_PORTS but for FORWARD chain
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
