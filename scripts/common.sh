@@ -41,7 +41,7 @@ NO_COLORS=false # set to true to disable ANSI colors
 RENAME_SUPPORT=false # set to true to enable support for renaming scripts
 EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
 SUPPRESS_LOGGER=false # suppress messages sent via logger command
-DEBUG_LOG=false # set to true to enable debug logging to file instead of stdout/stderr
+CAPTURE_OUTPUT=false # set to true to enable logging of stdout/stderr when not running interactively
 
 # Migrate old config.conf to new name if it exists
 if [ -f "$SCRIPTS_DIR/config.conf" ] && [ ! -f "$common_config" ]; then
@@ -52,15 +52,17 @@ fi
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS RENAME_SUPPORT EXCLUDE_OPT_FROM_PATH DEBUG_LOG
+readonly TMP_DIR NO_COLORS RENAME_SUPPORT EXCLUDE_OPT_FROM_PATH CAPTURE_OUTPUT
 
 ####################
+
+[ -t 0 ] && console_is_interactive=true
 
 #shellcheck disable=SC2174
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
 
-if [ "$DEBUG_LOG" = true ]; then
-    exec >> "$TMP_DIR/$script_name-debug.log" 2>&1
+if [ "$CAPTURE_OUTPUT" = true ] && [ -z "$console_is_interactive" ]; then
+    exec >> "$TMP_DIR/$script_name-output.log" 2>&1
 fi
 
 if [ "$EXCLUDE_OPT_FROM_PATH" = true ]; then
@@ -82,8 +84,6 @@ if [ "$NO_COLORS" != true ]; then
     fwe="[1;37m"
     frt="[0m"
 fi
-
-[ -t 0 ] && console_is_interactive=true
 
 ####################
 
