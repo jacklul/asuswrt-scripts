@@ -107,11 +107,8 @@ Start everything up after you're done installing and configuring the scripts:
 > [!TIP]
 > You can override a script's configuration variables by creating `.conf` with the same name (for example: `conditional-reboot.conf`).  
 > Configuration variables are defined on top of each script - peek into the script to see what is available to change!  
-> You can also use `/jffs/scripts/jas.sh config <name>` command to open configuration file using available text editor (`$EDITOR`).
+> You can also use `/jffs/scripts/jas.sh config <name>` command to open configuration file using available text editor (`$EDITOR`).  
 > **Please note that most scripts do not validate values at all, it is your responsibility to make sure that the values you set are correct.**
-
-> [!CAUTION]
-> Some scripts have support for IPv6 added but it was not tested at all!
 
 ---
 
@@ -241,6 +238,9 @@ _Recommended to use [`hotplug-event`](#user-content-hotplug-event) as well for b
 This script allows you to add an extra IP address(es) to a specific interface(s) (usually `br0`).  
 This is mainly for running services on ports normally taken by the firmware (like a webserver).
 
+> [!CAUTION]
+> IPv6 support was not tested!
+
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
 ---
@@ -253,6 +253,9 @@ This script can be very useful when running [Pi-hole](https://pi-hole.net) in yo
 
 > [!TIP]
 > On Asuswrt-Merlin you should use **DNS Director** instead.
+
+> [!CAUTION]
+> IPv6 support was not tested!
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
@@ -415,7 +418,7 @@ This script will reboot your router at specified time if it's been running for a
 
 By default, reboot happens at <ins>5AM when uptime exceeds 7 days</ins>.
 
-----
+---
 
 ## [`usb-network`](/scripts/usb-network.sh)
 
@@ -437,6 +440,9 @@ By default, interfaces for WireGuard and OpenVPN clients are affected.
 > [!TIP]
 > On Asuswrt-Merlin you should use **VPN director** instead.
 
+> [!CAUTION]
+> IPv6 support was not tested!
+
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
 ---
@@ -450,6 +456,9 @@ Please note that without `ipset` support adding too many rules will hurt the rou
 
 > [!TIP]
 > On Asuswrt-Merlin you should use **VPN director** instead.
+
+> [!CAUTION]
+> IPv6 support was not tested!
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
@@ -465,6 +474,9 @@ This also applies to situations where firmware resets firewall rules and they ha
 > [!TIP]
 > On Asuswrt-Merlin you should use **VPN director** instead.
 
+> [!CAUTION]
+> IPv6 support was not tested!
+
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
 ---
@@ -476,6 +488,9 @@ Masquerades Samba ports to allow VPN clients to connect to your LAN shares witho
 By default, default networks for WireGuard, OpenVPN and IPSec are allowed.  
 _PPTP has a build-in toggle for this feature in the WebUI so it is not included by default._
 
+> [!CAUTION]
+> IPv6 support was not tested!
+
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
 ---
@@ -486,6 +501,9 @@ This script will prevent clients connected to WireGuard server from accessing th
 
 > [!TIP]
 > On Asuswrt-Merlin you should use **VPN director** instead.
+
+> [!CAUTION]
+> IPv6 support was not tested!
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
 
