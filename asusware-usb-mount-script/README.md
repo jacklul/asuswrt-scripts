@@ -17,6 +17,15 @@ The easiest way to install this is to run the installer while having <ins>only o
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/asusware-usb-mount-script/asusware-usb-mount-script.sh" | sh
 ```
 
+<details>
+<summary>curl is not available? try wget</summary>
+
+```sh
+wget "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/asusware-usb-mount-script/asusware-usb-mount-script.sh" -O - | sh
+```
+
+</details>
+
 ### Manual
 
 If the installer fails for some reason then you can download **[asusware-usb-mount-script.zip](asusware-usb-mount-script.zip)** then extract **asusware.arm** directory to the root of your USB storage device.

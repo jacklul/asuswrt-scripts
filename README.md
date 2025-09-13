@@ -37,6 +37,15 @@ Run this simple installer to install the main script (`jas.sh`):
 curl "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/install.sh" | sh
 ```
 
+<details>
+<summary>curl is not available? try wget</summary>
+
+```sh
+wget "https://raw.githubusercontent.com/jacklul/asuswrt-scripts/master/install.sh" -O - | sh
+```
+
+</details>
+
 Then you can proceed to install scripts you want to use:
 
 ```sh
