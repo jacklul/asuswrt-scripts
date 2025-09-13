@@ -97,7 +97,7 @@ load_script_config() {
 logecho() { # $2 = force logging to syslog even if interactive
     [ -z "$1" ] && return 1
 
-    if { [ -z "$console_is_interactive" ] || [ -n "$2" ] ; } && [ -z "$SUPPRESS_LOGGER" ]; then
+    if { [ -z "$console_is_interactive" ] || [ -n "$2" ] ; } && [ "$SUPPRESS_LOGGER" != true ]; then
         logger -t "$script_name" "$1"
     fi
 
