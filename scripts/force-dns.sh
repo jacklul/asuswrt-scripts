@@ -17,14 +17,14 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 DNS_SERVER="" # when left empty it will use DNS server set on DHCP page or router's address if those fields is empty
-DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty will use router's address, set to "block" to block IPv6 DNS traffic
+DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty it will use DNS server set on IPv6 page or router's address if those fields is empty, set to "block" to block IPv6 DNS traffic
 PERMIT_MAC="" # space separated allowed MAC addresses to bypass forced DNS
-PERMIT_IP="" # space separated allowed v4 IPs to bypass forced DNS, ranges supported
-PERMIT_IP6="" # space separated allowed v6 IPs to bypass forced DNS, ranges supported
+PERMIT_IP="" # space separated allowed IPv4 addresses to bypass forced DNS, ranges supported
+PERMIT_IP6="" # same as PERMIT_IP but for IPv6
 TARGET_INTERFACES="br+" # the target interfaces to set rules for, separated by spaces, by default all bridge interfaces (includes guest networks)
 REQUIRE_INTERFACE="" # rules will be removed if this interface is not up, wildcards accepted, set this to "usb*" when using usb-network script and Pi-hole on USB connected Raspberry Pi
-FALLBACK_DNS_SERVER="" # set to this DNS server when interface defined in REQUIRE_INTERFACE does not exist
-FALLBACK_DNS_SERVER6="" # set to this DNS server (IPv6) when interface defined in REQUIRE_INTERFACE does not exist
+FALLBACK_DNS_SERVER="" # set to this DNS server (IPv4) when interface defined in REQUIRE_INTERFACE does not exist
+FALLBACK_DNS_SERVER6="" # same as FALLBACK_DNS_SERVER but for IPv6
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 BLOCK_ROUTER_DNS=false # block access to router's DNS server while the rules are set, best used with REQUIRE_INTERFACE and "Advertise router as DNS" option
 VERIFY_DNS=false # verify that the DNS server is working before applying
@@ -52,7 +52,20 @@ if [ -z "$DNS_SERVER" ]; then
 fi
 
 if [ "$ipv6_service" != "disabled" ]; then
-    if [ -z "$DNS_SERVER6" ]; then
+    ipv6_dns1="$(nvram get ipv6_dns1)"
+    ipv6_dns2="$(nvram get ipv6_dns2)"
+    ipv6_dns3="$(nvram get ipv6_dns3)"
+    ipv6_dns1_x="$(nvram get ipv6_dns1_x)"
+
+    if [ -n "$ipv6_dns1" ]; then
+        DNS_SERVER="$ipv6_dns1"
+    elif [ -n "$ipv6_dns2" ]; then
+        DNS_SERVER="$ipv6_dns2"
+    elif [ -n "$ipv6_dns3" ]; then
+        DNS_SERVER="$ipv6_dns3"
+    elif [ -n "$ipv6_dns1_x" ]; then
+        DNS_SERVER="$ipv6_dns1_x"
+    elif [ -z "$DNS_SERVER6" ]; then
         DNS_SERVER6="$router_ip6"
     elif [ "$DNS_SERVER6" = "block" ]; then
         DNS_SERVER6=""
