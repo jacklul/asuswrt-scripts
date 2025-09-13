@@ -15,7 +15,7 @@ VPN_NETWORKS6="" # same as VPN_NETWORKS but for IPv6, separated by spaces, no au
 LAN_NETWORK="" # IPv4 LAN network, in format '192.168.0.0/24', empty means auto detect
 LAN_NETWORK6="" # IPv6 LAN network, in format 'fd12:3456:789a::/48', if left empty then IPv6 connections will not be handled
 BRIDGE_INTERFACE="" # the bridge interface to set rules for, empty means set to LAN bridge interface
-SKIP_LEGACY_PORTS=true # skip legacy NetBIOS ports 137-139 (true/false), set to false only if you really need them
+USE_LEGACY_PORTS=false # also use legacy NetBIOS ports 137-139 (true/false), set to true only if you really need them
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
@@ -98,7 +98,7 @@ firewall_rules() {
                     $_iptables -t nat -N "$CHAIN"
                     $_iptables -t nat -A "$CHAIN" -p tcp --dport 445 -j MASQUERADE # SMB
 
-                    if [ "$SKIP_LEGACY_PORTS" != true ]; then # NetBIOS, legacy ports
+                    if [ "$USE_LEGACY_PORTS" = true ]; then # NetBIOS, legacy ports
                         $_iptables -t nat -A "$CHAIN" -p tcp --dport 139 -j MASQUERADE
                         $_iptables -t nat -A "$CHAIN" -p udp --dport 138 -j MASQUERADE
                         $_iptables -t nat -A "$CHAIN" -p udp --dport 137 -j MASQUERADE
