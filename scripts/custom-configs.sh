@@ -21,8 +21,9 @@ load_script_config
 [ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
 
 readonly ETC_FILES="profile hosts" # /etc files we can modify
-readonly NOREPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
-readonly NOPOSTCONF_FILES="/etc/profile" # files that cannot run postconf script
+readonly NO_ADD_FILES="" # files that cannot be appended to
+readonly NO_REPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
+readonly NO_POSTCONF_FILES="/etc/profile" # files that cannot run postconf script
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
@@ -71,11 +72,25 @@ restart_process() {
     done
 }
 
+is_file_add_supported() {
+    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$NO_ADD_FILES" ] && return 0
+    _new="$(echo "$1" | sed 's/\.new$//')"
+
+    for _file in $NO_ADD_FILES; do
+        [ "$_file" = "$_new" ] && return 1
+    done
+
+    return 0
+}
+
 is_file_replace_supported() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$NO_REPLACE_FILES" ] && return 0
+    _new="$(echo "$1" | sed 's/\.new$//')"
 
-    for _file in $NOREPLACE_FILES; do
-        [ "$_file" = "$(echo "$1" | sed 's/\.new$//')" ] && return 1
+    for _file in $NO_REPLACE_FILES; do
+        [ "$_file" = "$_new" ] && return 1
     done
 
     return 0
@@ -83,9 +98,11 @@ is_file_replace_supported() {
 
 is_file_postconf_supported() {
     [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$NO_POSTCONF_FILES" ] && return 0
+    _new="$(echo "$1" | sed 's/\.new$//')"
 
-    for _file in $NOPOSTCONF_FILES; do
-        [ "$_file" = "$1" ] && return 1
+    for _file in $NO_POSTCONF_FILES; do
+        [ "$_file" = "$_new" ] && return 1
     done
 
     return 0
@@ -118,7 +135,7 @@ modify_config_file() {
         logecho "Replacing '$1' with '/jffs/configs/$_basename'..." true
 
         cat "/jffs/configs/$_basename" > "$1.new"
-    elif [ -f "/jffs/configs/$_basename.add" ]; then
+    elif [ -f "/jffs/configs/$_basename.add" ] && is_file_add_supported "$1"; then
         logecho "Appending '/jffs/configs/$_basename.add' to '$1'..." true
 
         cp "$1" "$1.new"

@@ -135,23 +135,23 @@ This script implements [custom config files from Asuswrt-Merlin firmware](https:
 - avahi-daemon.conf
 - dnsmasq.conf
 - hosts
-- igmpproxy.conf
-- ipsec.conf
-- mcpd.conf
+- igmpproxy.conf *
+- ipsec.conf *
+- mcpd.conf *
 - minidlna.conf
 - mt-daapd.conf
-- pptpd.conf
+- pptpd.conf *
 - profile (profile.add only)
-- ripd.conf
+- ripd.conf *
 - smb.conf
-- snmpd.conf
+- snmpd.conf *
 - stubby.yml (stubby.yml.add only)
-- torrc
+- torrc *
 - vsftpd.conf
 - upnp
-- zebra.conf
+- zebra.conf *
 
-_Most of these were tested and confirmed working._
+_* - Untested_
 
 </details>
 
@@ -163,20 +163,22 @@ _Most of these were tested and confirmed working._
 - avahi-daemon.postconf
 - dnsmasq.postconf
 - hosts.postconf
-- igmpproxy.postconf
-- ipsec.postconf
-- mcpd.postconf
+- igmpproxy.postconf *
+- ipsec.postconf *
+- mcpd.postconf *
 - minidlna.postconf
 - mt-daapd.postconf
-- pptpd.postconf
-- ripd.postconf
+- pptpd.postconf *
+- ripd.postconf *
 - smb.postconf
-- snmpd.postconf
+- snmpd.postconf *
 - stubby.postconf
-- torrc.postconf
+- torrc.postconf *
 - vsftpd.postconf
 - upnp.postconf
-- zebra.postconf
+- zebra.postconf *
+
+_* - Untested_
 
 </details>
 
