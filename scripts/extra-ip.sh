@@ -19,6 +19,8 @@ load_script_config
 extra_ip() {
     { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: EXTRA_IPS/EXTRA_IPS6 is not set"; exit 1; }
 
+    lockfile lockwait
+
     _for_ip="ip"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_ip="$_for_ip ip6"
 
@@ -76,6 +78,8 @@ extra_ip() {
             esac
         done
     done
+
+    lockfile unlock
 }
 
 case "$1" in
