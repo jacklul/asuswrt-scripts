@@ -19,10 +19,8 @@ load_script_config
 
 firewall_rules() {
     if [ -z "$WG_INTERFACES" ]; then
-        wgs_unit="$(nvram get wgs_unit)"
-
-        if [ -n "$wgs_unit" ] && [ "$(nvram get "wgs${wgs_unit}_enable")" = "1" ]; then
-            WG_INTERFACES="wgs$wgs_unit"
+        if [ "$(nvram get wgs_enable)" = "1" ]; then
+            WG_INTERFACES="wgs+"
         fi
 
         [ -z "$WG_INTERFACES" ] && { echo "Error: WG_INTERFACES is not set"; exit 1; }

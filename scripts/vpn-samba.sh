@@ -10,7 +10,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-VPN_NETWORKS="" # VPN networks (IPv4) to allow access to Samba from, separated by spaces, empty means auto detect
+VPN_NETWORKS="" # VPN networks (IPv4) to allow access to Samba from, in format '10.6.0.0/24', separated by spaces, empty means auto detect
 VPN_NETWORKS6="" # same as VPN_NETWORKS but for IPv6, separated by spaces, no auto detect available
 LAN_NETWORK="" # IPv4 LAN network, in format '192.168.0.0/24', empty means auto detect
 LAN_NETWORK6="" # IPv6 LAN network, in format 'fd12:3456:789a::/48', if left empty then IPv6 connections will not be handled
@@ -36,8 +36,8 @@ firewall_rules() {
             vpn_server_nm="$(nvram get vpn_server_nm)" # OpenVPN - 255.255.255.0
 
             if [ -n "$vpn_server_sn" ] && [ -n "$vpn_server_nm" ]; then
-                openvpn_network="$vpn_server_sn/$(mask_to_cidr "$vpn_server_nm")"
-                [ -n "$openvpn_network" ] && VPN_NETWORKS="$VPN_NETWORKS $openvpn_network"
+                _openvpn_network="$vpn_server_sn/$(mask_to_cidr "$vpn_server_nm")"
+                [ -n "$_openvpn_network" ] && VPN_NETWORKS="$VPN_NETWORKS $_openvpn_network"
             fi
         fi
 

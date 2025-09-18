@@ -451,7 +451,7 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 ## [`vpn-ip-routes`](/scripts/vpn-ip-routes.sh)
 
-Allows routing single IP addresses through specified VPN Fusion profiles.
+Allows routing single IP addresses through specified VPN Fusion connections.
 
 With extra scripting a basic version of domain based VPN routing can be achieved.  
 Please note that without `ipset` support adding too many rules will hurt the routing performance.

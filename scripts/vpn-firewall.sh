@@ -153,6 +153,8 @@ firewall_rules() {
             _router_ip="$(nvram get lan_ipaddr)"
         fi
 
+        [ -z "$_router_ip" ] && continue
+
         case "$1" in
             "add")
                 if ! $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then

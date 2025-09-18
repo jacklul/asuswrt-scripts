@@ -80,8 +80,6 @@ iptables_chains() {
         case "$1" in
             "add")
                 if ! $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-                    # You would think there might be a possible race condition with vpn-firewall here and we should add one space
-                    # before 'state' but in reality it's good that this rule is inserted after vpn-firewall's rule
                     _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "all .* state RELATED,ESTABLISHED" | tail -1 | awk '{print $1}')"
 
                     if [ -n "$_forward_start" ]; then
