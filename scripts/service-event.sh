@@ -182,6 +182,7 @@ integrated_event() {
             execute_script_basename "wgs-lan-only.sh" run
             execute_script_basename "force-dns.sh" run
             execute_script_basename "vpn-ip-routes.sh" run
+            execute_script_basename "vpn-vserver.sh" run
             execute_script_basename "vpn-samba.sh" run
         ;;
         "network")

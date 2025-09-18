@@ -78,9 +78,9 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-force-dns">force-dns</a><br>
 <a href="#user-content-fstrim">fstrim</a><br>
 <a href="#user-content-guest-password">guest-password</a><br>
+<a href="#user-content-hotplug-event">hotplug-event</a><br>
 </td>
 <td>
-<a href="#user-content-hotplug-event">hotplug-event</a><br>
 <a href="#user-content-led-control">led-control</a><br>
 <a href="#user-content-modify-features">modify-features</a><br>
 <a href="#user-content-modify-webui">modify-webui</a><br>
@@ -89,9 +89,9 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-rclone-backup">rclone-backup</a><br>
 <a href="#user-content-service-event">service-event</a><br>
 <a href="#user-content-swap">swap</a><br>
+<a href="#user-content-temperature-warning">temperature-warning</a><br>
 </td>
 <td>
-<a href="#user-content-temperature-warning">temperature-warning</a><br>
 <a href="#user-content-update-notify">update-notify</a><br>
 <a href="#user-content-uptime-reboot">uptime-reboot</a><br>
 <a href="#user-content-usb-network">usb-network</a><br>
@@ -99,6 +99,7 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-vpn-ip-routes">vpn-ip-routes</a><br>
 <a href="#user-content-vpn-kill-switch">vpn-kill-switch</a><br>
 <a href="#user-content-vpn-samba">vpn-samba</a><br>
+<a href="#user-content-vpn-vserver">vpn-vserver</a><br>
 <a href="#user-content-wgs-lan-only">wgs-lan-only</a><br>
 </td>
 </tr>
@@ -489,6 +490,19 @@ Masquerades Samba ports to allow VPN clients to connect to your LAN shares witho
 
 By default, default networks for WireGuard, OpenVPN and IPSec are allowed.  
 _PPTP has a build-in toggle for this feature in the WebUI so it is not included by default._
+
+> [!CAUTION]
+> IPv6 support was not tested!
+
+_Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
+
+---
+
+## [`vpn-vserver`](/scripts/vpn-vserver.sh)
+
+Allows VPN Fusion connections to be affected by port forwarding rules.
+
+By default, addresses for WireGuard and OpenVPN clients are affected.
 
 > [!CAUTION]
 > IPv6 support was not tested!
