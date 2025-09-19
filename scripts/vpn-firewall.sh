@@ -11,12 +11,16 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
 VPN_INTERFACES=""  # VPN interfaces to affect, separated by spaces, empty means auto detect
-ALLOW_INPUT_PORTS="" # allow connections on these ports in the INPUT chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
-ALLOW_FORWARD_PORTS="" # same as ALLOW_INPUT_PORTS but for FORWARD chain
+ALLOW_PORTS_INPUT="" # allow connections on these ports in the INPUT chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
+ALLOW_PORTS_FORWARD="" # same as ALLOW_PORTS_INPUT but for FORWARD chain
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
+
+# Deprecated variables support @TODO remove in the future
+[ -n "$ALLOW_INPUT_PORTS" ] && ALLOW_PORTS_INPUT="$ALLOW_INPUT_PORTS"
+[ -n "$ALLOW_FORWARD_PORTS" ] && ALLOW_PORTS_FORWARD="$ALLOW_FORWARD_PORTS"
 
 iptables_chain() {
     # inherited: _iptables
@@ -26,13 +30,13 @@ iptables_chain() {
     case "$2" in
         "INPUT")
             _chain="$CHAIN_INPUT"
-            _allow_ports="$ALLOW_INPUT_PORTS"
+            _allow_ports="$ALLOW_PORTS_INPUT"
             [ -n "$3" ] && _extra="-d $3"
             _chain_type="input"
         ;;
         "FORWARD")
             _chain="$CHAIN_FORWARD"
-            _allow_ports="$ALLOW_FORWARD_PORTS"
+            _allow_ports="$ALLOW_PORTS_FORWARD"
             [ -n "$3" ] && _extra="! -d $3"
             _chain_type="forward"
         ;;
