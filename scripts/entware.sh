@@ -17,7 +17,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
 ALTERNATIVE=false # Perform alternative install (separated users from the system)
-USE_HTTPS=false # retrieve files using HTTPS, applies to OPKG repository and installation downloads
+USE_HTTPS=true # retrieve files using HTTPS, applies to OPKG repository and installation downloads
 BASE_URL="http://bin.entware.net" # Base Entware URL, can be changed if you wish to use a different mirror (no ending slash!)
 WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in RAM only), set to 0 to only attempt once
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
@@ -334,6 +334,8 @@ entware_in_ram() {
 }
 
 entware_init() {
+    { [ "$REQUIRE_NTP" = true ] && [ "$(nvram get ntp_ready)" != "1" ] ; } && { echo "Time is not synchronized"; exit 1; }
+
     if [ -n "$IN_RAM" ]; then
         lockfile lockfail inram || { echo "Already running! ($lockpid)"; exit 1; }
 
@@ -379,7 +381,6 @@ entware_init() {
 }
 
 run_in_background() {
-    { [ "$REQUIRE_NTP" = true ] && [ "$(nvram get ntp_ready)" != "1" ] ; } && { echo "Time is not synchronized"; exit 1; }
     lockfile check && { echo "Already running! ($lockpid)"; exit 1; }
 
     if [ -n "$IN_RAM" ] && is_started_by_system && [ "$PPID" -ne 1 ]; then
