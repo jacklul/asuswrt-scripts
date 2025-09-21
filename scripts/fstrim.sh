@@ -188,8 +188,8 @@ case "$1" in
 
                 trimmed=""
                 mount | grep "/dev/$name" | while read -r line; do
-                    mount_device=$(echo "$line" | awk '{print $1}')
-                    mount_point=$(echo "$line" | awk '{print $3}')
+                    mount_device="$(echo "$line" | awk '{print $1}')"
+                    mount_point="$(echo "$line" | awk '{print $3}')"
 
                     # Avoid trimming same block device multiple times
                     if echo "$trimmed" | grep -Fq "$mount_device"; then
