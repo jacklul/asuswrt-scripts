@@ -437,7 +437,7 @@ interface_exists() {
         if ip link show | grep -Fq ": $_iface"; then
             return 0
         fi
-    elif ip link show $_iface >/dev/null 2>&1; then
+    elif ip link show "$_iface" >/dev/null 2>&1; then
         return 0
     fi
 
@@ -448,9 +448,9 @@ get_wan_interface() {
     _id="$1"
     [ -z "$_id" ] && _id=0
 
-    _interface="$(nvram get wan${_id}_ifname)"
+    _interface="$(nvram get "wan${_id}_ifname")"
 
-    _test="$(nvram get wan${_id}_gw_ifname)"
+    _test="$(nvram get "wan${_id}_gw_ifname")"
     if [ "$_test" != "$_interface" ]; then
         _interface="$_test"
     fi
