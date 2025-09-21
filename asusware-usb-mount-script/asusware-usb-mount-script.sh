@@ -71,6 +71,8 @@ case "$response" in
                 cat <<EOT > "/jffs/scripts/usb-mount-script"
 #!/bin/sh
 # https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usb-mount-script
+# \$1 - device (e.g. /dev/sda1)
+# \$2 - mount point (e.g. /tmp/mnt/sda1)
 
 [ -t 0 ] && exit 1 # Prevent manual execution
 

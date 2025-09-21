@@ -5,11 +5,15 @@
 # Receiving unmount event here is unlikely.
 #
 
+mount="$(df -h "$(readlink -f "$0")" | head -n 1 | awk '{print $1, $6}')"
+device="$(echo "$mount" | awk '{print $1}')"
+mount="$(echo "$mount" | awk '{print $2}')"
+
 case "$1" in
     "start")
         if [ -x /jffs/scripts/usb-mount-script ]; then
             logger -t "$(basename "$0")" "Executing /jffs/scripts/usb-mount-script"
-            /jffs/scripts/usb-mount-script &
+            /jffs/scripts/usb-mount-script "$device" "$mount" &
         fi
 
         # This allows the USB drive to be unplugged and then plugged back in to retrigger this script again.
@@ -32,7 +36,7 @@ case "$1" in
     "stop")
         if [ -x /jffs/scripts/usb-umount-script ]; then
             logger -t "$(basename "$0")" "Executing /jffs/scripts/usb-umount-script"
-            /jffs/scripts/usb-umount-script &
+            /jffs/scripts/usb-umount-script "$device" "$mount" &
         fi
     ;;
 esac
