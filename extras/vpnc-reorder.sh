@@ -1,5 +1,8 @@
 #!/bin/sh
 # This script allows reordering of VPNC Fusion profiles
+#
+# Warning: This script changes order of the profiles without modifying 
+# idx identifier of the profile, implications of this are currently unknown!
 
 #shellcheck disable=SC3037,SC3045
 
@@ -19,7 +22,7 @@ while true; do
     i=1
     IFS="$(printf '\n\b')"
     for line in $list; do
-        profile_name="$(echo "$line" | awk -F '>' '{print $1, "("$2")"}')"
+        profile_name="$(echo "$line" | awk -F '>' '{print $1, "("$2")", "["$7"]"}')"
 
         if [ "$i" = "$j" ]; then
             echo "$i) >> $profile_name <<"
