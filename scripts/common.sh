@@ -38,10 +38,10 @@ fi
 # Shared configuration variables
 TMP_DIR=/tmp/jas # used by the scripts to store temporary data
 NO_COLORS=false # set to true to disable ANSI colors
-RENAME_SUPPORT=false # set to true to enable support for renaming scripts
-EXCLUDE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
 NO_LOGGER=false # disable messages sent via logger command
 CAPTURE_OUTPUT=false # set to true to enable logging of stdout/stderr when not running interactively
+REMOVE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
+RENAMED_SCRIPTS_SUPPORT=false # set to true to enable support for renamed scripts
 
 # Migrate old config.conf to new name if it exists
 if [ -f "$SCRIPTS_DIR/config.conf" ] && [ ! -f "$common_config" ]; then
@@ -52,7 +52,7 @@ fi
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS RENAME_SUPPORT EXCLUDE_OPT_FROM_PATH NO_LOGGER CAPTURE_OUTPUT
+readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_OUTPUT REMOVE_OPT_FROM_PATH RENAMED_SCRIPTS_SUPPORT
 
 ####################
 
@@ -65,7 +65,7 @@ if [ "$CAPTURE_OUTPUT" = true ] && [ -z "$console_is_interactive" ]; then
     exec >> "$TMP_DIR/$script_name-output.log" 2>&1
 fi
 
-if [ "$EXCLUDE_OPT_FROM_PATH" = true ]; then
+if [ "$REMOVE_OPT_FROM_PATH" = true ]; then
     export PATH="$(echo "$PATH" | sed 's|:/opt[^:]*||g; s|^/opt[^:]*:||; s|^/opt[^:]*$||')"
 fi
 
@@ -375,7 +375,7 @@ resolve_script_basename() {
         return
     fi
 
-    if [ "$RENAME_SUPPORT" != true ]; then
+    if [ "$RENAMED_SCRIPTS_SUPPORT" != true ]; then
         return 1
     fi
 
