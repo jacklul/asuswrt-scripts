@@ -2,7 +2,9 @@
 # This script allows reordering of VPNC Fusion profiles
 #
 # Warning: This script changes order of the profiles without modifying 
-# idx identifier of the profile, implications of this are currently unknown!
+# idx identifier of the profile, this doesn't seem to break anything on 
+# 3.0.0.4.388_25210 firmware but it might cause issues on older versions.
+#
 
 #shellcheck disable=SC3037,SC3045
 
