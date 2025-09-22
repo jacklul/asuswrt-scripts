@@ -179,7 +179,7 @@ case "$1" in
         exit 0
     ;;
     *)
-        [ -z "$1" ] && { logger_echo "Usage: $0 <block-device>|install [target-dir]"; exit 1; }
+        [ -z "$1" ] && { logger_echo "Usage: $0 <block-device>|install|update [target-dir]"; exit 1; }
 
         devices=
         all=false
