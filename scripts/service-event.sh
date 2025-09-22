@@ -20,7 +20,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
-EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target)
+EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target, $3 = normalized event name)
 STATE_FILE="$TMP_DIR/$script_name" # where to store last parsed log line in case of crash
 
 load_script_config
@@ -103,7 +103,7 @@ service_monitor() {
     else
         _last_line="$(wc -l < "$SYSLOG_FILE")"
         _last_line="$((_last_line+1))"
-        custom_checks init || true
+        custom_checks || true
     fi
 
     while true; do
@@ -250,9 +250,13 @@ case "$1" in
             lockfile lockwait "event_${2}_${3}"
         fi
 
+        event="$3"
+
         # $2 = event, $3 = target, $4 = extra
         case "$3" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
+                event=firewall
+
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
                     timer=10; while { # wait till our chains disappear
                         iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1
@@ -265,6 +269,8 @@ case "$1" in
                 integrated_event firewall "$2" "$3" "$4"
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
+                event=network
+
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
                     timer=10; while { # wait until wan goes down
                         { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
@@ -292,17 +298,19 @@ case "$1" in
                 integrated_event usb_idle "$2" "$3" "$4"
             ;;
             "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
+                event=custom_configs
                 integrated_event custom_configs "$2" "$3" "$4"
             ;;
         esac
 
         case "${2}_${3}" in
             "ipsec_set"|"ipsec_start"|"ipsec_restart") # these do not follow the naming scheme ("<ACTION>_<SERVICE>")
+                event=firewall
                 integrated_event firewall "$2" "$3" "$4"
             ;;
         esac
 
-        [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$2" "$3"
+        [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$2" "$3" "$event"
 
         lockfile unlock "event_${2}_${3}"
         exit
