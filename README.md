@@ -143,6 +143,7 @@ This script implements [custom config files from Asuswrt-Merlin firmware](https:
 - mt-daapd.conf
 - pptpd.conf *
 - profile (profile.add only)
+- resolv.conf
 - ripd.conf *
 - smb.conf
 - snmpd.conf *
@@ -170,6 +171,7 @@ _* - Untested_
 - minidlna.postconf
 - mt-daapd.postconf
 - pptpd.postconf *
+- resolv.postconf
 - ripd.postconf *
 - smb.postconf
 - snmpd.postconf *

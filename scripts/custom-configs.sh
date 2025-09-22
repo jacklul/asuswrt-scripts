@@ -20,8 +20,8 @@ load_script_config
 
 [ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
 
-readonly ETC_FILES="profile hosts" # /etc files we can modify
-readonly NO_ADD_FILES="" # files that cannot be appended to
+readonly FILES="/etc/profile /etc/hosts /etc/resolv.conf" # files we can modify
+readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot be appended to
 readonly NO_REPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
 readonly NO_POSTCONF_FILES="/etc/profile" # files that cannot run postconf script
 
@@ -77,8 +77,8 @@ is_file_add_supported() {
     [ -z "$NO_ADD_FILES" ] && return 0
     _new="$(echo "$1" | sed 's/\.new$//')"
 
-    for _file in $NO_ADD_FILES; do
-        [ "$_file" = "$_new" ] && return 1
+    for _no_add_file in $NO_ADD_FILES; do
+        [ "$_no_add_file" = "$_new" ] && return 1
     done
 
     return 0
@@ -89,8 +89,8 @@ is_file_replace_supported() {
     [ -z "$NO_REPLACE_FILES" ] && return 0
     _new="$(echo "$1" | sed 's/\.new$//')"
 
-    for _file in $NO_REPLACE_FILES; do
-        [ "$_file" = "$_new" ] && return 1
+    for _no_replace_file in $NO_REPLACE_FILES; do
+        [ "$_no_replace_file" = "$_new" ] && return 1
     done
 
     return 0
@@ -101,8 +101,8 @@ is_file_postconf_supported() {
     [ -z "$NO_POSTCONF_FILES" ] && return 0
     _new="$(echo "$1" | sed 's/\.new$//')"
 
-    for _file in $NO_POSTCONF_FILES; do
-        [ "$_file" = "$_new" ] && return 1
+    for _no_postconf_file in $NO_POSTCONF_FILES; do
+        [ "$_no_postconf_file" = "$_new" ] && return 1
     done
 
     return 0
@@ -157,7 +157,7 @@ run_postconf_script() {
         logecho "Running '/jffs/scripts/$_basename.postconf' script..." true
 
         [ ! -f "$1.new" ] && cp "$1" "$1.new"
-        sh "/jffs/scripts/$_basename.postconf" "$1.new"
+        sh "/jffs/scripts/$_basename.postconf" "$1.new" < /dev/null
     fi
 }
 
@@ -186,27 +186,28 @@ commit_new_file() {
     cp -f "$1.new" "$1"
 }
 
-modify_etc_files() {
-    for _file in $ETC_FILES; do
-        if [ -f "/etc/$_file" ] && ! grep -Fq "Modified by $script_name script" "/etc/$_file"; then
-            [ ! -f "/etc/$_file.bak" ] && cp "/etc/$_file" "/etc/$_file.bak"
+modify_files() {
+    for _file in $FILES; do
+        if [ -f "$_file" ] && ! grep -Fq "Modified by $script_name script" "$_file"; then
+            [ ! -f "$_file.bak" ] && cp "$_file" "$_file.bak"
 
-            modify_config_file "/etc/$_file"
+            modify_config_file "$_file"
+            run_postconf_script "$_file"
 
-            if [ -f "/etc/$_file.new" ]; then
-                add_modified_mark "/etc/$_file.new"
-                is_config_file_modified "/etc/$_file" && commit_new_file "/etc/$_file"
+            if [ -f "$_file.new" ]; then
+                add_modified_mark "$_file.new"
+                is_config_file_modified "$_file" && commit_new_file "$_file"
             fi
         fi
     done
 }
 
-restore_etc_files() {
-    for _file in $ETC_FILES; do
-        if  [ -f "/etc/$_file.bak" ] && [ -f "/etc/$_file.new" ]; then
-            cp -f "/etc/$_file.bak" "/etc/$_file"
-            rm -f "/etc/$_file.new"
-            logecho "Restored: /etc/$_file" true
+restore_files() {
+    for _file in $FILES; do
+        if  [ -f "$_file.bak" ] && [ -f "$_file.new" ]; then
+            cp -f "$_file.bak" "$_file"
+            rm -f "$_file.new"
+            logecho "Restored: $_file" true
         fi
     done
 }
@@ -321,7 +322,7 @@ configs() {
     case "$1" in
         "modify")
             # services.c
-            modify_etc_files # profile, hosts
+            modify_files
             modify_service_config_file "/etc/dnsmasq.conf" "dnsmasq"
             modify_service_config_file "/etc/stubby/stubby.yml" "stubby"
             # inadyn.conf - currently no way to support this as it is not running as daemon
@@ -353,7 +354,7 @@ configs() {
         ;;
         "restore")
             # services.c
-            restore_etc_files
+            restore_files
             restore_service_config_file "/etc/dnsmasq.conf" "dnsmasq"
             restore_service_config_file "/etc/stubby/stubby.yml" "stubby"
             # inadyn.conf
