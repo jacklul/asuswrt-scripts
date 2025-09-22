@@ -226,7 +226,8 @@ symlink_data() {
     if [ -d /jffs/entware ] && [ -n "$(ls -A /jffs/entware)" ]; then
         logecho "Symlinking data from /jffs/entware..."
 
-        find /jffs/entware -type f -exec sh -c '
+        find /jffs/entware -exec sh -c '
+            [ ! -f "$1" ] && exit
             echo "$1" | grep -q "\.copythisfile$" && exit
 
             target_file="$(echo "$1" | sed "s@/jffs/entware@/opt@")"
@@ -259,7 +260,8 @@ symlink_data() {
             fi
         ' sh {} \;
 
-        find /jffs/entware -type d -exec sh -c '
+        find /jffs/entware -exec sh -c '
+            [ ! -d "$1" ] && exit
             [ ! -f "$1/.symlinkthisdir" ] && [ ! -f "$1/.copythisdir" ] && exit
 
             target_dir="$(echo "$1" | sed "s@/jffs/entware@/opt@")"

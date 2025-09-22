@@ -54,8 +54,6 @@ case "$response" in
 
             unzip /tmp/asusware-usbmount.zip -d "$storage_dir"
             rm /tmp/asusware-usbmount.zip
-            find "$storage_dir/asusware.arm" -type d -exec chmod 755 {} + || true
-            find "$storage_dir/asusware.arm" -type f -exec chmod 644 {} + || true
             chmod +x "$storage_dir/asusware.arm/etc/init.d/S50usb-mount-script" || true
 
             if [ "$apps_arch" != "arm" ]; then

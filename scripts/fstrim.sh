@@ -119,7 +119,7 @@ change_provisioning_mode() {
     fi
 
     # Set provisioning_mode to 'unmap' to allow TRIM commands to go through
-    find "/sys/block/$1/device" -type f -name "provisioning_mode" | while read -r _file; do
+    find "/sys/block/$1/device" -name "provisioning_mode" | while read -r _file; do
         [ -z "$_file" ] && continue
 
         _contents=$(cat "$_file" 2> /dev/null || echo "")
