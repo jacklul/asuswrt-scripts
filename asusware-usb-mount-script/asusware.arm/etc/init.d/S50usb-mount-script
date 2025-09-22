@@ -5,7 +5,7 @@
 # Receiving unmount event here is unlikely.
 #
 
-mount="$(df -h "$(readlink -f "$0")" | head -n 1 | awk '{print $1, $6}')"
+mount="$(df "$(readlink -f "$0")" | grep -v "^Filesystem" | head -n 1 | awk '{print $1, $6}')"
 device="$(echo "$mount" | awk '{print $1}')"
 mount="$(echo "$mount" | awk '{print $2}')"
 
