@@ -23,8 +23,8 @@ load_script_config
 firewall_rules() {
     if [ -z "$TARGET_INTERFACES" ]; then
         TARGET_INTERFACES="$(nvram get lan_ifname)"
-    else
-        echo "$TARGET_INTERFACES" | grep -Fq "br+" && TARGET_INTERFACES="br+" # sanity set, just in case one sets "br1 br+ br2"
+    elif echo "$TARGET_INTERFACES" | grep -Fq "br+"; then
+        TARGET_INTERFACES="br+" # sanity set, just in case one sets "br1 br+ br2"
     fi
 
     if [ -z "$WAN_INTERFACES" ]; then
@@ -39,18 +39,16 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    _applied_interfaces=
+    _rules_action=
+    _rules_error=
     for _iptables in $_for_iptables; do
         case "$1" in
             "add")
                 for _target_interface in $TARGET_INTERFACES; do
                     for _wan_interface in $WAN_INTERFACES; do
                         if ! $_iptables -C FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT > /dev/null 2>&1; then
-                            if $_iptables -I FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT; then
-                                _rules_action=1
-                                ! echo "$_applied_interfaces" | grep -F " $_target_interface " && _applied_interfaces="$_applied_interfaces $_target_interface "
-                            else
-                                _rules_error=1
-                            fi
+                            $_iptables -I FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT && _rules_action=1 || _rules_error=1
                         fi
                     done
                 done
@@ -58,14 +56,7 @@ firewall_rules() {
             "remove")
                 for _target_interface in $TARGET_INTERFACES; do
                     for _wan_interface in $WAN_INTERFACES; do
-                        if $_iptables -C FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT > /dev/null 2>&1; then
-                            if $_iptables -D FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT; then
-                                _rules_action=-1
-                                ! echo "$_applied_interfaces" | grep -F " $_target_interface " && _applied_interfaces="$_applied_interfaces $_target_interface "
-                            else
-                                _rules_error=1
-                            fi
-                        fi
+                        $_iptables -D FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT > /dev/null 2>&1 && _rules_action=-1
                     done
                 done
             ;;
@@ -76,20 +67,21 @@ firewall_rules() {
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Enabled VPN Kill-switch on interfaces: $(echo "$_applied_interfaces" | awk '{$1=$1};1')" true
+            logecho "Enabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" true
         else
-            logecho "Disabled VPN Kill-switch on interfaces: $(echo "$_applied_interfaces" | awk '{$1=$1};1')" true
+            logecho "Disabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" true
         fi
     fi
 
     [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
+    [ -z "$_rules_error" ] && return 0 || return 1
 }
 
 case "$1" in
     "run")
-        firewall_rules add
+        firewall_rules add || firewall_rules add
     ;;
     "start")
         firewall_rules add

@@ -51,6 +51,8 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    _rules_action=
+    _rules_error=
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_addresses="$VPN_ADDRESSES6"
@@ -73,13 +75,12 @@ firewall_rules() {
                     done
                 else
                     logecho "Unable to find the 'VSERVER' rule in the PREROUTING NAT chain"
+                    _rules_error=1
                 fi
             ;;
             "remove")
                 for _vpn_address in $_vpn_addresses; do
-                    if $_iptables -t nat -C PREROUTING -d "$_vpn_address" -j VSERVER > /dev/null 2>&1; then
-                        $_iptables -t nat -D PREROUTING -d "$_vpn_address" -j VSERVER && _rules_action=-1 || _rules_error=1
-                    fi
+                    $_iptables -t nat -D PREROUTING -d "$_vpn_address" -j VSERVER > /dev/null 2>&1 && _rules_action=-1
                 done
             ;;
         esac
@@ -98,11 +99,12 @@ firewall_rules() {
     [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
+    [ -z "$_rules_error" ] && return 0 || return 1
 }
 
 case "$1" in
     "run")
-        firewall_rules add
+        firewall_rules add || firewall_rules add
     ;;
     "start")
         firewall_rules add

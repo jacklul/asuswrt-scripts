@@ -21,6 +21,8 @@ RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty mean
 
 load_script_config
 
+readonly CHAIN="jas-${script_name}"
+
 firewall_rules() {
     if { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; }; then
         if [ "$(nvram get wgs_enable)" = "1" ]; then
@@ -65,10 +67,11 @@ firewall_rules() {
 
     lockfile lockwait
 
-    readonly CHAIN="jas-${script_name}"
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    _rules_action=
+    _rules_error=
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_networks="$VPN_NETWORKS6"
@@ -80,8 +83,8 @@ firewall_rules() {
             if [ -z "$_lan_network" ]; then
                 _lan_ipaddr="$(nvram get lan_ipaddr)"
                 _lan_netmask="$(nvram get lan_netmask)"
-                _cidr=$(mask_to_cidr "$_lan_netmask")
-                _network=$(calculate_network "$_lan_ipaddr" "$_lan_netmask")
+                _cidr="$(mask_to_cidr "$_lan_netmask")"
+                _network="$(calculate_network "$_lan_ipaddr" "$_lan_netmask")"
 
                 { [ -z "$_cidr" ] || [ -z "$_network" ] ; } && { logecho "Error: Failed to calculate destination IPv4 network"; exit 1; }
 
@@ -112,7 +115,7 @@ firewall_rules() {
             "remove")
                 if $_iptables -t nat -nL "$CHAIN" > /dev/null 2>&1; then
                     for _vpn_network in $_vpn_networks; do
-                        $_iptables -t nat -D POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" && _rules_action=-1 || _rules_error=1
+                        $_iptables -t nat -D POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1 && _rules_action=-1
                     done
 
                     $_iptables -t nat -F "$CHAIN"
@@ -135,11 +138,12 @@ firewall_rules() {
     [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
+    [ -z "$_rules_error" ] && return 0 || return 1
 }
 
 case "$1" in
     "run")
-        firewall_rules add
+        firewall_rules add || firewall_rules add
     ;;
     "start")
         firewall_rules add

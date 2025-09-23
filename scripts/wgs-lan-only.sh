@@ -33,6 +33,8 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    _rules_action=
+    _rules_error=
     for _iptables in $_for_iptables; do
         case "$1" in
             "add")
@@ -44,9 +46,7 @@ firewall_rules() {
             ;;
             "remove")
                 for _wg_interface in $WG_INTERFACES; do
-                    if $_iptables -C "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT > /dev/null 2>&1; then
-                        $_iptables -D "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT && _rules_action=-1 || _rules_error=1
-                    fi
+                    $_iptables -D "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT > /dev/null 2>&1 && _rules_action=-1
                 done
             ;;
         esac
@@ -65,11 +65,12 @@ firewall_rules() {
     [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
+    [ -z "$_rules_error" ] && return 0 || return 1
 }
 
 case "$1" in
     "run")
-        firewall_rules add
+        firewall_rules add || firewall_rules add
     ;;
     "start")
         firewall_rules add

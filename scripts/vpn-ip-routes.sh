@@ -28,6 +28,8 @@ load_script_config
 FWMARK_POOL="0xa000 0xb000 0xc000 0xd000 0xe000" # available fwmarks to use in rules, separated by spaces, careful as some can be in use by the firmware
 FWMARK_MASK="0xf000" # fwmark mask to use, it must be compatible with all entries in FWMARK_POOL
 
+readonly CHAIN="jas-${script_name}"
+
 is_vpnc_active() {
     get_vpnc_clientlist | awk -F '>' '{print $7, $6}' | grep -Fq "$1 1"
 }
@@ -78,7 +80,6 @@ cleanup_ip_rules() {
 }
 
 iptables_rules() {
-    readonly CHAIN="jas-${script_name}"
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
@@ -166,6 +167,9 @@ iptables_rules() {
         cleanup_ip_rules
         $_ip route flush cache
     done
+
+    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying iptables or IP routing rules ($1)"
+    [ -z "$rules_error" ] && return 0 || return 1
 }
 
 ip_route_rules() {
@@ -215,6 +219,9 @@ ip_route_rules() {
         cleanup_ip_rules
         $_ip route flush cache
     done
+
+    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying IP routing rules ($1)"
+    [ -z "$rules_error" ] && return 0 || return 1
 }
 
 rules() {
@@ -235,13 +242,16 @@ rules() {
         fi
     fi
 
+    rules_added=
+    rules_removed=
+    added_idx=
+    active_idx=
+
     if [ "$USE_FWMARKS" = true ]; then
         iptables_rules "$1"
     else
         ip_route_rules "$1"
     fi
-
-    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying iptables or IP routing rules ($1)"
 
     if [ "$rules_added" = 1 ]; then
         _added_profiles=
@@ -272,11 +282,12 @@ EOT
     [ -n "$EXECUTE_COMMAND" ] && { [ -n "$rules_added" ] || [ -n "$rules_removed" ] ; } && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
+    [ -z "$rules_error" ] && return 0 || return 1
 }
 
 case "$1" in
     "run")
-        rules add
+        rules add || rules add
     ;;
     "profiles")
         printf "%-3s %-7s %-20s\n" "ID" "Active" "Description"

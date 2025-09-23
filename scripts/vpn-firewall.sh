@@ -18,6 +18,9 @@ RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty mean
 
 load_script_config
 
+readonly CHAIN_INPUT="jas-${script_name}-input"
+readonly CHAIN_FORWARD="jas-${script_name}-forward"
+
 # Deprecated variables support @TODO remove in the future
 [ -n "$ALLOW_INPUT_PORTS" ] && ALLOW_PORTS_INPUT="$ALLOW_INPUT_PORTS"
 [ -n "$ALLOW_FORWARD_PORTS" ] && ALLOW_PORTS_FORWARD="$ALLOW_FORWARD_PORTS"
@@ -82,7 +85,7 @@ iptables_chain() {
         ;;
     esac
 
-    [ -n "$_has_error" ] && return 1 || return 0
+    [ -z "$_has_error" ] && return 0 || return 1
 }
 
 iptables_rule() {
@@ -125,7 +128,7 @@ iptables_rule() {
         $_iptables "$_action" "$_chain" -i "$_interface" -j "$_target_chain" || _has_error=1
     fi
 
-    [ -n "$_has_error" ] && return 1 || return 0
+    [ -z "$_has_error" ] && return 0 || return 1
 }
 
 firewall_rules() {
@@ -145,11 +148,11 @@ firewall_rules() {
 
     lockfile lockwait
 
-    readonly CHAIN_INPUT="jas-${script_name}-input"
-    readonly CHAIN_FORWARD="jas-${script_name}-forward"
     for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
+    _rules_action=
+    _rules_error=
     for _iptables in $for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _router_ip="$(nvram get ipv6_rtr_addr)"
@@ -159,6 +162,8 @@ firewall_rules() {
 
         [ -z "$_router_ip" ] && continue
 
+        _rules_action=
+        _rules_error=
         case "$1" in
             "add")
                 if ! $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then
@@ -172,6 +177,7 @@ firewall_rules() {
                         done
                     else
                         logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain"
+                        _rules_error=1
                     fi
                 fi
 
@@ -186,6 +192,7 @@ firewall_rules() {
                         done
                     else
                         logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain"
+                        _rules_error=1
                     fi
                 fi
             ;;
@@ -222,11 +229,12 @@ firewall_rules() {
     [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
 
     lockfile unlock
+    [ -z "$_rules_error" ] && return 0 || return 1
 }
 
 case "$1" in
     "run")
-        firewall_rules add
+        firewall_rules add || firewall_rules add
     ;;
     "start")
         firewall_rules add
