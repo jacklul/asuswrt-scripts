@@ -120,7 +120,7 @@ iptables_rule() {
 
     if echo "$_interface" | grep -Fq 'wgs'; then
         $_iptables "$_action" "$_chain_wgs" -i "$_interface" -j "$_target_chain" || _has_error=1
-    elif echo "$_interface" | grep -Fq 'tun1'; then     
+    elif echo "$_interface" | grep -q 'tun1\|tap1'; then     
         $_iptables "$_action" "$_chain_ovpn" -i "$_interface" -j "$_target_chain" || _has_error=1    
     elif [ -n "$_num" ]; then
         $_iptables "$_action" "$_chain" "$_num" -i "$_interface" -j "$_target_chain" || _has_error=1

@@ -35,7 +35,8 @@ firewall_rules() {
 
         for _unit in 5 4 3 2 1; do
             if [ "$(nvram get vpn_client${_unit}_state)" = "2" ]; then
-                _address="$(get_interface_address "tun1${_unit}")"
+                _ifname="$(nvram get vpn_client${_unit}_if)"
+                _address="$(get_interface_address "${_ifname}1${_unit}")"
 
                 if [ -n "$_address" ]; then
                     VPN_ADDRESSES="$VPN_ADDRESSES $_address"
