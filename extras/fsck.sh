@@ -21,6 +21,7 @@
 tag="$(basename "$0")"
 [ -t 0 ] && interactive=true
 stop_fsck="$(nvram get stop_fsck 2> /dev/null)"
+restart_nasapps=false # usually not needed
 
 logger_echo() {
     if [ -z "$interactive" ]; then
@@ -120,8 +121,9 @@ run_fsck() {
         return 1
     fi
 
+    [ "$restart_nasapps" = true ] && unmounted=true # so we can know to restart nasapps later
+
     # Run e2fsck
-    unmounted=true # so we can know to restart nasapps later
     _output="$(e2fsck -p -v "$_device" 2>&1)"
     _result=$?
     _log="/tmp/fsck_$(basename "$_device").log"
