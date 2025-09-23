@@ -39,8 +39,9 @@ fi
 TMP_DIR=/tmp/jas # used by the scripts to store temporary data
 NO_COLORS=false # set to true to disable ANSI colors
 NO_LOGGER=false # disable messages sent via logger command
-CAPTURE_OUTPUT=false # set to true to enable logging of stdout/stderr when not running interactively
-REMOVE_OPT_FROM_PATH=false # set to true to exclude /opt paths from PATH when running scripts
+CAPTURE_STDOUT=false # set to true to enable logging of stdout when not running interactively
+CAPTURE_STDERR=false # set to true to enable logging of stderr when not running interactively
+REMOVE_OPT_FROM_PATH=false # set to true to remove /opt paths from PATH temporarily while running
 RENAMED_SCRIPTS_SUPPORT=false # set to true to enable support for renamed scripts
 
 # Migrate old config.conf to new name if it exists
@@ -52,7 +53,7 @@ fi
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_OUTPUT REMOVE_OPT_FROM_PATH RENAMED_SCRIPTS_SUPPORT
+readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FROM_PATH RENAMED_SCRIPTS_SUPPORT
 
 ####################
 
@@ -61,8 +62,14 @@ readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_OUTPUT REMOVE_OPT_FROM_PATH RENAMED
 #shellcheck disable=SC2174
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
 
-if [ "$CAPTURE_OUTPUT" = true ] && [ -z "$console_is_interactive" ]; then
-    exec >> "$TMP_DIR/$script_name-output.log" 2>&1
+if [ -z "$console_is_interactive" ]; then
+    if [ "$CAPTURE_STDOUT" = true ]; then
+        exec 1>> "$TMP_DIR/$script_name-stdout.log"
+    fi
+
+    if [ "$CAPTURE_STDERR" = true ]; then
+        exec 2>> "$TMP_DIR/$script_name-stderr.log"
+    fi
 fi
 
 if [ "$REMOVE_OPT_FROM_PATH" = true ]; then
