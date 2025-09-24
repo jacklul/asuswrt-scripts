@@ -194,6 +194,10 @@ download_and_check() {
     return 1 # download failed
 }
 
+script_trapexit() {
+    rm -f "$tmp_file"
+}
+
 case "$1" in
     "setup") ;; # Prevent execution of every action except setup when not installed
     *)
@@ -309,8 +313,6 @@ case "$1" in
                     else
                         failure=true
                     fi
-
-                    rm -f "$tmp_file"
                 ;;
                 "remove")
                     if [ -f "$SCRIPTS_DIR/${name}.sh" ]; then
@@ -382,7 +384,6 @@ case "$1" in
 
             if [ "$status" -eq 0 ]; then
                 cat "$tmp_file" > "$entry"
-                rm -f "$tmp_file"
                 printf "%s!! updated%s" "$fcn" "$frt"
             elif [ "$status" -eq 2 ]; then
                 printf "%s✓%s" "$fgn" "$frt"
@@ -415,8 +416,6 @@ case "$1" in
                 printf "\n"
             fi
         done
-
-        rm -f "$tmp_file"
     ;;
     "config")
         if [ -z "$2" ]; then
@@ -461,7 +460,6 @@ case "$1" in
                         mv -f "$tmp_file" "$SCRIPTS_DIR/${name}.conf"
                     else # otherwise discard it
                         echo "File contains no valid content, not saving."
-                        rm -f "$tmp_file"
                         exit 1
                     fi
                 fi

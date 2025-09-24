@@ -76,6 +76,8 @@ if [ "$REMOVE_OPT_FROM_PATH" = true ]; then
     export PATH="$(echo "$PATH" | sed 's|:/opt[^:]*||g; s|^/opt[^:]*:||; s|^/opt[^:]*$||')"
 fi
 
+trap trapexit EXIT HUP INT QUIT TERM
+
 ####################
 
 # ANSI colors
@@ -146,6 +148,11 @@ lockfile() {
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
+            if [ -n "$lockfd" ]; then
+                logecho "Lockfile is already locked by this process ($_lockfile)"
+                exit 1
+            fi
+
             for _fd_test in "/proc/$$/fd"/*; do
                 if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
                     logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
@@ -153,6 +160,7 @@ lockfile() {
                 fi
             done
 
+            lockfd=
             _fd=$(lockfile_fd)
             eval exec "$_fd>$_lockfile"
 
@@ -183,15 +191,14 @@ lockfile() {
 
             echo $$ > "$_lockfile"
             chmod 644 "$_lockfile"
-
-            #shellcheck disable=SC2154
-            trap 'code=$?; flock -u "$_fd"; rm -f "$_lockfile"; exit $code' INT TERM QUIT EXIT
+            lockfd="$_fd"
         ;;
         "unlock")
-            flock -u "$_fd"
-            eval exec "$_fd>&-"
+            [ -z "$lockfd" ] && return 1
+            flock -u "$lockfd"
+            eval exec "$lockfd>&-"
+            lockfd=
             rm -f "$_lockfile"
-            trap - INT TERM QUIT EXIT
         ;;
         "check")
             [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ] && return 0
@@ -214,6 +221,13 @@ lockfile_fd() {
     done
 
     echo "$_lfd_min"
+}
+
+trapexit() {
+    code=$?
+    type script_trapexit > /dev/null 2>&1 && script_trapexit
+    [ -n "$lockfd" ] && lockfile unlock
+    exit $code
 }
 
 crontab_entry() {
