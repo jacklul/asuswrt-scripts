@@ -185,7 +185,7 @@ lockfile() {
             chmod 644 "$_lockfile"
 
             #shellcheck disable=SC2154
-            trap 'code=$?; flock -u $_fd; rm -f "$_lockfile"; exit $code' INT TERM QUIT EXIT
+            trap 'code=$?; flock -u "$_fd"; rm -f "$_lockfile"; exit $code' INT TERM QUIT EXIT
         ;;
         "unlock")
             flock -u "$_fd"
