@@ -31,7 +31,7 @@ default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
 last_entware_device=""
 [ -f "$STATE_FILE" ] && last_entware_device="$(cat "$STATE_FILE")"
 [ -z "$BASE_URL" ] && BASE_URL="$default_base_url"
-check_url="http://$BASE_URL"
+check_url="$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
 [ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
 
@@ -510,7 +510,7 @@ case "$1" in
 
         case "$ARCHITECTURE" in
             "aarch64-k3.10"|"armv5sf-k3.2"|"armv7sf-k2.6"|"armv7sf-k3.2"|"mipselsf-k3.4"|"mipssf-k3.4"|"x64-k3.2"|"x86-k2.6")
-                install_url="http://$BASE_URL/$ARCHITECTURE/installer"
+                install_url="$BASE_URL/$ARCHITECTURE/installer"
             ;;
             *)
                 echo "Unsupported architecture: $ARCHITECTURE";
