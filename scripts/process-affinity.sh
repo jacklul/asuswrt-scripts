@@ -29,7 +29,7 @@ set_affinity() {
     if echo "$1" | grep -Fq "/"; then
         _process_path="$(readlink -f "$1")"
     else
-        _process_path="$(readlink -f "$(which "$1")")"
+        _process_path="$(readlink -f "$(PATH=/bin:/usr/bin:/sbin:/usr/sbin:/opt/sbin:/opt/bin which "$1")")"
     fi
 
     [ -z "$_process_path" ] && { echo "Executable '$_process_path' not found"; return; }
