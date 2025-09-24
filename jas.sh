@@ -210,9 +210,12 @@ case "$1" in
             [ -n "$not_interactive" ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
-        # Add alias to /etc/profile if not already present
-        if [ -f /etc/profile ] && ! grep -Fq "alias jas=" /etc/profile; then
-            echo "alias jas='$script_path'" >> /etc/profile
+        # If custom-configs script is available add 'jas' alias to profile.add
+        if execute_script_basename "custom-configs.sh" check; then
+            if [ ! -f /jffs/configs/profile.add ] || ! grep -Fq "alias jas=" /jffs/configs/profile.add; then
+                mkdir -p /jffs/configs
+                echo "alias jas='$script_path'" >> /jffs/configs/profile.add
+            fi
         fi
 
         [ -n "$not_interactive" ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
