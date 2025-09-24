@@ -303,13 +303,14 @@ case "$1" in
 
                     if download_and_check "scripts/${name}.sh"; then
                         cat "$tmp_file" > "$SCRIPTS_DIR/${name}.sh"
-                        rm -f "$tmp_file"
                         chmod +x "$SCRIPTS_DIR/${name}.sh"
 
                         echo "${fcn}success!${frt}"
                     else
                         failure=true
                     fi
+
+                    rm -f "$tmp_file"
                 ;;
                 "remove")
                     if [ -f "$SCRIPTS_DIR/${name}.sh" ]; then
@@ -415,6 +416,7 @@ case "$1" in
             fi
         done
 
+        rm -f "$tmp_file"
     ;;
     "config")
         if [ -z "$2" ]; then
