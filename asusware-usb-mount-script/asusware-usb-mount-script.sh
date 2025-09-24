@@ -29,8 +29,8 @@ done
 [ -z "$storage_dir" ] && { echo "No storage is mounted"; exit 1; }
 
 echo "Detected mounted storage: $storage_dir"
-#shellcheck disable=SC3045,SC2162
-read -p "Do you wish continue ? [y/N] " response
+#shellcheck disable=SC3045
+read -rp "Do you wish continue ? [y/N] " response < /dev/tty
 
 case "$response" in
     [Yy]*|[Yy][Ee][Ss]*) 

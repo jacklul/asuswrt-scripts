@@ -520,8 +520,8 @@ case "$1" in
 
         if [ "$USE_HTTPS" = true ]; then selection="Y/n"; else selection="y/N"; fi
 
-        #shellcheck disable=SC3045,SC2162
-        read -p "Do you wish to use HTTPS? [$selection] " response
+        #shellcheck disable=SC3045
+        read -rp "Do you wish to use HTTPS? [$selection] " response
         case "$response" in
             [Yy]*|[Yy][Ee][Ss]*) USE_HTTPS=true ;;
             [Nn]*|[Nn][Oo]*) USE_HTTPS=false ;;
@@ -543,8 +543,8 @@ case "$1" in
             echo "You can override target path and architecture by providing them as arguments."
 
             echo
-            #shellcheck disable=SC3045,SC2162
-            read -p "Press any key to continue or CTRL-C to cancel... " -n1
+            #shellcheck disable=SC3045
+            read -rp "Press any key to continue or CTRL-C to cancel... " -n1
             echo
         fi
 
