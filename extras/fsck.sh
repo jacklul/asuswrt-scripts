@@ -25,7 +25,7 @@ restart_nasapps=false # usually not needed
 
 logger_echo() {
     if [ -z "$interactive" ]; then
-        logger -st "$tag" "$1"
+        logger -t "$tag" "$1"
     fi
 
     echo "$1"
