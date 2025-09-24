@@ -204,7 +204,7 @@ case "$1" in
             esac
         done
 
-        trap trap_cleanup EXIT HUP INT TERM
+        trap trap_cleanup EXIT HUP INT QUIT TERM
 
         if [ -n "$devices" ]; then
             for device in $devices; do
