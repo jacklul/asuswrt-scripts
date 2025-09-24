@@ -534,8 +534,8 @@ ${fcn}https://github.com/jacklul/asuswrt-scripts/tree/master/asusware-usb-mount-
 
 EOT
 
-                        #shellcheck disable=SC3045,SC2162
-                        read -p "${fwe}Do you wish to install the workaround now ?${frt} [y/N] " response
+                        #shellcheck disable=SC3045
+                        read -rp "${fwe}Do you wish to install the workaround now ?${frt} [y/N] " response
 
                         case "$response" in
                             [Yy]*|[Yy][Ee][Ss]*) 
