@@ -18,7 +18,7 @@ Some informations were pulled from **GPL_RT-AX58U_3.0.0.4.388.22525** sources as
 > This is not required on Asuswrt-Merlin as you can use [services-start](https://github.com/RMerl/asuswrt-merlin.ng/wiki/User-scripts#services-start) script.
 
 > [!WARNING]
-> Newer versions of the official firmware have blocked the ability to run scripts using `script_usbmount` NVRAM variable and require a [workaround](/asusware-usb-mount-script).
+> Newer versions of the official firmware have blocked the ability to start scripts using `script_usbmount` NVRAM variable and require a [workaround](/asusware-usb-mount-script) to be applied first.
 >
 > <details>
 > <summary>Instructions to check if your router is affected</summary>
