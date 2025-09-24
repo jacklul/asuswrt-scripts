@@ -33,12 +33,14 @@ sed_and_check() {
 
 #shellcheck disable=SC2016
 cpu_temperature() {
+    _applied=
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/cpu_ram_status.asp; then
                 [ ! -f "$TMP_WWW_DIR/cpu_ram_status.asp" ] && cp -f /www/cpu_ram_status.asp "$TMP_WWW_DIR/cpu_ram_status.asp"
 
                 echo "cpuTemp = '<%get_cpu_temperature();%>';" >> "$TMP_WWW_DIR/cpu_ram_status.asp"
+                _applied=1
 
                 mount --bind "$TMP_WWW_DIR/cpu_ram_status.asp" /www/cpu_ram_status.asp
             fi
@@ -47,10 +49,11 @@ cpu_temperature() {
                 mkdir -p "$TMP_WWW_DIR/device-map"
                 [ ! -f "$TMP_WWW_DIR/device-map/router_status.asp" ] && cp -f /www/device-map/router_status.asp "$TMP_WWW_DIR/device-map/router_status.asp"
 
-                sed_and_check replace 'render_CPU(cpuInfo);' 'render_CPU(cpuInfo, cpuTemp);' "$TMP_WWW_DIR/device-map/router_status.asp"
-                sed_and_check replace 'function(cpu_info_new)' 'function(cpu_info_new, cpu_temp_new)' "$TMP_WWW_DIR/device-map/router_status.asp"
-                sed_and_check append 'Object.keys(cpu_info_new).length;' '$("#cpu_temp").html(parseFloat(cpu_temp_new).toFixed(1));' "$TMP_WWW_DIR/device-map/router_status.asp"
-                sed_and_check prepend "('#cpu_field').html(code);" "code += '<div class=\"info-block\">Temperature: <span id=\"cpu_temp\"></span> °C</div>';" "$TMP_WWW_DIR/device-map/router_status.asp"
+                sed_and_check replace 'render_CPU(cpuInfo);' 'render_CPU(cpuInfo, cpuTemp);' "$TMP_WWW_DIR/device-map/router_status.asp" && \
+                sed_and_check replace 'function(cpu_info_new)' 'function(cpu_info_new, cpu_temp_new)' "$TMP_WWW_DIR/device-map/router_status.asp" && \
+                sed_and_check append 'Object.keys(cpu_info_new).length;' '$("#cpu_temp").html(parseFloat(cpu_temp_new).toFixed(1));' "$TMP_WWW_DIR/device-map/router_status.asp" && \
+                sed_and_check prepend "('#cpu_field').html(code);" "code += '<div class=\"info-block\">Temperature: <span id=\"cpu_temp\"></span> °C</div>';" "$TMP_WWW_DIR/device-map/router_status.asp" && \
+                    _applied=1
 
                 mount --bind "$TMP_WWW_DIR/device-map/router_status.asp" /www/device-map/router_status.asp
             fi
@@ -67,19 +70,22 @@ cpu_temperature() {
             fi
         ;;
     esac
+    [ -z "$_applied" ] && return 1
 }
 
 guest_wifi_qr_code() {
+    _applied=
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/Guest_network.asp; then
                 [ ! -f "$TMP_WWW_DIR/Guest_network.asp" ] && cp -f /www/Guest_network.asp "$TMP_WWW_DIR/Guest_network.asp"
 
-                sed_and_check append '<script type="text/javascript" src="js/httpApi.js"></script>' '<script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>' "$TMP_WWW_DIR/Guest_network.asp"
-                sed_and_check append 'onclick="applyRule();">' '<br><span id="qr_code" style="display:inline-block;margin:25px 0 25px 0;"></span>' "$TMP_WWW_DIR/Guest_network.asp"
-                sed_and_check replace 'gn_array[i][4];' "'Hidden'" "$TMP_WWW_DIR/Guest_network.asp"
-                sed_and_check replace 'gn_array[i][key_index];' "'Hidden'" "$TMP_WWW_DIR/Guest_network.asp"
-                sed_and_check append 'updateMacModeOption()' 'var qrstring="WIFI:S:"+document.form.wl_ssid.value+";";document.form.wl_wpa_psk.value&&0<document.form.wl_wpa_psk.value.length?qrstring+="T:WPA;P:"+document.form.wl_wpa_psk.value+";":qrstring+="T:nopass;",1==document.form.wl_closed[0].checked&&(qrstring+="H:true;"),document.getElementById("qr_code").innerHTML="",new QRCode(document.getElementById("qr_code"),{text:qrstring+";",width:500,height:500});' "$TMP_WWW_DIR/Guest_network.asp"
+                sed_and_check append '<script type="text/javascript" src="js/httpApi.js"></script>' '<script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>' "$TMP_WWW_DIR/Guest_network.asp" && \
+                sed_and_check append 'onclick="applyRule();">' '<br><span id="qr_code" style="display:inline-block;margin:25px 0 25px 0;"></span>' "$TMP_WWW_DIR/Guest_network.asp" && \
+                sed_and_check replace 'gn_array[i][4];' "'Hidden'" "$TMP_WWW_DIR/Guest_network.asp" && \
+                sed_and_check replace 'gn_array[i][key_index];' "'Hidden'" "$TMP_WWW_DIR/Guest_network.asp" && \
+                sed_and_check append 'updateMacModeOption()' 'var qrstring="WIFI:S:"+document.form.wl_ssid.value+";";document.form.wl_wpa_psk.value&&0<document.form.wl_wpa_psk.value.length?qrstring+="T:WPA;P:"+document.form.wl_wpa_psk.value+";":qrstring+="T:nopass;",1==document.form.wl_closed[0].checked&&(qrstring+="H:true;"),document.getElementById("qr_code").innerHTML="",new QRCode(document.getElementById("qr_code"),{text:qrstring+";",width:500,height:500});' "$TMP_WWW_DIR/Guest_network.asp" && \
+                    _applied=1
 
                 mount --bind "$TMP_WWW_DIR/Guest_network.asp" /www/Guest_network.asp
             fi
@@ -91,15 +97,18 @@ guest_wifi_qr_code() {
             fi
         ;;
     esac
+    [ -z "$_applied" ] && return 1
 }
 
 notrendmicro_support() {
+    _applied=
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/state.js; then
                 [ ! -f "$TMP_WWW_DIR/state.js" ] && cp -f /www/state.js "$TMP_WWW_DIR/state.js"
 
-                sed_and_check append 'var lyra_hide_support = isSupport("lyra_hide")' 'var notrendmicro_support = isSupport("notrendmicro");' "$TMP_WWW_DIR/state.js"
+                sed_and_check append 'var lyra_hide_support = isSupport("lyra_hide")' 'var notrendmicro_support = isSupport("notrendmicro");' "$TMP_WWW_DIR/state.js" && \
+                    _applied=1
 
                 mount --bind "$TMP_WWW_DIR/state.js" /www/state.js
             fi
@@ -112,13 +121,14 @@ notrendmicro_support() {
                 inetspeed_tab="$(grep -F 'url: "AdaptiveQoS_InternetSpeed.asp' /www/require/modules/menuTree.js | tail -n 1)"
 
                 if [ -n "$inetspeed_tab" ]; then
-                    sed_and_check replace '{url: "AdaptiveQoS_InternetSpeed.asp"' '//{url: "AdaptiveQoS_InternetSpeed.asp"' "$TMP_WWW_DIR/require/modules/menuTree.js"
+                    sed_and_check replace '{url: "AdaptiveQoS_InternetSpeed.asp"' '//{url: "AdaptiveQoS_InternetSpeed.asp"' "$TMP_WWW_DIR/require/modules/menuTree.js" && \
                     sed_and_check append '{url: "Advanced_Smart_Connect.asp' "$inetspeed_tab" "$TMP_WWW_DIR/require/modules/menuTree.js"
                 else
                     logecho "There was a problem performing modification on file '$TMP_WWW_DIR/require/modules/menuTree.js': unable to find line containing 'AdaptiveQoS_InternetSpeed'!"
                 fi
 
-                sed_and_check prepend 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_DIR/require/modules/menuTree.js"
+                sed_and_check prepend 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_DIR/require/modules/menuTree.js" && \
+                    _applied=1
 
                 if [ -n "$merlin" ]; then # but copy our modification to /tmp/menuTree.js and remount it
                     cp -f "$TMP_WWW_DIR/require/modules/menuTree.js" /tmp/menuTree.js
@@ -146,15 +156,18 @@ notrendmicro_support() {
             fi
         ;;
     esac
+    [ -z "$_applied" ] && return 1
 }
 
 https_lanport_allow_443() {
+    _applied=
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/Advanced_System_Content.asp; then
                 [ ! -f "$TMP_WWW_DIR/Advanced_System_Content.asp" ] && cp -f /www/Advanced_System_Content.asp "$TMP_WWW_DIR/Advanced_System_Content.asp"
 
-                sed_and_check replace '&& !validator.range(document.form.https_lanport, 1024, 65535) &&' "&& (document.form.https_lanport.value != 443 && !validator.range(document.form.https_lanport, 1024, 65535)) &&" "$TMP_WWW_DIR/Advanced_System_Content.asp"
+                sed_and_check replace '&& !validator.range(document.form.https_lanport, 1024, 65535) &&' "&& (document.form.https_lanport.value != 443 && !validator.range(document.form.https_lanport, 1024, 65535)) &&" "$TMP_WWW_DIR/Advanced_System_Content.asp" && \
+                _applied=1
 
                 mount --bind "$TMP_WWW_DIR/Advanced_System_Content.asp" /www/Advanced_System_Content.asp
             fi
@@ -166,6 +179,7 @@ https_lanport_allow_443() {
             fi
         ;;
     esac
+    [ -z "$_applied" ] && return 1
 }
 
 www_override() {
@@ -175,11 +189,12 @@ www_override() {
 
             mkdir -p "$TMP_WWW_DIR"
 
-            logecho "Applying WebUI tweaks: $TWEAKS" true
-
+            applied=
             for tweak in $TWEAKS; do
-                $tweak set
+                $tweak set && applied="$applied $tweak"
             done
+
+            [ -n "$applied" ] && logecho "Applied WebUI tweaks: $(echo "$applied" | awk '{$1=$1};1')" true
         ;;
         "unset")
             logecho "Removing WebUI tweaks..." true
