@@ -160,7 +160,6 @@ lockfile() {
                 fi
             done
 
-            lockfd=
             _fd=$(lockfile_fd)
             eval exec "$_fd>$_lockfile"
 
