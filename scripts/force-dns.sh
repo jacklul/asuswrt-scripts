@@ -80,6 +80,7 @@ fi
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
     _has_error=
+    modprobe xt_comment
 
     for _iptables in $for_iptables; do
         case "$1" in
@@ -93,12 +94,15 @@ iptables_chains() {
                         $_iptables -N "$CHAIN_DOT"
 
                         for _target_interface in $TARGET_INTERFACES; do
-                            $_iptables -I FORWARD "$_forward_start" -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT" || _has_error=1
+                            $_iptables -I FORWARD "$_forward_start" -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT" \
+                                -m comment --comment "jas-$script_name" \
+                                    || _has_error=1
+
                             _forward_start="$((_forward_start+1))"
                         done
                     else
                         logecho "Unable to find the 'state RELATED,ESTABLISHED' rule in the FORWARD FILTER chain"
-                        _rules_error=1
+                        _has_error=1
                     fi
                 fi
 
@@ -111,13 +115,19 @@ iptables_chains() {
                         $_iptables -t nat -N "$CHAIN_DNAT"
 
                         for _target_interface in $TARGET_INTERFACES; do
-                            $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT" || _has_error=1
-                            $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT" || _has_error=1
+                            $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT" \
+                                -m comment --comment "jas-$script_name" \
+                                    || _has_error=1
+
+                            $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT" \
+                                -m comment --comment "jas-$script_name" \
+                                    || _has_error=1
+
                             _prerouting_start="$((_prerouting_start+2))"
                         done
                     else
                         logecho "Unable to find the 'target VSERVER' rule in the PREROUTING NAT chain"
-                        _rules_error=1
+                        _has_error=1
                     fi
                 fi
 
@@ -136,48 +146,36 @@ iptables_chains() {
                         $_iptables -N "$CHAIN_BLOCK"
 
                         for _target_interface in $TARGET_INTERFACES; do
-                            $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" || _has_error=1
-                            $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" || _has_error=1
+                            $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" \
+                                -m comment --comment "jas-$script_name" \
+                                    || _has_error=1
+
+                            $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" \
+                                -m comment --comment "jas-$script_name" \
+                                    || _has_error=1
+
                             _input_start="$((_input_start+2))"
                         done
                     else
                         logecho "Unable to find the 'state INVALID' rule in the INPUT FILTER chain"
-                        _rules_error=1
+                        _has_error=1
                     fi
                 fi
             ;;
             "remove")
-                if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
-                    for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -D FORWARD -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT"
-                    done
+                remove_iptables_rules_by_comment "filter nat"
 
+                if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
                     $_iptables -F "$CHAIN_DOT"
                     $_iptables -X "$CHAIN_DOT" || _has_error=1
                 fi
 
                 if $_iptables -t nat -nL "$CHAIN_DNAT" > /dev/null 2>&1; then
-                    for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT"
-                        $_iptables -t nat -D PREROUTING -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT"
-                    done
-
                     $_iptables -t nat -F "$CHAIN_DNAT"
                     $_iptables -t nat -X "$CHAIN_DNAT" || _has_error=1
                 fi
 
                 if $_iptables -nL "$CHAIN_BLOCK" > /dev/null 2>&1; then
-                    if [ "$_iptables" = "ip6tables" ]; then
-                        _router_ip="$router_ip6"
-                    else
-                        _router_ip="$router_ip"
-                    fi
-
-                    for _target_interface in $TARGET_INTERFACES; do
-                        $_iptables -D INPUT -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
-                        $_iptables -D INPUT -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK"
-                    done
-
                     $_iptables -F "$CHAIN_BLOCK"
                     $_iptables -X "$CHAIN_BLOCK" || _has_error=1
                 fi

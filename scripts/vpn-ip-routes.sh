@@ -84,6 +84,8 @@ iptables_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    modprobe xt_comment
+
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _route_ips="$ROUTE_IPS6"
@@ -97,14 +99,14 @@ iptables_rules() {
 
         case "$1" in
             "add")
-                # firewall restart does not delete out chains?
+                # firewall restart does not delete out chains in mangle table?
                 if ! $_iptables -t mangle -nL "$CHAIN" > /dev/null 2>&1; then
                     $_iptables -t mangle -N "$CHAIN"
                 fi
 
                 for _chain in PREROUTING OUTPUT POSTROUTING; do
-                    if ! $_iptables -t mangle -C "$_chain" -j "$CHAIN" > /dev/null 2>&1; then
-                        $_iptables -t mangle -A "$_chain" -j "$CHAIN"
+                    if ! $_iptables -t mangle -C "$_chain" -j "$CHAIN" -m comment --comment "jas-$script_name" > /dev/null 2>&1; then
+                        $_iptables -t mangle -A "$_chain" -j "$CHAIN" -m comment --comment "jas-$script_name"
                     fi
                 done
 
@@ -155,10 +157,9 @@ iptables_rules() {
                 done
             ;;
             "remove")
+                remove_iptables_rules_by_comment "mangle"
+
                 if $_iptables -t mangle -nL "$CHAIN" > /dev/null 2>&1; then
-                    $_iptables -t mangle -D PREROUTING -j "$CHAIN" 2> /dev/null
-                    $_iptables -t mangle -D POSTROUTING -j "$CHAIN" 2> /dev/null
-                    $_iptables -t mangle -D OUTPUT -j "$CHAIN" 2> /dev/null
                     $_iptables -t mangle -F "$CHAIN"
                     $_iptables -t mangle -X "$CHAIN" || rules_error=1
                 fi

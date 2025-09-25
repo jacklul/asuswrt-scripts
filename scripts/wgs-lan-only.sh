@@ -34,21 +34,26 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    modprobe xt_comment
+
     _rules_action=
     _rules_error=
     for _iptables in $_for_iptables; do
         case "$1" in
             "add")
                 for _wg_interface in $WG_INTERFACES; do
-                    if ! $_iptables -C "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT > /dev/null 2>&1; then
-                        $_iptables -I "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT && _rules_action=1 || _rules_error=1
+                    if
+                        ! $_iptables -C "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT \
+                            -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                    then
+                        $_iptables -I "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT \
+                            -m comment --comment "jas-$script_name" \
+                                && _rules_action=1 || _rules_error=1
                     fi
                 done
             ;;
             "remove")
-                for _wg_interface in $WG_INTERFACES; do
-                    $_iptables -D "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT > /dev/null 2>&1 && _rules_action=-1
-                done
+                remove_iptables_rules_by_comment "filter" && _rules_action=-1
             ;;
         esac
     done

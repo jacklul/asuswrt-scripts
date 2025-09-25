@@ -71,6 +71,8 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    modprobe xt_comment
+
     _rules_action=
     _rules_error=
     for _iptables in $_for_iptables; do
@@ -109,16 +111,16 @@ firewall_rules() {
                     fi
 
                     for _vpn_network in $_vpn_networks; do
-                        $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" && _rules_action=1 || _rules_error=1
+                        $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" \
+                            -m comment --comment "jas-$script_name" \
+                                && _rules_action=1 || _rules_error=1
                     done
                 fi
             ;;
             "remove")
-                if $_iptables -t nat -nL "$CHAIN" > /dev/null 2>&1; then
-                    for _vpn_network in $_vpn_networks; do
-                        $_iptables -t nat -D POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" > /dev/null 2>&1 && _rules_action=-1
-                    done
+                remove_iptables_rules_by_comment "nat" && _rules_action=-1
 
+                if $_iptables -t nat -nL "$CHAIN" > /dev/null 2>&1; then
                     $_iptables -t nat -F "$CHAIN"
                     $_iptables -t nat -X "$CHAIN" || _rules_error=1
                 fi

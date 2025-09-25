@@ -525,3 +525,30 @@ get_vpnc_clientlist() {
     [ -z "$vpnc_clientlist" ] && vpnc_clientlist="$(nvram get vpnc_clientlist | tr '<' '\n')"
     echo "$vpnc_clientlist"
 }
+
+remove_iptables_rules_by_comment() {
+    # inherited: _iptables
+    _remove_rules_tables="filter nat mangle"
+    [ -n "$1" ] && _remove_rules_tables="$1"
+    _remove_rules_comment="jas-$script_name"
+    [ -n "$2" ] && _remove_rules_comment="$2"
+    [ -z "$_iptables" ] && _iptables="iptables"
+    [ -n "$3" ] && _iptables="$3"
+    _remove_rules_success=
+
+    # Based on https://github.com/MartineauUK/Unbound-Asuswrt-Merlin/blob/dev/unbound_DNS_via_OVPN.sh
+    for _remove_rules_table in $_remove_rules_tables; do
+        _remove_rules="$($_iptables -t "$_remove_rules_table" -S | grep "^-A.*$_remove_rules_comment" | sed "s|^-A|$_iptables -t $_remove_rules_table -D|")"
+
+        if [ -n "$_remove_rules" ]; then
+            _remove_rules_success=1
+
+            echo "$_remove_rules" | while read -r CMD; do
+                eval "$CMD"
+            done
+        fi
+    done
+
+    [ -n "$_remove_rules_success" ] && return 0
+    return 1
+}

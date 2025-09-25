@@ -40,6 +40,8 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    modprobe xt_comment
+
     _applied_interfaces=
     _rules_action=
     _rules_error=
@@ -48,18 +50,19 @@ firewall_rules() {
             "add")
                 for _target_interface in $TARGET_INTERFACES; do
                     for _wan_interface in $WAN_INTERFACES; do
-                        if ! $_iptables -C FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT > /dev/null 2>&1; then
-                            $_iptables -I FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT && _rules_action=1 || _rules_error=1
+                        if
+                            ! $_iptables -C FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT \
+                                -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                        then
+                            $_iptables -I FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT \
+                                -m comment --comment "jas-$script_name" \
+                                    && _rules_action=1 || _rules_error=1
                         fi
                     done
                 done
             ;;
             "remove")
-                for _target_interface in $TARGET_INTERFACES; do
-                    for _wan_interface in $WAN_INTERFACES; do
-                        $_iptables -D FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT > /dev/null 2>&1 && _rules_action=-1
-                    done
-                done
+                remove_iptables_rules_by_comment "filter" && _rules_action=-1
             ;;
         esac
     done

@@ -120,13 +120,21 @@ iptables_rule() {
     esac
 
     if echo "$_interface" | grep -Fq 'wgs'; then
-        $_iptables "$_action" "$_chain_wgs" -i "$_interface" -j "$_target_chain" || _has_error=1
+        $_iptables "$_action" "$_chain_wgs" -i "$_interface" -j "$_target_chain" \
+            -m comment --comment "jas-$script_name" \
+                || _has_error=1
     elif echo "$_interface" | grep -q 'tun1\|tap1'; then     
-        $_iptables "$_action" "$_chain_ovpn" -i "$_interface" -j "$_target_chain" || _has_error=1    
+        $_iptables "$_action" "$_chain_ovpn" -i "$_interface" -j "$_target_chain" \
+            -m comment --comment "jas-$script_name" \
+                || _has_error=1    
     elif [ -n "$_num" ]; then
-        $_iptables "$_action" "$_chain" "$_num" -i "$_interface" -j "$_target_chain" || _has_error=1
+        $_iptables "$_action" "$_chain" "$_num" -i "$_interface" -j "$_target_chain" \
+            -m comment --comment "jas-$script_name" \
+                || _has_error=1
     else
-        $_iptables "$_action" "$_chain" -i "$_interface" -j "$_target_chain" || _has_error=1
+        $_iptables "$_action" "$_chain" -i "$_interface" -j "$_target_chain" \
+            -m comment --comment "jas-$script_name" \
+                || _has_error=1
     fi
 
     [ -z "$_has_error" ] && return 0 || return 1
@@ -152,6 +160,8 @@ firewall_rules() {
     for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
+    modprobe xt_comment
+
     _rules_action=
     _rules_error=
     for _iptables in $for_iptables; do
@@ -168,49 +178,49 @@ firewall_rules() {
         case "$1" in
             "add")
                 if ! $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then
-                    iptables_chain add INPUT || _rules_error=1
+                    if iptables_chain add INPUT; then
+                        _input_start="$($_iptables -nvL INPUT --line-numbers | grep -E "WGSI .* all" | tail -1 | awk '{print $1}')"
 
-                    _input_start="$($_iptables -nvL INPUT --line-numbers | grep -E "WGSI .* all" | tail -1 | awk '{print $1}')"
-
-                    if [ -n "$_input_start" ]; then
-                        for _vpn_interface in $VPN_INTERFACES; do
-                            iptables_rule add INPUT "$_vpn_interface" "$_input_start" && _rules_action=1 || _rules_error=1
-                        done
+                        if [ -n "$_input_start" ]; then
+                            for _vpn_interface in $VPN_INTERFACES; do
+                                iptables_rule add INPUT "$_vpn_interface" "$_input_start" \
+                                    && _rules_action=1 || _rules_error=1
+                            done
+                        else
+                            logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain"
+                            _rules_error=1
+                        fi
                     else
-                        logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain"
                         _rules_error=1
                     fi
                 fi
 
                 if ! $_iptables -nL "$CHAIN_FORWARD" > /dev/null 2>&1; then
-                    iptables_chain add FORWARD || _rules_error=1
+                    if iptables_chain add FORWARD; then
+                        _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "WGSF .* all" | tail -1 | awk '{print $1}')"
 
-                    _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "WGSF .* all" | tail -1 | awk '{print $1}')"
-
-                    if [ -n "$_forward_start" ]; then
-                        for _vpn_interface in $VPN_INTERFACES; do
-                            iptables_rule add FORWARD "$_vpn_interface" "$_forward_start" && _rules_action=1 || _rules_error=1
-                        done
+                        if [ -n "$_forward_start" ]; then
+                            for _vpn_interface in $VPN_INTERFACES; do
+                                iptables_rule add FORWARD "$_vpn_interface" "$_forward_start" \
+                                    && _rules_action=1 || _rules_error=1
+                            done
+                        else
+                            logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain"
+                            _rules_error=1
+                        fi
                     else
-                        logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain"
                         _rules_error=1
                     fi
                 fi
             ;;
             "remove")
-                if $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then
-                    for _vpn_interface in $VPN_INTERFACES; do
-                        iptables_rule remove INPUT "$_vpn_interface" && _rules_action=-1 || _rules_error=1
-                    done
+                remove_iptables_rules_by_comment "filter" && _rules_action=-1
 
+                if $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then
                     iptables_chain remove INPUT || _rules_error=1
                 fi
 
                 if $_iptables -nL "$CHAIN_FORWARD" > /dev/null 2>&1; then
-                    for _vpn_interface in $VPN_INTERFACES; do
-                        iptables_rule remove FORWARD "$_vpn_interface" && _rules_action=-1 || _rules_error=1
-                    done
-
                     iptables_chain remove FORWARD || _rules_error=1
                 fi
             ;;

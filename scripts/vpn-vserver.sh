@@ -53,6 +53,8 @@ firewall_rules() {
     _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
+    modprobe xt_comment
+
     _rules_action=
     _rules_error=
     for _iptables in $_for_iptables; do
@@ -70,9 +72,15 @@ firewall_rules() {
 
                 if [ -n "$_vserver_start" ]; then
                     for _vpn_address in $_vpn_addresses; do
-                        if ! $_iptables -t nat -C PREROUTING -d "$_vpn_address" -j VSERVER > /dev/null 2>&1; then
+                        if
+                            ! $_iptables -t nat -C PREROUTING -d "$_vpn_address" -j VSERVER \
+                                -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                        then
                             _vserver_start=$((_vserver_start+1))
-                            $_iptables -t nat -I PREROUTING "$_vserver_start" -d "$_vpn_address" -j VSERVER && _rules_action=1 || _rules_error=1
+
+                            $_iptables -t nat -I PREROUTING "$_vserver_start" -d "$_vpn_address" -j VSERVER \
+                                -m comment --comment "jas-$script_name" \
+                                    && _rules_action=1 || _rules_error=1
                         fi
                     done
                 else
@@ -81,9 +89,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                for _vpn_address in $_vpn_addresses; do
-                    $_iptables -t nat -D PREROUTING -d "$_vpn_address" -j VSERVER > /dev/null 2>&1 && _rules_action=-1
-                done
+                remove_iptables_rules_by_comment "nat" && _rules_action=-1
             ;;
         esac
     done
