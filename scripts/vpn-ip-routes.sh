@@ -20,6 +20,7 @@ ROUTE_IPS6="" # same as ROUTE_IPS but for IPv6, separated by spaces
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed (receives arguments: $1 = action - add/remove)
 STATE_FILE="$TMP_DIR/$script_name" # file to store last contents of the ROUTE_IPS and ROUTE_IPS6 variables
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
+RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
 
 load_script_config
 
@@ -287,7 +288,7 @@ EOT
 
 case "$1" in
     "run")
-        rules add || rules add
+        rules add || { [ "$RETRY_ON_ERROR" = true ] && rules add; }
     ;;
     "profiles")
         printf "%-3s %-7s %-20s\n" "ID" "Active" "Description"

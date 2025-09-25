@@ -31,6 +31,7 @@ VERIFY_DNS=false # verify that the DNS server is working before applying
 VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applying (fallback only)
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
+RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
 
 load_script_config
 
@@ -369,9 +370,9 @@ firewall_rules() {
 case "$1" in
     "run")
         if [ -n "$REQUIRE_INTERFACE" ] && ! interface_exists "$REQUIRE_INTERFACE"; then
-            firewall_rules remove || firewall_rules remove
+            firewall_rules remove || { [ "$RETRY_ON_ERROR" = true ] && firewall_rules remove; }
         else
-            firewall_rules add || firewall_rules add
+            firewall_rules add || { [ "$RETRY_ON_ERROR" = true ] && firewall_rules add; }
         fi
     ;;
     "fallback")

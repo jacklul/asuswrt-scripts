@@ -14,6 +14,7 @@ WG_INTERFACES="" # WireGuard server interfaces to set rules for (find it through
 BRIDGE_INTERFACE="" # the bridge interface to limit access to, set 'br+' to also allow access to guest networks, empty means set to LAN bridge interface
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
+RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
 
 load_script_config
 
@@ -70,7 +71,7 @@ firewall_rules() {
 
 case "$1" in
     "run")
-        firewall_rules add || firewall_rules add
+        firewall_rules add || { [ "$RETRY_ON_ERROR" = true ] && firewall_rules add; }
     ;;
     "start")
         firewall_rules add

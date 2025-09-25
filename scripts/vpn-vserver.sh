@@ -14,6 +14,7 @@ VPN_ADDRESSES="" # VPN addresses (IPv4) to affect, in format '10.10.10.10', sepa
 VPN_ADDRESSES6="" # same as VPN_ADDRESSES but for IPv6, separated by spaces, no auto detect available
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
+RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
 
 load_script_config
 
@@ -105,7 +106,7 @@ firewall_rules() {
 
 case "$1" in
     "run")
-        firewall_rules add || firewall_rules add
+        firewall_rules add || { [ "$RETRY_ON_ERROR" = true ] && firewall_rules add; }
     ;;
     "start")
         firewall_rules add
