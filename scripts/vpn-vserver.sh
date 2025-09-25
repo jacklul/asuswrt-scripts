@@ -12,7 +12,9 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 VPN_ADDRESSES="" # VPN addresses (IPv4) to affect, in format '10.10.10.10', separated by spaces, empty means auto detect
 VPN_ADDRESSES6="" # same as VPN_ADDRESSES but for IPv6, separated by spaces, no auto detect available
+VPN_EXCLUSIVE=false # limit virtual server rules to VPN addresses only, this removes firmware made rules for WAN addresses
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
+STATE_FILE="$TMP_DIR/$script_name" # file to store firmware made rules VSERVER rules that are removed when VPN_EXCLUSIVE is true
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
 
@@ -69,27 +71,48 @@ firewall_rules() {
         case "$1" in
             "add")
                 _vserver_start="$($_iptables -t nat -nvL PREROUTING --line-numbers | grep -E "VSERVER .* all" | tail -1 | awk '{print $1}')"
+                [ -z "$_vserver_start" ] && _vserver_start=0
 
-                if [ -n "$_vserver_start" ]; then
-                    for _vpn_address in $_vpn_addresses; do
-                        if
-                            ! $_iptables -t nat -C PREROUTING -d "$_vpn_address" -j VSERVER \
-                                -m comment --comment "jas-$script_name" > /dev/null 2>&1
-                        then
-                            _vserver_start=$((_vserver_start+1))
+                for _vpn_address in $_vpn_addresses; do
+                    if
+                        ! $_iptables -t nat -C PREROUTING -d "$_vpn_address" -j VSERVER \
+                            -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                    then
+                        _vserver_start=$((_vserver_start+1))
 
-                            $_iptables -t nat -I PREROUTING "$_vserver_start" -d "$_vpn_address" -j VSERVER \
-                                -m comment --comment "jas-$script_name" \
-                                    && _rules_action=1 || _rules_error=1
-                        fi
-                    done
-                else
-                    logecho "Unable to find the 'VSERVER' rule in the PREROUTING NAT chain"
-                    _rules_error=1
+                        $_iptables -t nat -I PREROUTING "$_vserver_start" -d "$_vpn_address" -j VSERVER \
+                            -m comment --comment "jas-$script_name" \
+                                && _rules_action=1 || _rules_error=1
+                    fi
+                done
+
+                if [ "$VPN_EXCLUSIVE" = true ]; then
+                    _firmware_rules="$($_iptables -t nat -S | grep -F "j VSERVER" | grep -Fv "jas-$script_name")"
+
+                    if [ -n "$_firmware_rules" ]; then
+                        echo "$_firmware_rules" > "$STATE_FILE"
+
+                        # Delete the rules made by the firmware
+                        echo "$_firmware_rules" | sed 's/^-A/iptables -t nat -D/' | while read -r CMD; do
+                            eval "$CMD"
+                        done
+                    fi
                 fi
             ;;
             "remove")
                 remove_iptables_rules_by_comment "nat" && _rules_action=-1
+
+                if [ -f "$STATE_FILE" ]; then
+                    _firmware_rules="$(cat "$STATE_FILE")"
+                    rm -f "$STATE_FILE"
+
+                    if [ -n "$_firmware_rules" ]; then
+                        # Reverse the order of rules when adding them back to reflect how they were originally
+                        echo "$_firmware_rules" | sed -n -e 's/^-A/iptables -t nat -I/' -e '1!G;h;$p' | while read -r CMD; do
+                            eval "$CMD"
+                        done
+                    fi
+                fi
             ;;
         esac
     done
