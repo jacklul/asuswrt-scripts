@@ -31,14 +31,13 @@ VERIFY_DNS=false # verify that the DNS server is working before applying
 VERIFY_DNS_FALLBACK=false # verify that the DNS server is working before applying (fallback only)
 VERIFY_DNS_DOMAIN=asus.com # domain used when checking if DNS server is working
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
-RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
+RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
 
 readonly CHAIN_DNAT="jas-${script_name}-dnat"
 readonly CHAIN_DOT="jas-${script_name}-dot"
 readonly CHAIN_BLOCK="jas-${script_name}-block"
-
 router_ip="$(nvram get lan_ipaddr)"
 router_ip6="$(nvram get ipv6_rtr_addr)"
 ipv6_service="$(nvram get ipv6_service)"

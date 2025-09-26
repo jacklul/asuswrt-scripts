@@ -21,11 +21,11 @@ SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target, $3 = normalized event name)
-STATE_FILE="$TMP_DIR/$script_name" # where to store last parsed log line in case of crash
 
 load_script_config
 
 is_merlin_firmware && merlin=true
+state_file="$TMP_DIR/$script_name"
 readonly CHECK_CHAIN="jas-$script_name"
 readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
 
@@ -97,8 +97,8 @@ service_monitor() {
 
     logecho "Started service event monitoring..." true
 
-    if [ -f "$STATE_FILE" ]; then
-        _last_line="$(cat "$STATE_FILE")"
+    if [ -f "$state_file" ]; then
+        _last_line="$(cat "$state_file")"
         _initialized=true
     else
         _last_line="$(wc -l < "$SYSLOG_FILE")"
@@ -160,7 +160,7 @@ service_monitor() {
             fi
         fi
 
-        echo "$_last_line" > "$STATE_FILE"
+        echo "$_last_line" > "$state_file"
 
         [ -z "$_initialized" ] && _initialized=true
         _event_triggered=

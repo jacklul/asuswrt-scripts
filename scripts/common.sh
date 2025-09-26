@@ -543,8 +543,8 @@ remove_iptables_rules_by_comment() {
         if [ -n "$_remove_rules" ]; then
             _remove_rules_success=1
 
-            echo "$_remove_rules" | while read -r CMD; do
-                eval "$CMD"
+            echo "$_remove_rules" | while read -r _cmd; do
+                eval "$_cmd"
             done
         fi
     done

@@ -250,11 +250,11 @@ case "$1" in
 
         name="$(basename "$2" .sh)"
 
-        if [ -x "$SCRIPTS_DIR/${name}.sh" ]; then
+        if [ -f "$SCRIPTS_DIR/${name}.sh" ]; then
             shift
             shift
             lockfile unlock
-            exec "$SCRIPTS_DIR/${name}.sh" "$@"
+            exec /bin/sh "$SCRIPTS_DIR/${name}.sh" "$@"
         else
             echo "Not found: ${fwe}${name}${frt}"
             exit 1
@@ -444,7 +444,7 @@ case "$1" in
                     rm -f "$tmp_file"
 
                     if grep -q "^load_script_config" "$SCRIPTS_DIR/${name}.sh"; then
-                        sed '/load_script_config/q' "$SCRIPTS_DIR/${name}.sh" | grep -E '^[A-Z0-9_]+=.*#.*$' | sed -e 's/ # /     # /g' -e 's/^/#/g' > "$tmp_file"
+                        sed -ne '/readonly common_script/,$p' -e '/load_script_config/q' "$SCRIPTS_DIR/${name}.sh" | grep -E '^(#|[A-Z0-9_]+=.*#.*$)' | sed -e 's/ # /     # /g' -e 's/^#*/#/g' > "$tmp_file"
                     fi
 
                     if [ ! -f "$tmp_file" ] || [ ! -s "$tmp_file" ]; then
@@ -619,10 +619,10 @@ EOT
     *)
         name="$(basename "$1" .sh)"
 
-        if [ -x "$SCRIPTS_DIR/${name}.sh" ]; then
+        if [ -f "$SCRIPTS_DIR/${name}.sh" ]; then
             shift
             lockfile unlock
-            exec "$SCRIPTS_DIR/${name}.sh" "$@"
+            exec /bin/sh "$SCRIPTS_DIR/${name}.sh" "$@"
         fi
 
         cat <<EOT

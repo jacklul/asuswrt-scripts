@@ -23,13 +23,13 @@ WAIT_LIMIT=60 # how many minutes to wait for auto install before giving up (in R
 INSTALL_LOG="/tmp/entware-install.log" # where to store installation log (in RAM only)
 REQUIRE_NTP=true # require time to be synchronized to start
 ENTWARE_DIR=entware # in case you want to change the directory name on the storage drive
-STATE_FILE="$TMP_DIR/$script_name" # where to store last device Entware was mounted on
 
 load_script_config
 
 default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
+state_file="$TMP_DIR/$script_name"
 last_entware_device=""
-[ -f "$STATE_FILE" ] && last_entware_device="$(cat "$STATE_FILE")"
+[ -f "$state_file" ] && last_entware_device="$(cat "$state_file")"
 [ -z "$BASE_URL" ] && BASE_URL="$default_base_url"
 check_url="$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
@@ -98,7 +98,7 @@ init_opt() {
         if mount --bind "$1" /opt; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
                 _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
-                [ -n "$_mount_device" ] && basename "$_mount_device" > "$STATE_FILE"
+                [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
             fi
 
             logecho "Mounted '$1' on /opt" true
@@ -206,7 +206,7 @@ entware() {
                 fi
             fi
 
-            echo "" > "$STATE_FILE"
+            echo "" > "$state_file"
             last_entware_device=""
         ;;
     esac

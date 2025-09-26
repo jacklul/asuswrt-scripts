@@ -10,21 +10,17 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-VPN_INTERFACES=""  # VPN interfaces to affect, separated by spaces, empty means auto detect
+VPN_INTERFACES=""  # VPN interfaces to affect, separated by spaces, empty means auto detect, to find VPN interfaces run 'jas vpn-firewall identify'
 ALLOW_PORTS_INPUT="" # allow connections on these ports in the INPUT chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
 ALLOW_PORTS_FORWARD="" # same as ALLOW_PORTS_INPUT but for FORWARD chain
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
-RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
+RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
 
 readonly CHAIN_INPUT="jas-${script_name}-input"
 readonly CHAIN_FORWARD="jas-${script_name}-forward"
-
-# Deprecated variables support @TODO remove in the future
-[ -n "$ALLOW_INPUT_PORTS" ] && ALLOW_PORTS_INPUT="$ALLOW_INPUT_PORTS"
-[ -n "$ALLOW_FORWARD_PORTS" ] && ALLOW_PORTS_FORWARD="$ALLOW_FORWARD_PORTS"
 
 iptables_chain() {
     # inherited: _iptables
@@ -247,6 +243,29 @@ case "$1" in
     "run")
         firewall_rules add || { [ "$RETRY_ON_ERROR" = true ] && firewall_rules add; }
     ;;
+    "identify")
+        printf "%-10s %-7s %-20s\n" "Interface" "Active" "Description"
+        printf "%-10s %-7s %-20s\n" "---------" "------" "--------------------"
+
+        IFS="$(printf '\n\b')"
+        for entry in $(get_vpnc_clientlist); do
+            desc="$(echo "$entry" | awk -F '>' '{print $1}')"
+            type="$(echo "$entry" | awk -F '>' '{print $2}')"
+            id="$(echo "$entry" | awk -F '>' '{print $3}')"
+            active="$(echo "$entry" | awk -F '>' '{print $6}')"
+            [ "$active" = "1" ] && active=yes || active=no
+
+            if [ "$type" = "WireGuard" ]; then
+                interface="wgs${id}"
+            elif [ "$type" = "OpenVPN" ]; then
+                interface="$(nvram get "vpn_client${id}_if")1${id}"
+            else
+                continue
+            fi
+
+            printf "%-10s %-7s %-50s\n" "$interface" "$active" "$desc"
+        done
+    ;;
     "start")
         firewall_rules add
 
@@ -267,7 +286,7 @@ case "$1" in
         sh "$script_path" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart|identify"
         exit 1
     ;;
 esac

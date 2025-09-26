@@ -11,24 +11,20 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-QUEUE_FILE="$TMP_DIR/$script_name" # where to store the queue
-
-load_script_config
-
-[ -z "$QUEUE_FILE" ] && { echo "QUEUE_FILE is not set"; exit 1; }
+state_file="$TMP_DIR/$script_name"
 
 case "$1" in
     "run")
         lockfile lockfail run
 
-        #( sh "$QUEUE_FILE" < /dev/null )
+        #( sh "$state_file" < /dev/null )
         while IFS= read -r line; do
             line=$(echo "$line" | sed 's/[[:space:]]*#.*$//; s/^[[:space:]]*//; s/[[:space:]]*$//')
             [ -z "$line" ] && continue
             echo "Running: $line"
             #shellcheck disable=SC2086
             ( $line < /dev/null )
-        done < "$QUEUE_FILE"
+        done < "$state_file"
 
         lockfile unlock run
     ;;
@@ -41,21 +37,21 @@ case "$1" in
 
         lockfile lockwait
 
-        [ -f "$QUEUE_FILE" ] && sed "/#$(sed_quote "$2")#$/d" -i "$QUEUE_FILE"
-        [ "$add" = "add" ] && echo "$3 #$2#" >> "$QUEUE_FILE"
+        [ -f "$state_file" ] && sed "/#$(sed_quote "$2")#$/d" -i "$state_file"
+        [ "$add" = "add" ] && echo "$3 #$2#" >> "$state_file"
 
         lockfile unlock
     ;;
     "list"|"l")
-        [ ! -f "$QUEUE_FILE" ] && { echo "Queue file does not exist"; exit 1; }
+        [ ! -f "$state_file" ] && { echo "Queue file does not exist"; exit 1; }
 
-        cat "$QUEUE_FILE"
+        cat "$state_file"
     ;;
     "check"|"c")
         [ -z "$2" ] && { echo "Entry ID not provided"; exit 1; }
 
-        if [ -f "$QUEUE_FILE" ]; then
-            grep -Fq "#$2#" "$QUEUE_FILE" && exit 0
+        if [ -f "$state_file" ]; then
+            grep -Fq "#$2#" "$state_file" && exit 0
         fi
 
         exit 1

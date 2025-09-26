@@ -13,9 +13,10 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 TRIGGER_TEMPERATURE=80 # target temperature at which log the warning
 WARNING_COOLDOWN=300 # how long to wait (seconds) before logging another warning
 EXECUTE_COMMAND="" # execute a command each time warning is issued
-STATE_FILE="$TMP_DIR/$script_name" # where to store last warning uptime value
 
 load_script_config
+
+state_file="$TMP_DIR/$script_name"
 
 validate_config() {
     [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set"; exit 1; }
@@ -55,7 +56,7 @@ case "$1" in
         validate_config
 
         uptime="$(awk -F '.' '{print $1}' /proc/uptime)"
-        uptime_cached="$([ -f "$STATE_FILE" ] && cat "$STATE_FILE" || echo "0")"
+        uptime_cached="$([ -f "$state_file" ] && cat "$state_file" || echo "0")"
 
         if [ -z "$uptime_cached" ] || [ "$((uptime_cached+WARNING_COOLDOWN))" -le "$uptime" ]; then
             get_temperatures
@@ -81,7 +82,7 @@ case "$1" in
             fi
 
             if [ -n "$warning" ]; then
-                echo "$uptime" > "$STATE_FILE"
+                echo "$uptime" > "$state_file"
 
                 [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND
             fi

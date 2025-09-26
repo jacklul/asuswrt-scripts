@@ -28,11 +28,11 @@ PUSHOVER_TOKEN=""
 PUSHOVER_USERNAME=""
 PUSHBULLET_TOKEN=""
 CUSTOM_COMMAND="" # command will receive the new firmware version as its first parameter
-EMAIL_FILE="$TMP_DIR/$script_name.eml" # where to store temporary email message file
-STATE_FILE="$TMP_DIR/$script_name" # where to store last notified version
 
 load_script_config
 
+state_file="$TMP_DIR/$script_name"
+tmp_file="$TMP_DIR/$script_name.tmp"
 router_ip="$(nvram get lan_ipaddr)"
 router_name="$(nvram get lan_hostname)"
 [ -z "$router_name" ] && router_name="$router_ip"
@@ -40,7 +40,7 @@ curl_binary="$(get_curl_binary)"
 [ -z "$curl_binary" ] && { echo "curl not found"; exit 1; }
 
 send_email_message() {
-    cat <<EOT > "$EMAIL_FILE"
+    cat <<EOT > "$tmp_file"
 From: "$EMAIL_FROM_NAME" <$EMAIL_FROM_ADDRESS>
 To: "$EMAIL_TO_NAME" <$EMAIL_TO_ADDRESS>
 Subject: New router firmware notification @ $router_name
@@ -50,8 +50,8 @@ Content-Transfer-Encoding: quoted-printable
 New firmware version <b>$1</b> is now available for your router at <a href="$router_ip">$router_ip</a>.
 EOT
 
-    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$EMAIL_FILE" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logecho "Failed to send an email message"
-    rm -f "$EMAIL_FILE"
+    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$tmp_file" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logecho "Failed to send an email message"
+    rm -f "$tmp_file"
 }
 
 send_telegram_message() {
@@ -130,10 +130,10 @@ check_and_notify() {
     new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
     current_version="${buildno}_${extendno}"
 
-    if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$STATE_FILE" ] || [ "$(cat "$STATE_FILE")" != "$new_version" ] ; }; then
+    if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$state_file" ] || [ "$(cat "$state_file")" != "$new_version" ] ; }; then
         send_notification "$new_version"
 
-        echo "$new_version" > "$STATE_FILE"
+        echo "$new_version" > "$state_file"
     fi
 }
 

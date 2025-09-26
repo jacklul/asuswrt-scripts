@@ -16,22 +16,22 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 CONFIG_FILE="/jffs/inadyn.conf" # Inadyn configuration file to use
 IPECHO_URL="nvram" # "nvram" means use "nvram get wan0_ipaddr" (use "nvram2" for wan1), can use URL like "https://ipecho.net/plain" here or empty to not check
 IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL address
-STATE_FILE="$TMP_DIR/$script_name" # where to store last public IP
 
 load_script_config
 
-[ -f "$STATE_FILE" ] && last_wan_ip="$(cat "$STATE_FILE")"
-[ -z "$IPECHO_TIMEOUT" ] && IPECHO_TIMEOUT=1 # this cannot be empty, set the lowest possible value
+[ -z "$IPECHO_TIMEOUT" ] && IPECHO_TIMEOUT=1 # this cannot be empty, set to the lowest possible value
+state_file="$TMP_DIR/$script_name"
+[ -f "$state_file" ] && last_wan_ip="$(cat "$state_file")"
 
 run_ddns_update() {
     if inadyn --config="$CONFIG_FILE" --once --foreground; then
         logecho "Custom Dynamic DNS update successful" true
 
-        [ -n "$wan_ip" ] && echo "$wan_ip" > "$STATE_FILE"
+        [ -n "$wan_ip" ] && echo "$wan_ip" > "$state_file"
     else
         logecho "Custom Dynamic DNS update failure"
 
-        rm -f "$STATE_FILE"
+        rm -f "$state_file"
     fi
 }
 

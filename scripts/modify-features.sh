@@ -13,27 +13,28 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
-BACKUP_FILE="/tmp/rc_support.bak" # file to store backup of the variable in
-STATE_FILE="$TMP_DIR/$script_name" # file to store last contents of the variable in
 RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false), empty means false when service-event script is available but otherwise true
 
 load_script_config
+
+state_file="$TMP_DIR/$script_name"
+backup_file="$TMP_DIR/$script_name.bak"
 
 rc_support() {
     case "$1" in
         "modify")
             { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set"; exit 1; }
 
-            if [ ! -f "$BACKUP_FILE" ]; then
+            if [ ! -f "$backup_file" ]; then
                 rc_support="$(nvram get rc_support)"
-                echo "$rc_support" > "$BACKUP_FILE"
-                chmod 644 "$BACKUP_FILE"
+                echo "$rc_support" > "$backup_file"
+                chmod 644 "$backup_file"
             else
-                rc_support="$(cat "$BACKUP_FILE")"
+                rc_support="$(cat "$backup_file")"
             fi
 
-            if [ -f "$STATE_FILE" ]; then
-                rc_support_last="$(cat "$STATE_FILE")"
+            if [ -f "$state_file" ]; then
+                rc_support_last="$(cat "$state_file")"
             fi
 
             [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit
@@ -52,23 +53,23 @@ rc_support() {
 
             rc_support="$(echo "$rc_support" | tr -s ' ')"
 
-            echo "$rc_support" > "$STATE_FILE"
+            echo "$rc_support" > "$state_file"
 
             nvram set rc_support="$rc_support"
 
             logecho "Modified rc_support" true
         ;;
         "restore")
-            rm -f "$STATE_FILE"
+            rm -f "$state_file"
 
-            if [ -f "$BACKUP_FILE" ]; then
-                rc_support="$(cat "$BACKUP_FILE")"
+            if [ -f "$backup_file" ]; then
+                rc_support="$(cat "$backup_file")"
 
                 nvram set rc_support="$rc_support"
 
                 logecho "Restored original rc_support" true
             else
-                logecho "Could not find '$BACKUP_FILE' - cannot restore original rc_support!"
+                logecho "Could not find '$backup_file' - cannot restore original rc_support!"
             fi
         ;;
     esac
@@ -79,8 +80,8 @@ case "$1" in
         rc_support modify
     ;;
     "check") # used by service-event script
-        if [ -f "$STATE_FILE" ]; then
-            rc_support_last="$(cat "$STATE_FILE")"
+        if [ -f "$state_file" ]; then
+            rc_support_last="$(cat "$state_file")"
 
             [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit 0
         fi

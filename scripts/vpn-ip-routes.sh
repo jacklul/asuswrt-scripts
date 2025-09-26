@@ -15,20 +15,20 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-ROUTE_IPS="" # route IPs to specific VPNs, in format '5=1.1.1.1' (VPN_ID=IP), separated by spaces, run script with 'profiles' argument to identify VPN profile IDs
+ROUTE_IPS="" # route IPs to specific VPNs, in format '5=1.1.1.1' (VPNC_ID=IP), separated by spaces, to find VPNC_ID run 'jas vpn-ip-routes identify'
 ROUTE_IPS6="" # same as ROUTE_IPS but for IPv6, separated by spaces
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed (receives arguments: $1 = action - add/remove)
-STATE_FILE="$TMP_DIR/$script_name" # file to store last contents of the ROUTE_IPS and ROUTE_IPS6 variables
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
-RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
+RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
-load_script_config
-
-# In development/testing - might not work
-[ -z "$USE_FWMARKS" ] && USE_FWMARKS=false # use fwmarks instead of IP rules, this could improve routing performance with many rules
+# The following is development/testing and might not work
+USE_FWMARKS=false # use fwmarks instead of IP rules, this could improve routing performance with many rules
 FWMARK_POOL="0xa000 0xb000 0xc000 0xd000 0xe000" # available fwmarks to use in rules, separated by spaces, careful as some can be in use by the firmware
 FWMARK_MASK="0xf000" # fwmark mask to use, it must be compatible with all entries in FWMARK_POOL
 
+load_script_config
+
+state_file="$TMP_DIR/$script_name"
 readonly CHAIN="jas-${script_name}"
 
 is_vpnc_active() {
@@ -232,8 +232,8 @@ rules() {
     lockfile lockwait
 
     # Compare with previous configuration
-    if [ -f "$STATE_FILE" ]; then
-        . "$STATE_FILE"
+    if [ -f "$state_file" ]; then
+        . "$state_file"
 
         [ "$ROUTE_IPS" != "$LAST_ROUTE_IPS" ] && do_update=1
         [ "$ROUTE_IPS6" != "$LAST_ROUTE_IPS6" ] && do_update=1
@@ -273,7 +273,7 @@ rules() {
         logecho "Removed IP routing rules for VPN profiles: $(echo "$_removed_profiles" | awk '{$1=$1};1')" true
     fi
 
-    cat <<EOT > "$STATE_FILE"
+    cat <<EOT > "$state_file"
 LAST_ROUTE_IPS="$ROUTE_IPS"
 LAST_ROUTE_IPS6="$ROUTE_IPS6"
 LAST_USE_FWMARKS="$USE_FWMARKS"
@@ -291,7 +291,7 @@ case "$1" in
     "run")
         rules add || { [ "$RETRY_ON_ERROR" = true ] && rules add; }
     ;;
-    "profiles")
+    "identify")
         printf "%-3s %-7s %-20s\n" "ID" "Active" "Description"
         printf "%-3s %-7s %-20s\n" "--" "------" "--------------------"
 
@@ -318,7 +318,7 @@ case "$1" in
     ;;
     "stop")
         crontab_entry delete
-        rm -f "$STATE_FILE"
+        rm -f "$state_file"
         rules remove
     ;;
     "restart")
@@ -326,7 +326,7 @@ case "$1" in
         sh "$script_path" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart|profiles"
+        echo "Usage: $0 run|start|stop|restart|identify"
         exit 1
     ;;
 esac

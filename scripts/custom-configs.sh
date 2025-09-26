@@ -13,13 +13,12 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if process does not stop after SIGTERM, empty or -1 means no waiting
+KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if the process does not stop after SIGTERM, empty or -1 means no waiting
 # No RUN_EVERY_MINUTE option here as this script HAS to run every minute to check if any of the configs reverted to default
 
 load_script_config
 
 [ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
-
 readonly FILES="/etc/profile /etc/hosts /etc/resolv.conf" # files we can modify
 readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot be appended to
 readonly NO_REPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced

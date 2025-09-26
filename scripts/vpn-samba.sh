@@ -18,7 +18,7 @@ BRIDGE_INTERFACE="" # the bridge interface to set rules for, empty means set to 
 USE_LEGACY_PORTS=false # also use legacy NetBIOS ports 137-139 (true/false), set to true only if you really need them
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
-RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
+RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
 

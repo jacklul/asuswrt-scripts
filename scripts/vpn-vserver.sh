@@ -10,15 +10,16 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
 
-VPN_ADDRESSES="" # VPN addresses (IPv4) to affect, in format '10.10.10.10', separated by spaces, empty means auto detect
+VPN_ADDRESSES="" # VPN addresses (IPv4) to affect, in format '10.10.10.10', separated by spaces, empty means auto detect, to find VPN addresses run 'jas vpn-vserver identify'
 VPN_ADDRESSES6="" # same as VPN_ADDRESSES but for IPv6, separated by spaces, no auto detect available
 VPN_EXCLUSIVE=false # limit virtual server rules to VPN addresses only, this removes firmware made rules for WAN addresses
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
-STATE_FILE="$TMP_DIR/$script_name" # file to store firmware made rules VSERVER rules that are removed when VPN_EXCLUSIVE is true
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
-RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
+RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
+
+state_file="$TMP_DIR/$script_name"
 
 get_interface_address() {
     ip addr show "$1" | grep inet | awk '{print $2}' | cut -d '/' -f 1
@@ -26,26 +27,34 @@ get_interface_address() {
 
 firewall_rules() {
     if { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; }; then
-        for _unit in 5 4 3 2 1; do
-            if [ "$(nvram get wgc${_unit}_enable)" = "1" ]; then
-                _address="$(get_interface_address "wgc${_unit}")"
+        _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3}' | grep "^1" | cut -d ' ' -f 2-)"
 
-                if [ -n "$_address" ]; then
-                    VPN_ADDRESSES="$VPN_ADDRESSES $_address"
+        _oldIFS=$IFS
+        IFS="$(printf '\n\b')"
+        for _entry in $_vpnc_profiles; do
+            _type="$(echo "$_entry" | cut -d ' ' -f 1)"
+            _id="$(echo "$_entry" | cut -d ' ' -f 2)"
+
+            if [ "$_type" = "OpenVPN" ]; then
+                if [ "$(nvram get "vpn_client${_id}_state")" = "2" ]; then
+                    _ifname="$(nvram get "vpn_client${_id}_if")"
+                    _address="$(get_interface_address "${_ifname}1${_id}")"
+
+                    if [ -n "$_address" ]; then
+                        VPN_ADDRESSES="$VPN_ADDRESSES $_address"
+                    fi
+                fi
+            elif [ "$_type" = "WireGuard" ]; then
+                if [ "$(nvram get "wgc${_id}_enable")" = "1" ]; then
+                    _address="$(get_interface_address "wgc${_id}")"
+
+                    if [ -n "$_address" ]; then
+                        VPN_ADDRESSES="$VPN_ADDRESSES $_address"
+                    fi
                 fi
             fi
         done
-
-        for _unit in 5 4 3 2 1; do
-            if [ "$(nvram get vpn_client${_unit}_state)" = "2" ]; then
-                _ifname="$(nvram get vpn_client${_unit}_if)"
-                _address="$(get_interface_address "${_ifname}1${_unit}")"
-
-                if [ -n "$_address" ]; then
-                    VPN_ADDRESSES="$VPN_ADDRESSES $_address"
-                fi
-            fi
-        done
+        IFS=$_oldIFS
 
         { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; } && { echo "Error: VPN_ADDRESSES/VPN_ADDRESSES6 is not set"; exit 1; }
     fi
@@ -62,8 +71,10 @@ firewall_rules() {
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_addresses="$VPN_ADDRESSES6"
+            _state_file="$state_file.ipv6"
         else
             _vpn_addresses="$VPN_ADDRESSES"
+            _state_file="$state_file"
         fi
 
         [ -z "$_vpn_addresses" ] && continue
@@ -90,11 +101,11 @@ firewall_rules() {
                     _firmware_rules="$($_iptables -t nat -S | grep -F "j VSERVER" | grep -Fv "jas-$script_name")"
 
                     if [ -n "$_firmware_rules" ]; then
-                        echo "$_firmware_rules" > "$STATE_FILE"
+                        echo "$_firmware_rules" > "$_state_file"
 
                         # Delete the rules made by the firmware
-                        echo "$_firmware_rules" | sed 's/^-A/iptables -t nat -D/' | while read -r CMD; do
-                            eval "$CMD"
+                        echo "$_firmware_rules" | sed "s/^-A/$_iptables -t nat -D/" | while read -r _cmd; do
+                            eval "$_cmd"
                         done
                     fi
                 fi
@@ -102,14 +113,14 @@ firewall_rules() {
             "remove")
                 remove_iptables_rules_by_comment "nat" && _rules_action=-1
 
-                if [ -f "$STATE_FILE" ]; then
-                    _firmware_rules="$(cat "$STATE_FILE")"
-                    rm -f "$STATE_FILE"
+                if [ -f "$_state_file" ]; then
+                    _firmware_rules="$(cat "$_state_file")"
+                    rm -f "$_state_file"
 
                     if [ -n "$_firmware_rules" ]; then
                         # Reverse the order of rules when adding them back to reflect how they were originally
-                        echo "$_firmware_rules" | sed -n -e 's/^-A/iptables -t nat -I/' -e '1!G;h;$p' | while read -r CMD; do
-                            eval "$CMD"
+                        echo "$_firmware_rules" | sed -n -e "s/^-A/$_iptables -t nat -I/" -e '1!G;h;$p' | while read -r _cmd; do
+                            eval "$_cmd"
                         done
                     fi
                 fi
@@ -137,6 +148,38 @@ case "$1" in
     "run")
         firewall_rules add || { [ "$RETRY_ON_ERROR" = true ] && firewall_rules add; }
     ;;
+    "identify")
+        printf "%-16s %-7s %-20s\n" "Address" "Active" "Description"
+        printf "%-16s %-7s %-20s\n" "---------------" "------" "--------------------"
+
+        IFS="$(printf '\n\b')"
+        for entry in $(get_vpnc_clientlist); do
+            desc="$(echo "$entry" | awk -F '>' '{print $1}')"
+            type="$(echo "$entry" | awk -F '>' '{print $2}')"
+            id="$(echo "$entry" | awk -F '>' '{print $3}')"
+            active="$(echo "$entry" | awk -F '>' '{print $6}')"
+            [ "$active" = "1" ] && active=yes || active=no
+            address=
+
+            if [ "$type" = "OpenVPN" ]; then
+                if [ "$(nvram get "vpn_client${id}_state")" = "2" ]; then
+                    ifname="$(nvram get "vpn_client${id}_if")"
+                    address="$(get_interface_address "${ifname}1${id}")"
+
+                fi
+            elif [ "$type" = "WireGuard" ]; then
+                if [ "$(nvram get "wgc${id}_enable")" = "1" ]; then
+                    address="$(get_interface_address "wgc${id}")"
+                fi
+            else
+                continue
+            fi
+
+            [ -z "$address" ] && address="N/A"
+
+            printf "%-16s %-7s %-50s\n" "$address" "$active" "$desc"
+        done
+    ;;
     "start")
         firewall_rules add
 
@@ -157,7 +200,7 @@ case "$1" in
         sh "$script_path" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart"
+        echo "Usage: $0 run|start|stop|restart|identify"
         exit 1
     ;;
 esac

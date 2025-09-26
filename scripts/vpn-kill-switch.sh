@@ -17,7 +17,7 @@ TARGET_INTERFACES="" # the interfaces to set rules for, separated by spaces, emp
 WAN_INTERFACES="" # WAN interfaces to block the access to, separated by spaces, empty means auto detect
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
-RETRY_ON_ERROR=false # retry to set the rules on error (only once per run)
+RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
 
