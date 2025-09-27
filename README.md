@@ -90,14 +90,15 @@ Start everything up after you're done installing and configuring the scripts:
 <a href="#user-content-service-event">service-event</a><br>
 <a href="#user-content-swap">swap</a><br>
 <a href="#user-content-temperature-warning">temperature-warning</a><br>
+<a href="#user-content-update-notify">update-notify</a><br>
 </td>
 <td>
-<a href="#user-content-update-notify">update-notify</a><br>
 <a href="#user-content-uptime-reboot">uptime-reboot</a><br>
 <a href="#user-content-usb-network">usb-network</a><br>
 <a href="#user-content-vpn-firewall">vpn-firewall</a><br>
 <a href="#user-content-vpn-ip-routes">vpn-ip-routes</a><br>
 <a href="#user-content-vpn-kill-switch">vpn-kill-switch</a><br>
+<a href="#user-content-vpn-monitor">vpn-monitor</a><br>
 <a href="#user-content-vpn-samba">vpn-samba</a><br>
 <a href="#user-content-vpn-vserver">vpn-vserver</a><br>
 <a href="#user-content-wgs-lan-only">wgs-lan-only</a><br>
@@ -483,6 +484,15 @@ This also applies to situations where firmware resets firewall rules and they ha
 > IPv6 support was not tested!
 
 _Recommended to use [`service-event`](#user-content-service-event) as well for better reliability._
+
+---
+
+## [`vpn-monitor`](/scripts/vpn-monitor.sh)
+
+Monitors VPN Fusion connections and restarts them in case of connectivity failure.  
+There is also an option to rotate the servers using a list, a feature known from **[VPNMON](https://github.com/ViktorJp/VPNMON-R3)**.
+
+Only WireGuard and OpenVPN profiles are supported.
 
 ---
 
