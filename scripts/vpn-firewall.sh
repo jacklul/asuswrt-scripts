@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 VPN_INTERFACES=""  # VPN interfaces to affect, separated by spaces, empty means auto detect, to find VPN interfaces run 'jas vpn-firewall identify'
 ALLOW_PORTS_INPUT="" # allow connections on these ports in the INPUT chain, in format 'tcp=80 udp=5000-6000 1050' (not specifying protocol means tcp+udp), separated by spaces
@@ -72,7 +72,7 @@ iptables_chain() {
                 fi
             done
 
-            [ -n "$_allow_ports" ] && logecho "Allowed ports in the $_chain_type chain: $(echo "$_allow_ports" | awk '{$1=$1};1')" true
+            [ -n "$_allow_ports" ] && logecho "Allowed ports in the $_chain_type chain: $(echo "$_allow_ports" | awk '{$1=$1};1')" logger
 
             $_iptables -A "$_chain" -j DROP || _has_error=1
         ;;
@@ -148,7 +148,7 @@ firewall_rules() {
             VPN_INTERFACES="$VPN_INTERFACES tun1+"
         fi
 
-        [ -z "$VPN_INTERFACES" ] && { echo "Error: VPN_INTERFACES is not set"; exit 1; }
+        [ -z "$VPN_INTERFACES" ] && return # silently exit
     fi
 
     lockfile lockwait
@@ -183,7 +183,7 @@ firewall_rules() {
                                     && _rules_action=1 || _rules_error=1
                             done
                         else
-                            logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain"
+                            logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain" stderr
                             _rules_error=1
                         fi
                     else
@@ -201,7 +201,7 @@ firewall_rules() {
                                     && _rules_action=1 || _rules_error=1
                             done
                         else
-                            logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain"
+                            logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain" stderr
                             _rules_error=1
                         fi
                     else
@@ -223,13 +223,13 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" true
+            logecho "Blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" logger
         else
-            logecho "Stopped blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" true
+            logecho "Stopped blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" logger
         fi
     fi
 

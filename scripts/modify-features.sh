@@ -9,7 +9,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 FEATURES_REMOVE="" # features to remove from the list
 FEATURES_ADD="" # features to add to the list
@@ -23,7 +23,7 @@ backup_file="$TMP_DIR/$script_name.bak"
 rc_support() {
     case "$1" in
         "modify")
-            { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set"; exit 1; }
+            { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set" stderr; exit 1; }
 
             if [ ! -f "$backup_file" ]; then
                 rc_support="$(nvram get rc_support)"
@@ -57,7 +57,7 @@ rc_support() {
 
             nvram set rc_support="$rc_support"
 
-            logecho "Modified rc_support" true
+            logecho "Modified rc_support" logger
         ;;
         "restore")
             rm -f "$state_file"
@@ -67,9 +67,9 @@ rc_support() {
 
                 nvram set rc_support="$rc_support"
 
-                logecho "Restored original rc_support" true
+                logecho "Restored original rc_support" logger
             else
-                logecho "Could not find '$backup_file' - cannot restore original rc_support!"
+                logecho "Could not find '$backup_file' - cannot restore original rc_support!" stderr
             fi
         ;;
     esac

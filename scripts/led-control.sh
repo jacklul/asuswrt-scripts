@@ -15,7 +15,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 ON_HOUR=6 # hour to turn on the leds
 ON_MINUTE=0 # minute to turn on the leds
@@ -30,7 +30,7 @@ is_merlin_firmware && merlin=true
 
 if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
     persistent_state=""
-    logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware"
+    logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware" stderr
 fi
 
 set_wl_leds() {
@@ -71,7 +71,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logecho "LEDs are now ON$persistent_state" true
+            logecho "LEDs are now ON$persistent_state" logger
         ;;
         "off")
             if [ -n "$merlin" ]; then
@@ -85,7 +85,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logecho "LEDs are now OFF$persistent_state" true
+            logecho "LEDs are now OFF$persistent_state" logger
         ;;
     esac
 }
@@ -143,11 +143,11 @@ case "$1" in
             crontab_entry add "${script_name}-On" "$ON_MINUTE $ON_HOUR * * * $script_path on"
             crontab_entry add "${script_name}-Off" "$OFF_MINUTE $OFF_HOUR * * * $script_path off"
 
-            logecho "LED control schedule has been enabled" true
+            logecho "LED control schedule has been enabled" logger
 
             run_schedule
         else
-            logecho "LED control schedule is not set"
+            logecho "LED control schedule is not set" stderr
         fi
     ;;
     "stop")
@@ -159,7 +159,7 @@ case "$1" in
             switch_leds on
         fi
 
-        logecho "LED control schedule has been disabled" true
+        logecho "LED control schedule has been disabled" logger
     ;;
     "restart")
         sh "$script_path" stop

@@ -9,7 +9,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 state_file="$TMP_DIR/$script_name"
 
@@ -32,8 +32,8 @@ case "$1" in
         add="$1"
         [ "$1" = "a" ] && add=add
 
-        [ -z "$2" ] && { echo "Entry ID not set"; exit 1; }
-        { [ -z "$3" ] && [ "$add" = "add" ] ; } && { echo "Entry command not set"; exit 1; }
+        [ -z "$2" ] && { echo "Entry ID not set" >&2; exit 1; }
+        { [ -z "$3" ] && [ "$add" = "add" ] ; } && { echo "Entry command not set" >&2; exit 1; }
 
         lockfile lockwait
 
@@ -43,12 +43,12 @@ case "$1" in
         lockfile unlock
     ;;
     "list"|"l")
-        [ ! -f "$state_file" ] && { echo "Queue file does not exist"; exit 1; }
+        [ ! -f "$state_file" ] && { echo "Queue file does not exist" >&2; exit 1; }
 
         cat "$state_file"
     ;;
     "check"|"c")
-        [ -z "$2" ] && { echo "Entry ID not provided"; exit 1; }
+        [ -z "$2" ] && { echo "Entry ID not provided" >&2; exit 1; }
 
         if [ -f "$state_file" ]; then
             grep -Fq "#$2#" "$state_file" && exit 0

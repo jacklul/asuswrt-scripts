@@ -12,7 +12,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 # To use server rotation feature you must create /jffs/scripts/jas/vpn-monitor-<unit>.list file(s)
 # To identify VPN units run 'jas vpn-monitor identify'
@@ -74,7 +74,7 @@ restart_counter() {
 
             if [ "$RESTART_LIMIT" -gt 0 ] && [ "$_counter" -eq "$RESTART_LIMIT" ]; then
                 restart_counter increment "$2"
-                logecho "Restart limit of $RESTART_LIMIT reached for $2"
+                logecho "Restart limit of $RESTART_LIMIT reached for $2" stderr
                 return 1
             fi
 
@@ -177,12 +177,12 @@ restart_connection_by_ifname() {
         [ -n "$_is_active" ] && service "restart_${_service}" >/dev/null 2>&1
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
 
-        logecho "Restarted $_type client $_id with new server address: $_new_addr ($reason)" true
+        logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" logger
     elif interface_exists "$1"; then
         service "restart_${_service}" >/dev/null 2>&1
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
 
-        logecho "Restarted $_type client $_id ($reason)" true
+        logecho "Restarted $_type client $_id ($reason)" logger
     fi
 }
 
@@ -213,15 +213,13 @@ check_connection_by_ifname() {
                     [ -n "$_output" ] && _ping="$(awk "BEGIN {printf \"%0.0f\", ${_output}}")"
 
                     if [ -z "$_ping" ] || [ "$_ping" = "" ]; then
-                        echo "Invalid ping output: $_output"
+                        echo "Invalid ping output ($1): $_output" >&2
                         _ping_success=
                     fi
 
                     if [ "$_ping" -gt "$TEST_PING_LIMIT" ]; then
-                        echo "Ping time ${_ping}ms is higher than limit of ${TEST_PING_LIMIT}ms"
+                        echo "Ping time ${_ping}ms is higher than limit of ${TEST_PING_LIMIT}ms ($1)" >&2
                         _ping_success=
-                    else
-                        echo "Ping time ${_ping}ms is within limit of ${TEST_PING_LIMIT}ms"
                     fi
                 fi
             fi
@@ -234,6 +232,8 @@ check_connection_by_ifname() {
 
             if curl -sf --retry 3 --retry-delay 2 --retry-all-errors --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
                 _url_success=true
+            else
+                echo "Failed to fetch URL ($1)" >&2
             fi
         else
             _url_success=true
@@ -258,8 +258,8 @@ check_connection_by_ifname() {
 }
 
 check_connections() {
-    { [ -z "$TEST_PING" ] && [ -z "$TEST_URL" ] ; } && { logecho "Error: TEST_PING/TEST_URL is not set"; exit 1; }
-    { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected"; return 1; }
+    { [ -z "$TEST_PING" ] && [ -z "$TEST_URL" ] ; } && { logecho "Error: TEST_PING/TEST_URL is not set" stderr; exit 1; }
+    { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; return 1; }
 
     _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3, $7}' | grep "^1" | cut -d ' ' -f 2-)"
 
@@ -299,7 +299,7 @@ check_connections() {
 }
 
 manual_restart() {
-    [ -z "$1" ] && { echo "No unit provided"; exit 1; }
+    [ -z "$1" ] && { echo "No unit provided" >&2; exit 1; }
     [ "$2" = "reset" ] && echo "Will restart using first server on the list"
     reason="manual"
 
@@ -313,7 +313,7 @@ manual_restart() {
 
         restart_connection_by_ifname "${_if}1${_id}" "$2"
     else
-        echo "Invalid unit: $1"
+        echo "Invalid unit: $1" >&2
     fi
 }
 

@@ -11,7 +11,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if the process does not stop after SIGTERM, empty or -1 means no waiting
 # No RUN_EVERY_MINUTE option here as this script HAS to run every minute to check if any of the configs reverted to default
@@ -25,7 +25,7 @@ readonly NO_REPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that can
 readonly NO_POSTCONF_FILES="/etc/profile" # files that cannot run postconf script
 
 get_binary_location() {
-    [ -z "$1" ] && { echo "Binary name not provided"; exit 1; }
+    [ -z "$1" ] && { echo "Binary name not provided" >&2; exit 1; }
 
     _binary_name="$(echo "$1"| awk '{print $1}')"
 
@@ -35,7 +35,7 @@ get_binary_location() {
 }
 
 restart_process() {
-    [ -z "$1" ] && { echo "Process name not provided"; exit 1; }
+    [ -z "$1" ] && { echo "Process name not provided" >&2; exit 1; }
 
     _started=
     for _pid in $(/bin/ps w | grep -F "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
@@ -63,16 +63,16 @@ restart_process() {
                 _cmdline="$(echo "$_cmdline" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')"
 
                 #shellcheck disable=SC2086
-                "$_full_binary_path" $_cmdline && _started=1 && logecho "Restarted process: $_full_binary_path $_cmdline" true
+                "$_full_binary_path" $_cmdline && _started=1 && logecho "Restarted process: $_full_binary_path $_cmdline" logger
             else
-                $_cmdline && _started=1 && logecho "Restarted process: $_cmdline" true
+                $_cmdline && _started=1 && logecho "Restarted process: $_cmdline" logger
             fi
         fi
     done
 }
 
 is_file_add_supported() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$NO_ADD_FILES" ] && return 0
     _new="$(echo "$1" | sed 's/\.new$//')"
 
@@ -84,7 +84,7 @@ is_file_add_supported() {
 }
 
 is_file_replace_supported() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$NO_REPLACE_FILES" ] && return 0
     _new="$(echo "$1" | sed 's/\.new$//')"
 
@@ -96,7 +96,7 @@ is_file_replace_supported() {
 }
 
 is_file_postconf_supported() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$NO_POSTCONF_FILES" ] && return 0
     _new="$(echo "$1" | sed 's/\.new$//')"
 
@@ -108,9 +108,9 @@ is_file_postconf_supported() {
 }
 
 is_config_file_modified() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist"; return 1; }
-    [ ! -f "$1.new" ] && { echo "File '$1.new' does not exist"; return 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
+    [ ! -f "$1.new" ] && { echo "File '$1.new' does not exist" >&2; return 1; }
 
     if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
         return 0
@@ -120,8 +120,8 @@ is_config_file_modified() {
 }
 
 modify_config_file() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist"; return 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
     # $2 = custom /jffs/configs/[NAME.conf]
 
     if [ -n "$2" ]; then
@@ -131,11 +131,11 @@ modify_config_file() {
     fi
 
     if [ -f "/jffs/configs/$_basename" ] && is_file_replace_supported "$1"; then
-        logecho "Replacing '$1' with '/jffs/configs/$_basename'..." true
+        logecho "Replacing '$1' with '/jffs/configs/$_basename'..." logger
 
         cat "/jffs/configs/$_basename" > "$1.new"
     elif [ -f "/jffs/configs/$_basename.add" ] && is_file_add_supported "$1"; then
-        logecho "Appending '/jffs/configs/$_basename.add' to '$1'..." true
+        logecho "Appending '/jffs/configs/$_basename.add' to '$1'..." logger
 
         cp "$1" "$1.new"
         cat "/jffs/configs/$_basename.add" >> "$1.new"
@@ -143,8 +143,8 @@ modify_config_file() {
 }
 
 run_postconf_script() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
 
     if ! is_file_postconf_supported "$1"; then
         return
@@ -153,7 +153,7 @@ run_postconf_script() {
     _basename="$(basename "$1" | cut -d '.' -f 1)"
 
     if [ -x "/jffs/scripts/$_basename.postconf" ]; then
-        logecho "Running '/jffs/scripts/$_basename.postconf' script..." true
+        logecho "Running '/jffs/scripts/$_basename.postconf' script..." logger
 
         [ ! -f "$1.new" ] && cp "$1" "$1.new"
         sh "/jffs/scripts/$_basename.postconf" "$1.new" < /dev/null
@@ -161,8 +161,8 @@ run_postconf_script() {
 }
 
 add_modified_mark() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
 
     _basename="$(basename "$1" | cut -d '.' -f 1)"
     _comment="#"
@@ -178,9 +178,9 @@ add_modified_mark() {
 }
 
 commit_new_file() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist"; exit 1; }
-    [ !  -f "$1.new" ] && { echo "File '$1.new' does not exist"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
+    [ !  -f "$1.new" ] && { echo "File '$1.new' does not exist" >&2; exit 1; }
 
     cp -f "$1.new" "$1"
 }
@@ -206,14 +206,14 @@ restore_files() {
         if  [ -f "$_file.bak" ] && [ -f "$_file.new" ]; then
             cp -f "$_file.bak" "$_file"
             rm -f "$_file.new"
-            logecho "Restored: $_file" true
+            logecho "Restored: $_file" logger
         fi
     done
 }
 
 modify_service_config_file() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ -z "$2" ] && { echo "Process name not provided"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ -z "$2" ] && { echo "Process name not provided" >&2; exit 1; }
     # $3 = custom /jffs/configs/[NAME.conf]
 
     _match="$2"
@@ -240,7 +240,7 @@ modify_service_config_file() {
 
                 case "$2" in
                     "avahi-daemon")
-                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logecho "Restarted process: avahi-daemon" true
+                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logecho "Restarted process: avahi-daemon" logger
                     ;;
                     "samba")
                         restart_process nmbd
@@ -263,8 +263,8 @@ modify_service_config_file() {
 }
 
 restore_service_config_file() {
-    [ -z "$1" ] && { echo "File path not provided"; exit 1; }
-    [ -z "$2" ] && { echo "Process/service name not provided"; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ -z "$2" ] && { echo "Process/service name not provided" >&2; exit 1; }
 
     _match="$2"
     _service="$2"
@@ -311,7 +311,7 @@ restore_service_config_file() {
 
         rm -f "$1.new"
 
-        logecho "Restarted service: $_service" true
+        logecho "Restarted service: $_service" logger
     fi
 }
 

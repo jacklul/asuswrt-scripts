@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 TRIGGER_TEMPERATURE=80 # target temperature at which log the warning
 WARNING_COOLDOWN=300 # how long to wait (seconds) before logging another warning
@@ -19,8 +19,8 @@ load_script_config
 state_file="$TMP_DIR/$script_name"
 
 validate_config() {
-    [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set"; exit 1; }
-    [ -z "$WARNING_COOLDOWN" ] && { logecho "Error: WARNING_COOLDOWN is not set"; exit 1; }
+    [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set" stderr; exit 1; }
+    [ -z "$WARNING_COOLDOWN" ] && { logecho "Error: WARNING_COOLDOWN is not set" stderr; exit 1; }
 }
 
 get_temperatures() {
@@ -62,22 +62,22 @@ case "$1" in
             get_temperatures
 
             if [ "$(printf "%.0f" "$cpu_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "CPU temperature warning: $cpu_temperature C" true
+                logecho "CPU temperature warning: $cpu_temperature C" logger
                 warning=1
             fi
 
             if [ -n "$wifi_24g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_24g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "WiFi 2.4G temperature warning: $wifi_24g_temperature C" true
+                logecho "WiFi 2.4G temperature warning: $wifi_24g_temperature C" logger
                 warning=1
             fi
 
             if [ -n "$wifi_5g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_5g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "WiFi 5G temperature warning: $wifi_5g_temperature C" true
+                logecho "WiFi 5G temperature warning: $wifi_5g_temperature C" logger
                 warning=1
             fi
 
             if [ -n "$wifi_6g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_6g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "WiFi 6G temperature warning: $wifi_6g_temperature C" true
+                logecho "WiFi 6G temperature warning: $wifi_6g_temperature C" logger
                 warning=1
             fi
 

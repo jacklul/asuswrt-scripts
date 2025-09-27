@@ -11,7 +11,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 WL_INTERFACES="wl0.1 wl1.1" # guest network interfaces to randomize passwords for (find them using 'nvram show | grep "^wl[0-9]\.[0-9]_ssid"' command), separated by space
 CHARACTER_LIST="ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz123456789" # characters list for generated passwords
@@ -27,16 +27,16 @@ get_random_password() {
 }
 
 rotate_passwords() {
-    [ -z "$WL_INTERFACES" ] && { logecho "Error: WL_INTERFACES is not set"; exit 1; }
-    [ -z "$CHARACTER_LIST" ] && { logecho "Error: CHARACTER_LIST is not set"; exit 1; }
-    [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: PASSWORD_LENGTH is not set"; exit 1; }
+    [ -z "$WL_INTERFACES" ] && { logecho "Error: WL_INTERFACES is not set" stderr; exit 1; }
+    [ -z "$CHARACTER_LIST" ] && { logecho "Error: CHARACTER_LIST is not set" stderr; exit 1; }
+    [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: PASSWORD_LENGTH is not set" stderr; exit 1; }
 
     for interface in $WL_INTERFACES; do
         ssid="$(nvram get "${interface}_ssid")"
 
         if [ -n "$ssid" ]; then
             if [ "$(nvram get "${interface}_bss_enabled")" = "1" ]; then
-                logecho "Rotating password for guest WiFi: $ssid" true
+                logecho "Rotating password for guest WiFi: $ssid" logger
 
                 new_password="$(get_random_password)"
                 nvram set "${interface}_wpa_psk"="$new_password"
@@ -45,7 +45,7 @@ rotate_passwords() {
                 [ "$(nvram get "${interface}_bss_enabled")" = "1" ] && restart=1
             fi
         else
-            logecho "Invalid guest network: $interface"
+            logecho "Invalid guest network: $interface" stderr
         fi
     done
 

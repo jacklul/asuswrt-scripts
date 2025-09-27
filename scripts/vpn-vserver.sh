@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 VPN_ADDRESSES="" # VPN addresses (IPv4) to affect, in format '10.10.10.10', separated by spaces, empty means auto detect, to find VPN addresses run 'jas vpn-vserver identify'
 VPN_ADDRESSES6="" # same as VPN_ADDRESSES but for IPv6, separated by spaces, no auto detect available
@@ -56,7 +56,7 @@ firewall_rules() {
         done
         IFS=$_oldIFS
 
-        { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; } && { echo "Error: VPN_ADDRESSES/VPN_ADDRESSES6 is not set"; exit 1; }
+        { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; } && return # silently exit
     fi
 
     lockfile lockwait
@@ -128,13 +128,13 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Enabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" true
+            logecho "Enabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" logger
         else
-            logecho "Disabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" true
+            logecho "Disabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" logger
         fi
     fi
 

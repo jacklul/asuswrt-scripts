@@ -13,7 +13,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 ROUTE_IPS="" # route IPs to specific VPNs, in format '5=1.1.1.1' (VPNC_ID=IP), separated by spaces, to find VPNC_ID run 'jas vpn-ip-routes identify'
 ROUTE_IPS6="" # same as ROUTE_IPS but for IPv6, separated by spaces
@@ -43,7 +43,7 @@ get_profile_desc() {
 get_fwmark_for_idx() {
     # Since we are using eval later, it's worth making sure $1 is just a number
     case $1 in
-        ''|*[!0-9]*) echo "Expected numeric argument"; return 1 ;;
+        ''|*[!0-9]*) echo "Expected numeric argument" >&2; return 1 ;;
         *) ;;
     esac
 
@@ -130,7 +130,7 @@ iptables_rules() {
 
                         if [ -z "$_fwmark" ]; then
                             if [ -z "$fwmark_exhausted_notify" ]; then
-                                logecho "Error: Exhausted fwmark pool"
+                                logecho "Error: Exhausted fwmark pool" stderr
                                 fwmark_exhausted_notify=true
                             fi
 
@@ -170,7 +170,7 @@ iptables_rules() {
         $_ip route flush cache
     done
 
-    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying iptables or IP routing rules ($1)"
+    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying iptables or IP routing rules ($1)" stderr
     [ -z "$rules_error" ] && return 0 || return 1
 }
 
@@ -222,12 +222,12 @@ ip_route_rules() {
         $_ip route flush cache
     done
 
-    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying IP routing rules ($1)"
+    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying IP routing rules ($1)" stderr
     [ -z "$rules_error" ] && return 0 || return 1
 }
 
 rules() {
-    { [ -z "$ROUTE_IPS" ] && [ -z "$ROUTE_IPS6" ] ; } && { logecho "Error: ROUTE_IPS/ROUTE_IPS6 is not set"; exit 1; }
+    { [ -z "$ROUTE_IPS" ] && [ -z "$ROUTE_IPS6" ] ; } && { logecho "Error: ROUTE_IPS/ROUTE_IPS6 is not set" stderr; exit 1; }
 
     lockfile lockwait
 
@@ -239,7 +239,7 @@ rules() {
         [ "$ROUTE_IPS6" != "$LAST_ROUTE_IPS6" ] && do_update=1
 
         if [ "$USE_FWMARKS" != "$LAST_USE_FWMARKS" ] || [ "$FWMARK_POOL" != "$LAST_FWMARK_POOL" ] || [ "$FWMARK_MASK" != "$LAST_FWMARK_MASK" ]; then
-            logecho "Error: Configuration for fwmarks has changed, please restart the script"
+            echo "Error: Configuration for fwmarks has changed, please restart the script" >&2
             exit 1
         fi
     fi
@@ -261,7 +261,7 @@ rules() {
             _added_profiles="$_added_profiles '$(get_profile_desc "$_idx")'"
         done
 
-        logecho "Added IP routing rules for VPN profiles: $(echo "$_added_profiles" | awk '{$1=$1};1')" true
+        logecho "Added IP routing rules for VPN profiles: $(echo "$_added_profiles" | awk '{$1=$1};1')" logger
     fi
 
     if [ "$rules_removed" = 1 ]; then
@@ -270,7 +270,7 @@ rules() {
             _removed_profiles="$_removed_profiles '$(get_profile_desc "$_idx")'"
         done
 
-        logecho "Removed IP routing rules for VPN profiles: $(echo "$_removed_profiles" | awk '{$1=$1};1')" true
+        logecho "Removed IP routing rules for VPN profiles: $(echo "$_removed_profiles" | awk '{$1=$1};1')" logger
     fi
 
     cat <<EOT > "$state_file"

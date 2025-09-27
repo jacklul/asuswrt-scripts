@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 VPN_NETWORKS="" # VPN networks (IPv4) to allow access to Samba from, in format '10.6.0.0/24', separated by spaces, empty means auto detect
 VPN_NETWORKS6="" # same as VPN_NETWORKS but for IPv6, separated by spaces, no auto detect available
@@ -61,7 +61,7 @@ firewall_rules() {
         #    fi
         #fi
 
-        { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; } && { echo "Error: VPN_NETWORKS/VPN_NETWORKS6 is not set"; exit 1; }
+        { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; } && return # silently exit
     fi
 
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
@@ -89,7 +89,7 @@ firewall_rules() {
                 _cidr="$(mask_to_cidr "$_lan_netmask")"
                 _network="$(calculate_network "$_lan_ipaddr" "$_lan_netmask")"
 
-                { [ -z "$_cidr" ] || [ -z "$_network" ] ; } && { logecho "Error: Failed to calculate destination IPv4 network"; exit 1; }
+                { [ -z "$_cidr" ] || [ -z "$_network" ] ; } && { logecho "Error: Failed to calculate destination IPv4 network" stderr; exit 1; }
 
                 _lan_network="$_network/$_cidr"
             fi
@@ -128,13 +128,13 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" true
+            logecho "Masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" logger
         else
-            logecho "Stopped masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" true
+            logecho "Stopped masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" logger
         fi
     fi
 

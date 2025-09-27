@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 EXTRA_IPS="" # extra IP addresses to add, in format 'br0=192.168.1.254/24', separated by space
 EXTRA_IPS6="" # same as EXTRA_IPS but for IPv6, in format 'br0=2001:db8::1/64', separated by space
@@ -17,7 +17,7 @@ RUN_EVERY_MINUTE= # verify that the addresses are still set (true/false), empty 
 load_script_config
 
 extra_ip() {
-    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: EXTRA_IPS/EXTRA_IPS6 is not set"; exit 1; }
+    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: EXTRA_IPS/EXTRA_IPS6 is not set" stderr; exit 1; }
 
     lockfile lockwait
 
@@ -50,7 +50,7 @@ extra_ip() {
                 fi
             fi
 
-            { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { logecho "Invalid entry: $_extra_ip"; continue; }
+            { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { logecho "Invalid entry: $_extra_ip" stderr; continue; }
 
             case "$1" in
                 "add")
@@ -61,7 +61,7 @@ extra_ip() {
                             $_ip addr add "$_address" brd + dev "$_interface"
                         fi
 
-                        logecho "Added address '$_address' to interface '$_interface'" true
+                        logecho "Added address '$_address' to interface '$_interface'" logger
                     fi
                 ;;
                 "remove")
@@ -72,7 +72,7 @@ extra_ip() {
                             $_ip addr delete "$_address" dev "$_interface"
                         fi
 
-                        logecho "Removed address '$_address' from interface '$_interface'" true
+                        logecho "Removed address '$_address' from interface '$_interface'" logger
                     fi
                 ;;
             esac
