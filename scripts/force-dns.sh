@@ -14,7 +14,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 DNS_SERVER="" # when left empty it will use DNS server set on DHCP page or router's address if those fields is empty
 DNS_SERVER6="" # same as DNS_SERVER but for IPv6, when left empty it will use DNS server set on IPv6 page or router's address if those fields is empty, set to "block" to block IPv6 DNS traffic
@@ -100,7 +100,7 @@ iptables_chains() {
                             _forward_start="$((_forward_start+1))"
                         done
                     else
-                        logecho "Unable to find the 'state RELATED,ESTABLISHED' rule in the FORWARD FILTER chain"
+                        logecho "Unable to find the 'state RELATED,ESTABLISHED' rule in the FORWARD FILTER chain" stderr
                         _has_error=1
                     fi
                 fi
@@ -125,7 +125,7 @@ iptables_chains() {
                             _prerouting_start="$((_prerouting_start+2))"
                         done
                     else
-                        logecho "Unable to find the 'target VSERVER' rule in the PREROUTING NAT chain"
+                        logecho "Unable to find the 'target VSERVER' rule in the PREROUTING NAT chain" stderr
                         _has_error=1
                     fi
                 fi
@@ -156,7 +156,7 @@ iptables_chains() {
                             _input_start="$((_input_start+2))"
                         done
                     else
-                        logecho "Unable to find the 'state INVALID' rule in the INPUT FILTER chain"
+                        logecho "Unable to find the 'state INVALID' rule in the INPUT FILTER chain" stderr
                         _has_error=1
                     fi
                 fi
@@ -182,7 +182,7 @@ iptables_chains() {
         esac
     done
 
-    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall chains ($1)"
+    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall chains ($1)" stderr
     [ -z "$_has_error" ] && return 0 || return 1
 }
 
@@ -284,7 +284,7 @@ iptables_rules() {
         fi
     done
 
-    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall rules ($1)"
+    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
     [ -z "$_has_error" ] && return 0 || return 1
 }
 
@@ -299,8 +299,8 @@ rules_exist() {
 }
 
 firewall_rules() {
-    [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set"; exit 1; }
-    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set"; exit 1; }
+    [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set" stderr; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set" stderr; exit 1; }
 
     lockfile lockwait
 
@@ -324,7 +324,7 @@ firewall_rules() {
                         _dns_server="$DNS_SERVER"
                         [ -n "$DNS_SERVER6" ] && _dns_server="$_dns_server $DNS_SERVER6"
 
-                        logecho "Forcing DNS servers: $_dns_server" true
+                        logecho "Forcing DNS servers: $_dns_server" logger
                     fi
                 fi
             fi
@@ -344,7 +344,7 @@ firewall_rules() {
                             _fallback_dns_server="$FALLBACK_DNS_SERVER"
                             [ -n "$FALLBACK_DNS_SERVER6" ] && _fallback_dns_server="$_fallback_dns_server $FALLBACK_DNS_SERVER6"
 
-                            logecho "Forcing fallback DNS servers: $_fallback_dns_server" true
+                            logecho "Forcing fallback DNS servers: $_fallback_dns_server" logger
                         fi
                     fi
                 fi
@@ -376,7 +376,7 @@ case "$1" in
         if [ -n "$FALLBACK_DNS_SERVER" ]; then
             firewall_rules remove
         else
-            logecho "Fallback DNS servers are not set!"
+            logecho "Fallback DNS servers are not set!" stderr
             exit 1
         fi
     ;;

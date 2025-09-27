@@ -12,7 +12,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 BRIDGE_INTERFACE="" # bridge interface to add into, by default LAN bridge interface
 EXECUTE_COMMAND="" # execute a command each time status changes (receives arguments: $1 = action (add/remove), $2 = interface)
@@ -43,7 +43,7 @@ is_interface_up() {
 }
 
 setup_inteface() {
-    [ -z "$2" ] && { echo "You must specify a network interface"; exit 1; }
+    [ -z "$2" ] && { echo "You must specify a network interface" >&2; exit 1; }
     require_bridge_interface
 
     lockfile lockwait
@@ -58,12 +58,12 @@ setup_inteface() {
             fi
 
             if ! brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
-                logecho "Added interface '$2' to bridge '$BRIDGE_INTERFACE'" true
+                logecho "Added interface '$2' to bridge '$BRIDGE_INTERFACE'" logger
             fi
         ;;
         "remove")
             if brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
-                logecho "Removed interface '$2' from bridge '$BRIDGE_INTERFACE'" true
+                logecho "Removed interface '$2' from bridge '$BRIDGE_INTERFACE'" logger
             fi
 
             if [ -d "/sys/class/net/$2" ] && is_interface_up "$2"; then

@@ -15,7 +15,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
@@ -80,22 +80,22 @@ trigger_event() {
     if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
         lockfile check "event_${_action}_${_target}" && return # already processing this event
 
-        logecho "Running script (args: '$_action' '$_target') *" true
+        logecho "Running script (args: '$_action' '$_target') *" logger
     else
-        logecho "Running script (args: '$_action' '$_target')" true
+        logecho "Running script (args: '$_action' '$_target')" logger
     fi
 
     sh "$script_path" event "$_action" "$_target" "$3" &
 }
 
 service_monitor() {
-    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE"; exit 1; }
+    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE" stderr; exit 1; }
 
-    lockfile lockfail || { echo "Already running! ($lockpid)"; exit 1; }
+    lockfile lockfail || { echo "Already running! ($lockpid)" >&2; exit 1; }
 
     set -e
 
-    logecho "Started service event monitoring..." true
+    logecho "Started service event monitoring..." logger
 
     if [ -f "$state_file" ]; then
         _last_line="$(cat "$state_file")"
@@ -109,7 +109,7 @@ service_monitor() {
     while true; do
         _total_lines="$(wc -l < "$SYSLOG_FILE")"
         if [ "$_total_lines" -lt "$((_last_line-1))" ]; then
-            logecho "Log file has been rotated, resetting line pointer..." true
+            logecho "Log file has been rotated, resetting line pointer..." logger
             _last_line=1
             continue
         fi
@@ -230,7 +230,7 @@ integrated_event() {
 
 run_in_background() {
     [ -n "$merlin" ] && exit # Do not run on Asuswrt-Merlin firmware
-    lockfile check && { echo "Already running! ($lockpid)"; exit 1; }
+    lockfile check && { [ -n "$console_is_interactive" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
 
     if is_started_by_system && [ "$PPID" -ne 1 ]; then
         nohup "$script_path" run > /dev/null 2>&1 &
@@ -245,7 +245,7 @@ case "$1" in
     ;;
     "event")
         if [ "$4" = "ccheck" ]; then
-            lockfile lockfail "event_${2}_${3}" || { echo "Error: This event is already being processed (args: '$2' '$3')"; exit 1; }
+            lockfile lockfail "event_${2}_${3}" || { echo "Error: This event is already being processed (args: '$2' '$3')" >&2; exit 1; }
         else
             lockfile lockwait "event_${2}_${3}"
         fi

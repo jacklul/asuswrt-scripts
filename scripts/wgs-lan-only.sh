@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 WG_INTERFACES="" # WireGuard server interfaces to set rules for (find it through 'ifconfig' command), empty means auto detect
 BRIDGE_INTERFACE="" # the bridge interface to limit access to, set 'br+' to also allow access to guest networks, empty means set to LAN bridge interface
@@ -24,7 +24,7 @@ firewall_rules() {
             WG_INTERFACES="wgs+"
         fi
 
-        [ -z "$WG_INTERFACES" ] && { echo "Error: WG_INTERFACES is not set"; exit 1; }
+        [ -z "$WG_INTERFACES" ] && return # silently exit
     fi
 
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
@@ -58,13 +58,13 @@ firewall_rules() {
         esac
     done
 
-    [ -n "$_rules_error" ] && logecho "Errors detected while modifying firewall rules ($1)"
+    [ -n "$_rules_error" ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Restricting WireGuard server ($WG_INTERFACES) clients to allow only access to interface '$BRIDGE_INTERFACE'" true
+            logecho "Restricting WireGuard server ($WG_INTERFACES) clients to allow only access to interface '$BRIDGE_INTERFACE'" logger
         else
-            logecho "Restored internet access for WireGuard server ($WG_INTERFACES) clients" true
+            logecho "Restored internet access for WireGuard server ($WG_INTERFACES) clients" logger
         fi
     fi
 

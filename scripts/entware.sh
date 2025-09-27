@@ -12,7 +12,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 IN_RAM="" # Install Entware and packages in RAM (/tmp), space separated list
 ARCHITECTURE="" # Entware architecture, set it only when auto install (to /tmp) can't detect it properly
@@ -78,7 +78,7 @@ unmount_opt() {
 }
 
 init_opt() {
-    [ -z "$1" ] && { echo "Target path not provided"; exit 1; }
+    [ -z "$1" ] && { echo "Target path not provided" >&2; exit 1; }
 
     # Wait for app_init_run.sh to finish before messing with /opt mount
     timeout=60
@@ -90,7 +90,7 @@ init_opt() {
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted; then
             if ! unmount_opt; then
-                logecho "Failed to unmount /opt"
+                logecho "Failed to unmount /opt" stderr
                 exit 1
             fi
         fi
@@ -101,13 +101,13 @@ init_opt() {
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
             fi
 
-            logecho "Mounted '$1' on /opt" true
+            logecho "Mounted '$1' on /opt" logger
         else
-            logecho "Failed to mount '$1' on /opt"
+            logecho "Failed to mount '$1' on /opt" stderr
             exit 1
         fi
     else
-        logecho "Entware not found in '$1'"
+        logecho "Entware not found in '$1'" stderr
         exit 1
     fi
 }
@@ -148,28 +148,28 @@ services() {
         "start")
             if is_entware_mounted; then
                 if [ -f /opt/etc/init.d/rc.unslung ]; then
-                    logecho "Starting services..." true
+                    logecho "Starting services..." logger
 
                     /opt/etc/init.d/rc.unslung start "$script_path"
 
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
                 else
-                    logecho "Unable to start services - Entware is not installed"
+                    logecho "Unable to start services - Entware is not installed" stderr
                     return 1
                 fi
             else
-                logecho "Unable to start services - Entware is not mounted"
+                logecho "Unable to start services - Entware is not mounted" stderr
                 return 1
             fi
         ;;
         "stop")
             if [ -f /opt/etc/init.d/rc.unslung ]; then
-                logecho "Stopping services..." true
+                logecho "Stopping services..." logger
 
                 /opt/etc/init.d/rc.unslung stop "$script_path"
             elif [ -d "/tmp/$script_name-init.d-backup" ]; then
-                logecho "Killing services..." true
+                logecho "Killing services..." logger
 
                 if "/tmp/$script_name-init.d-backup/rc.unslung" kill "$script_path"; then
                     rm -rf "/tmp/$script_name-init.d-backup"
@@ -186,7 +186,7 @@ entware() {
 
     case "$1" in
         "start")
-            [ -z "$2" ] && { echo "Entware directory not provided"; exit 1; }
+            [ -z "$2" ] && { echo "Entware directory not provided" >&2; exit 1; }
 
             init_opt "$2"
 
@@ -200,9 +200,9 @@ entware() {
 
             if is_entware_mounted; then
                 if unmount_opt; then
-                    logecho "Unmounted /opt" true
+                    logecho "Unmounted /opt" logger
                 else
-                    logecho "Failed to unmount /opt"
+                    logecho "Failed to unmount /opt" stderr
                 fi
             fi
 
@@ -215,8 +215,8 @@ entware() {
 }
 
 echo_and_log() {
-    [ -z "$1" ] && { echo "Message is empty"; return 1; }
-    [ -z "$2" ] && { echo "File is empty"; return 1; }
+    [ -z "$1" ] && { echo "Message is empty" >&2; return 1; }
+    [ -z "$2" ] && { echo "File is empty" >&2; return 1; }
 
     echo "$1"
     echo "$1" >> "$2"
@@ -246,7 +246,7 @@ symlink_data() {
             done
 
             if [ -f "$target_file" ]; then
-                echo "Warning: File $target_file already exists, renaming..."
+                echo "Warning: File $target_file already exists, renaming..." >&2
                 [ -x "$target_file" ] && chmod -x "$target_file"
                 mv -v "$target_file" "$target_file.bak_$(date +%s)"
             fi
@@ -254,9 +254,9 @@ symlink_data() {
             [ ! -d "$target_file_dir" ] && mkdir -pv "$target_file_dir"
 
             if [ -f "$1.copythisfile" ]; then
-                cp -v "$1" "$target_file" || echo "Failed to copy a file: $target_file => $1"
+                cp -v "$1" "$target_file" || echo "Failed to copy a file: $target_file => $1" >&2
             else
-                ln -sv "$1" "$target_file" || echo "Failed to create a symlink: $target_file => $1"
+                ln -sv "$1" "$target_file" || echo "Failed to create a symlink: $target_file => $1" >&2
             fi
         ' sh {} \;
 
@@ -270,23 +270,23 @@ symlink_data() {
             [ "$(readlink -f "$target_dir")" = "$(readlink -f "$1")" ] && exit
 
             if [ -d "$target_dir" ]; then
-                echo "Warning: Directory $target_dir already exists, renaming..."
+                echo "Warning: Directory $target_dir already exists, renaming..." >&2
                 mv -v "$target_dir" "$target_dir.bak_$(date +%s)"
             fi
 
             [ ! -d "$target_dir_dir" ] && mkdir -pv "$target_dir_dir"
 
             if [ -f "$1.copythisdir" ]; then
-                cp -rv "$1" "$target_dir" || echo "Failed to copy a directory: $target_dir => $1"
+                cp -rv "$1" "$target_dir" || echo "Failed to copy a directory: $target_dir => $1" >&2
             else
-                ln -sv "$1" "$target_dir" || echo "Failed to create a symlink: $target_dir => $1"
+                ln -sv "$1" "$target_dir" || echo "Failed to create a symlink: $target_dir => $1" >&2
             fi
         ' sh {} \;
     fi
 }
 
 entware_in_ram() {
-    [ -z "$INSTALL_LOG" ] && { logecho "Error: Install log file is not set"; exit 1; }
+    [ -z "$INSTALL_LOG" ] && { logecho "Error: Install log file is not set" stderr; exit 1; }
 
     # Prevent the log file from growing above 1MB
     if [ -f "$INSTALL_LOG" ] && [ "$(wc -c < "$INSTALL_LOG")" -gt 1048576 ]; then
@@ -336,10 +336,10 @@ entware_in_ram() {
 }
 
 entware_init() {
-    { [ "$REQUIRE_NTP" = true ] && [ "$(nvram get ntp_ready)" != "1" ] ; } && { echo "Time is not synchronized"; exit 1; }
+    { [ "$REQUIRE_NTP" = true ] && [ "$(nvram get ntp_ready)" != "1" ] ; } && { echo "Time is not synchronized" >&2; exit 1; }
 
     if [ -n "$IN_RAM" ]; then
-        lockfile lockfail inram || { echo "Already running! ($lockpid)"; exit 1; }
+        lockfile lockfail inram || { echo "Already running! ($lockpid)" >&2; exit 1; }
 
         # Disable the cron job now as we will be running in a loop
         # There will be no reason to keep the cronjob active after Entware is initialized in tmpfs
@@ -350,13 +350,13 @@ entware_init() {
 
             timeout="$WAIT_LIMIT"
             while [ "$timeout" -ge 0 ]; do
-                [ "$timeout" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..."; sleep 60; }
+                [ "$timeout" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..." >&2; sleep 60; }
                 [ -f /opt/etc/init.d/rc.unslung ] && break # already mounted?
                 entware_in_ram && break # successfull?
                 timeout=$((timeout-1))
             done
 
-            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)"
+            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)" stderr
         fi
 
         lockfile unlock inram
@@ -383,7 +383,7 @@ entware_init() {
 }
 
 run_in_background() {
-    lockfile check && { echo "Already running! ($lockpid)"; exit 1; }
+    lockfile check && { [ -n "$console_is_interactive" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
 
     if [ -n "$IN_RAM" ] && is_started_by_system && [ "$PPID" -ne 1 ]; then
         nohup "$script_path" run > /dev/null 2>&1 &
@@ -438,7 +438,7 @@ case "$1" in
         sh "$script_path" start
     ;;
     "install")
-        is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing"; exit 1; }
+        is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing" >&2; exit 1; }
 
         for arg in "$@"; do
             [ "$arg" = "install" ] && continue
@@ -461,13 +461,13 @@ case "$1" in
                 fi
             done
 
-            [ -z "$target_path" ] && { echo "Target path not provided"; exit 1; }
+            [ -z "$target_path" ] && { echo "Target path not provided" >&2; exit 1; }
 
             echo "Detected mounted storage: $target_path"
         fi
 
-        [ ! -d "$target_path" ] && { echo "Target path does not exist: $target_path"; exit 1; }
-        [ -f "$target_path/$ENTWARE_DIR/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $target_path/$ENTWARE_DIR"; exit 1; }
+        [ ! -d "$target_path" ] && { echo "Target path does not exist: $target_path" >&2; exit 1; }
+        [ -f "$target_path/$ENTWARE_DIR/etc/init.d/rc.unslung" ] && { echo "Entware seems to be already installed in $target_path/$ENTWARE_DIR" >&2; exit 1; }
 
         if [ -z "$ARCHITECTURE" ]; then
             PLATFORM=$(uname -m)
@@ -500,7 +500,7 @@ case "$1" in
                     ARCHITECTURE="x86-k2.6"
                 ;;
                 *)
-                    echo "Unsupported platform or failed to detect - provide supported architecture as an argument."
+                    echo "Unsupported platform or failed to detect - provide supported architecture as an argument." >&2
                     exit 1
                 ;;
             esac
@@ -513,8 +513,8 @@ case "$1" in
                 install_url="$BASE_URL/$ARCHITECTURE/installer"
             ;;
             *)
-                echo "Unsupported architecture: $ARCHITECTURE";
-                exit 1;
+                echo "Unsupported architecture: $ARCHITECTURE" >&2
+                exit 1
             ;;
         esac
 

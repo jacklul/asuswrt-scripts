@@ -11,7 +11,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 TARGET_INTERFACES="" # the interfaces to set rules for, separated by spaces, empty means set to LAN bridge interface
 WAN_INTERFACES="" # WAN interfaces to block the access to, separated by spaces, empty means auto detect
@@ -32,7 +32,7 @@ firewall_rules() {
         [ "$(nvram get wan0_state_t)" != "0" ] && WAN_INTERFACES="$WAN_INTERFACES $(get_wan_interface 0)"
         [ "$(nvram get wan1_state_t)" != "0" ] && WAN_INTERFACES="$WAN_INTERFACES $(get_wan_interface 1)"
 
-        [ -z "$WAN_INTERFACES" ] && { logecho "Error: WAN_INTERFACES is not set"; exit 1; }
+        [ -z "$WAN_INTERFACES" ] && { logecho "Error: WAN_INTERFACES is not set" stderr; exit 1; }
     fi
 
     lockfile lockwait
@@ -67,13 +67,13 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)"
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Enabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" true
+            logecho "Enabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" logger
         else
-            logecho "Disabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" true
+            logecho "Disabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" logger
         fi
     fi
 

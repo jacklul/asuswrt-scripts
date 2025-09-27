@@ -14,7 +14,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 REMOTE="remote:" # remote to use
 PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose --log-file=/tmp/rclone-backup.log" # optional parameters
@@ -48,29 +48,29 @@ case "$1" in
                     entware_on_tmpfs=1
                 fi
             else
-                logecho "Failed to install Rclone!"
+                logecho "Failed to install Rclone!" stderr
             fi
         fi
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logecho "Error: WAN network is not connected"; return 1; }
-        [ ! -f "$RCLONE_PATH" ] && { logecho "Error: Could not find Rclone binary: $RCLONE_PATH"; exit 1; }
-        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Could not find Rclone configuration file: $CONFIG_FILE"; exit 1; }
-        [ ! -f "$FILTER_FILE" ] && { logecho "Error: Could not find filter file: $FILTER_FILE"; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logecho "Error: WAN network is not connected" stderr; return 1; }
+        [ ! -f "$RCLONE_PATH" ] && { logecho "Error: Could not find Rclone binary: $RCLONE_PATH" stderr; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Could not find Rclone configuration file: $CONFIG_FILE" stderr; exit 1; }
+        [ ! -f "$FILTER_FILE" ] && { logecho "Error: Could not find filter file: $FILTER_FILE" stderr; exit 1; }
 
         if [ -n "$SCRIPT_PRE" ] && [ -x "$SCRIPT_PRE" ]; then
-            logecho "Executing script '$SCRIPT_PRE'..." true
+            logecho "Executing script '$SCRIPT_PRE'..." logger
 
             . "$SCRIPT_PRE"
         fi
 
-        logecho "Backing up now..." true
+        logecho "Backing up now..." logger
 
         #shellcheck disable=SC2086
         "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" $PARAMETERS
         status="$?"
 
         if [ -n "$SCRIPT_POST" ] && [ -x "$SCRIPT_POST" ]; then
-            logecho "Executing script '$SCRIPT_POST'..." true
+            logecho "Executing script '$SCRIPT_POST'..." logger
 
             . "$SCRIPT_POST"
         fi
@@ -79,20 +79,20 @@ case "$1" in
             logecho "Uninstalling Rclone..."
 
             if ! /opt/bin/opkg remove rclone --autoremove; then
-                logecho "Failed to uninstall Rclone!"
+                logecho "Failed to uninstall Rclone!" stderr
             fi
         fi
 
         if [ "$status" -eq 0 ]; then
-            logecho "Finished successfully" true
+            logecho "Finished successfully" logger
         else
-            logecho "Finished with error code $status" true
+            logecho "Finished with error code $status" logger
             exit 1
         fi
     ;;
     "start")
-        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Rclone configuration file '$CONFIG_FILE' not found"; exit 1; }
-        type rclone > /dev/null 2>&1 || { echo "Warning: Command 'rclone' not found"; }
+        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Rclone configuration file '$CONFIG_FILE' not found" stderr; exit 1; }
+        type rclone > /dev/null 2>&1 || { echo "Warning: Command 'rclone' not found" >&2; }
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")

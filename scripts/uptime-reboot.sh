@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 TARGET_UPTIME=604800 # target uptime value in seconds, 604800 is 7 days
 CRON="0 5 * * *" # schedule as cron string
@@ -21,15 +21,15 @@ case "$1" in
             current_uptime=$(awk -F '.' '{print $1}' /proc/uptime)
 
             if [ "$current_uptime" -ge "$TARGET_UPTIME" ]; then
-                logecho "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!" true
+                logecho "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!" logger
                 crontab_entry delete
                 service reboot
             fi
         fi
     ;;
     "start")
-        [ -z "$TARGET_UPTIME" ] && { logecho "Error: TARGET_UPTIME is not set"; exit 1; }
-        [ "$TARGET_UPTIME" -le 3600 ] && { logecho "Error: TARGET_UPTIME must be bigger than 3600"; exit 1; }
+        [ -z "$TARGET_UPTIME" ] && { logecho "Error: TARGET_UPTIME is not set" stderr; exit 1; }
+        [ "$TARGET_UPTIME" -le 3600 ] && { logecho "Error: TARGET_UPTIME must be bigger than 3600" stderr; exit 1; }
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")

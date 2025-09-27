@@ -8,7 +8,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = subsystem, $2 = action)
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts
@@ -44,7 +44,7 @@ EOT
 
                 killall hotplug2 2> /dev/null
 
-                logecho "Modified hotplug configuration" true
+                logecho "Modified hotplug configuration" logger
             fi
         ;;
         "restore")
@@ -54,7 +54,7 @@ EOT
 
                 killall hotplug2 2> /dev/null
 
-                logecho "Restored original hotplug configuration" true
+                logecho "Restored original hotplug configuration" logger
             fi
         ;;
     esac

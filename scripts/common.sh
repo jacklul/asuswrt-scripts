@@ -12,7 +12,7 @@
 readonly JAS_COMMON=1
 
 # Prevent direct execution
-[ "$(basename "$0")" = "common.sh" ] && { echo "This file is not meant to be executed directly"; exit 1; }
+[ "$(basename "$0")" = "common.sh" ] && { echo "This file is not meant to be executed directly" >&2; exit 1; }
 
 # Force a safer umask
 umask 022
@@ -29,7 +29,7 @@ if [ -z "$script_path" ]; then # sourced from a script
 elif [ -n "$SCRIPTS_DIR" ]; then # inherited from jas.sh
     readonly common_config="$SCRIPTS_DIR/common.conf"
 else
-    echo "Cannot locate scripts directory!"
+    echo "Cannot locate scripts directory!" >&2
     exit 1
 fi
 
@@ -63,11 +63,11 @@ readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FR
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
 
 if [ -z "$console_is_interactive" ]; then
-    if [ "$CAPTURE_STDOUT" = true ]; then
+    if [ "$CAPTURE_STDOUT" = true ] && [ "$CAPTURE_STDERR" = true ]; then
+        exec >> "$TMP_DIR/$script_name-out.log" 2>&1
+    elif [ "$CAPTURE_STDOUT" = true ]; then
         exec 1>> "$TMP_DIR/$script_name-stdout.log"
-    fi
-
-    if [ "$CAPTURE_STDERR" = true ]; then
+    elif [ "$CAPTURE_STDERR" = true ]; then
         exec 2>> "$TMP_DIR/$script_name-stderr.log"
     fi
 fi
@@ -105,12 +105,25 @@ load_script_config() {
 
 logecho() { # $2 = force logging to syslog even if interactive
     [ -z "$1" ] && return 1
+    _send_to_logger=
+    _send_to_stderr=
 
-    if [ "$NO_LOGGER" != true ] && { [ -z "$console_is_interactive" ] || [ -n "$2" ] ; }; then
+    for arg in "$@"; do
+        case "$arg" in
+            "logger")
+                _send_to_logger=true
+            ;;
+            "stderr")
+                _send_to_stderr=true
+            ;;
+        esac
+    done
+
+    if [ "$NO_LOGGER" != true ] && { [ -z "$console_is_interactive" ] || [ -n "$_send_to_logger" ] ; }; then
         logger -t "$script_name" "$1"
     fi
 
-    echo "$1"
+    [ -z "$_send_to_stderr" ] && echo "$1" || echo "$1" >&2
 }
 
 is_merlin_firmware() {
@@ -149,13 +162,13 @@ lockfile() {
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
             if [ -n "$lockfd" ]; then
-                logecho "Lockfile is already locked by this process ($_lockfile)"
+                logecho "Lockfile is already locked by this process ($_lockfile)" stderr
                 exit 1
             fi
 
             for _fd_test in "/proc/$$/fd"/*; do
                 if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)"
+                    logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)" stderr
                     exit 1
                 fi
             done
@@ -171,7 +184,7 @@ lockfile() {
                         _lockwait=$((_lockwait-1))
 
                         if [ "$_lockwait" -lt 0 ]; then
-                            logecho "Failed to acquire a lock after 60 seconds ($_lockfile)"
+                            logecho "Failed to acquire a lock after 60 seconds ($_lockfile)" stderr
                             exit 1
                         fi
 
@@ -216,7 +229,7 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logecho "Error: No free file descriptors available"; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logecho "Error: No free file descriptors available" stderr; exit 1; }
     done
 
     echo "$_lfd_min"
@@ -279,7 +292,7 @@ crontab_entry() {
             cru l
         ;;
         *)
-            echo "Invalid action: $_action"
+            echo "Invalid action: $_action" >&2
             return 1
         ;;
     esac
@@ -315,7 +328,7 @@ sed_helper() {
             sed "/$_pattern/d" -i "$_file"
         ;;
         *)
-            echo "Invalid mode: $1"
+            echo "Invalid mode: $1" >&2
             return 1
         ;;
     esac
@@ -368,7 +381,7 @@ fetch() {
             return $?
         fi
     else
-        echo "curl or wget not found"
+        echo "curl or wget not found" >&2
         return 1
     fi
 }
@@ -495,7 +508,7 @@ mask_to_cidr() {
             192) _cidr=$((_cidr + 2)) ;;
             128) _cidr=$((_cidr + 1)) ;;
             0) ;;
-            *) echo "Invalid subnet mask octet: $_octet"; return 1 ;;
+            *) echo "Invalid subnet mask octet: $_octet" >&2; return 1 ;;
         esac
     done
     IFS=$_oldIFS

@@ -12,7 +12,7 @@
 #shellcheck disable=SC2155
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
-if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found"; exit 1; } fi
+if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 CRON="0 3 * * 7" # schedule as cron string
 CHANGE_PROVISIONING_MODE=false # set provisioning mode to 'unset' for applicable block devices, needed for some storage devices
@@ -59,8 +59,8 @@ filter_device() {
 }
 
 is_valid_ssd_device() {
-    [ -z "$1" ] && { echo "Device name not provided"; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
     _dev="/sys/block/$1"
 
@@ -106,8 +106,8 @@ is_valid_ssd_device() {
 }
 
 change_provisioning_mode() {
-    [ -z "$1" ] && { echo "Device name not provided"; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
     if type sg_vpd > /dev/null 2>&1; then
         _unmap_supported="$(sg_vpd -p lbpv "/dev/$1" | grep "Unmap command supported" | cut -d ': ' -f 2)"
@@ -132,11 +132,11 @@ change_provisioning_mode() {
 }
 
 change_discard_max_bytes() {
-    [ -z "$1" ] && { echo "Device name not provided"; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1"; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
     if ! type sg_vpd > /dev/null 2>&1 || ! type sg_readcap > /dev/null 2>&1; then
-        logecho "Missing required commands ('sg_vpd', 'sg_readcap')"
+        logecho "Missing required commands ('sg_vpd', 'sg_readcap')" stderr
         return 0
     fi
 
@@ -149,13 +149,13 @@ change_discard_max_bytes() {
     if [ "$_contents" != "$_value" ]; then
         _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
         if [ "$((_value % _discard_granularity))" -ne 0 ]; then
-            logecho "Calculated value is not divisible by discard_granularity (/sys/block/$1)"
+            logecho "Calculated value is not divisible by discard_granularity (/sys/block/$1)" stderr
             return 1
         fi
 
         _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
         if [ "$_value" -gt "$_discard_max_hw_bytes" ]; then
-            logecho "Calculated value exceeded discard_max_hw_bytes (/sys/block/$1)"
+            logecho "Calculated value exceeded discard_max_hw_bytes (/sys/block/$1)" stderr
             return 1
         fi
 
@@ -165,7 +165,7 @@ change_discard_max_bytes() {
 }
 
 process_device() {
-    [ -z "$1" ] && { echo "Device name not provided"; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
 
     is_valid_ssd_device "$1" || return 1
     [ "$CHANGE_PROVISIONING_MODE" = true ] && { change_provisioning_mode "$1" || return 1; }
@@ -174,7 +174,7 @@ process_device() {
 
 case "$1" in
     "run")
-        type fstrim > /dev/null 2>&1 || { logecho "Error: Command 'fstrim' not found"; exit 1; }
+        type fstrim > /dev/null 2>&1 || { logecho "Error: Command 'fstrim' not found" stderr; exit 1; }
 
         lockfile lockfail
 
@@ -205,9 +205,9 @@ case "$1" in
 
                     #shellcheck disable=SC2181
                     if [ "$status" -eq 0 ]; then
-                        logecho "Executed fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" true
+                        logecho "Executed fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" logger
                     else
-                        logecho "Failed to execute fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')"
+                        logecho "Failed to execute fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" stderr
                     fi
                 done
             fi
@@ -225,7 +225,7 @@ case "$1" in
         fi
     ;;
     "start")
-        type fstrim > /dev/null 2>&1 || echo "Warning: Command 'fstrim' not found"
+        type fstrim > /dev/null 2>&1 || echo "Warning: Command 'fstrim' not found" >&2
 
         for dev in /sys/block/*; do
             name=$(basename "$dev")
