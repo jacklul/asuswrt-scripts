@@ -76,7 +76,7 @@ restart_counter() {
 
             if [ "$RESTART_LIMIT" -gt 0 ] && [ "$_counter" -eq "$RESTART_LIMIT" ]; then
                 restart_counter increment "$2"
-                logecho "Restart limit of $RESTART_LIMIT reached for $2" stderr
+                logecho "Restart limit of $RESTART_LIMIT reached for $2" error
                 return 1
             fi
 
@@ -196,7 +196,7 @@ restart_connection_by_ifname() {
                 logecho "Set new server address for $_type client $_id: $_new_addr" logger
             fi
         else
-            logecho "Error: Failed to set new server address for $_type client $_id" stderr
+            logecho "Error: Failed to set new server address for $_type client $_id" error
         fi
     elif interface_exists "$1"; then
         service "restart_${_service}" >/dev/null 2>&1
@@ -282,7 +282,7 @@ check_connection_by_ifname() {
 }
 
 check_connections() {
-    { [ -z "$TEST_PING" ] && [ -z "$TEST_URL" ] ; } && { logecho "Error: TEST_PING/TEST_URL is not set" stderr; exit 1; }
+    { [ -z "$TEST_PING" ] && [ -z "$TEST_URL" ] ; } && { logecho "Error: TEST_PING/TEST_URL is not set" error; exit 1; }
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; return 1; }
 
     _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3, $7}' | grep "^1" | cut -d ' ' -f 2-)"

@@ -32,7 +32,7 @@ firewall_rules() {
         [ "$(nvram get wan0_state_t)" != "0" ] && WAN_INTERFACES="$WAN_INTERFACES $(get_wan_interface 0)"
         [ "$(nvram get wan1_state_t)" != "0" ] && WAN_INTERFACES="$WAN_INTERFACES $(get_wan_interface 1)"
 
-        [ -z "$WAN_INTERFACES" ] && { logecho "Error: WAN_INTERFACES is not set" stderr; exit 1; }
+        [ -z "$WAN_INTERFACES" ] && { logecho "Error: WAN_INTERFACES is not set" error; exit 1; }
     fi
 
     lockfile lockwait
@@ -67,7 +67,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" error
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then

@@ -90,7 +90,7 @@ init_opt() {
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_entware_mounted; then
             if ! unmount_opt; then
-                logecho "Failed to unmount /opt" stderr
+                logecho "Failed to unmount /opt" error
                 exit 1
             fi
         fi
@@ -103,11 +103,11 @@ init_opt() {
 
             logecho "Mounted '$1' on /opt" logger
         else
-            logecho "Failed to mount '$1' on /opt" stderr
+            logecho "Failed to mount '$1' on /opt" error
             exit 1
         fi
     else
-        logecho "Entware not found in '$1'" stderr
+        logecho "Entware not found in '$1'" error
         exit 1
     fi
 }
@@ -155,11 +155,11 @@ services() {
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
                 else
-                    logecho "Unable to start services - Entware is not installed" stderr
+                    logecho "Unable to start services - Entware is not installed" error
                     return 1
                 fi
             else
-                logecho "Unable to start services - Entware is not mounted" stderr
+                logecho "Unable to start services - Entware is not mounted" error
                 return 1
             fi
         ;;
@@ -202,7 +202,7 @@ entware() {
                 if unmount_opt; then
                     logecho "Unmounted /opt" logger
                 else
-                    logecho "Failed to unmount /opt" stderr
+                    logecho "Failed to unmount /opt" error
                 fi
             fi
 
@@ -286,7 +286,7 @@ symlink_data() {
 }
 
 entware_in_ram() {
-    [ -z "$INSTALL_LOG" ] && { logecho "Error: Install log file is not set" stderr; exit 1; }
+    [ -z "$INSTALL_LOG" ] && { logecho "Error: Install log file is not set" error; exit 1; }
 
     # Prevent the log file from growing above 1MB
     if [ -f "$INSTALL_LOG" ] && [ "$(wc -c < "$INSTALL_LOG")" -gt 1048576 ]; then
@@ -356,7 +356,7 @@ entware_init() {
                 timeout=$((timeout-1))
             done
 
-            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)" stderr
+            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)" error
         fi
 
         lockfile unlock inram

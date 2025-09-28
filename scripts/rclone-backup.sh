@@ -48,14 +48,14 @@ case "$1" in
                     entware_on_tmpfs=1
                 fi
             else
-                logecho "Failed to install Rclone!" stderr
+                logecho "Failed to install Rclone!" error
             fi
         fi
 
-        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logecho "Error: WAN network is not connected" stderr; return 1; }
-        [ ! -f "$RCLONE_PATH" ] && { logecho "Error: Could not find Rclone binary: $RCLONE_PATH" stderr; exit 1; }
-        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Could not find Rclone configuration file: $CONFIG_FILE" stderr; exit 1; }
-        [ ! -f "$FILTER_FILE" ] && { logecho "Error: Could not find filter file: $FILTER_FILE" stderr; exit 1; }
+        { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { logecho "Error: WAN network is not connected" error; return 1; }
+        [ ! -f "$RCLONE_PATH" ] && { logecho "Error: Could not find Rclone binary: $RCLONE_PATH" error; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Could not find Rclone configuration file: $CONFIG_FILE" error; exit 1; }
+        [ ! -f "$FILTER_FILE" ] && { logecho "Error: Could not find filter file: $FILTER_FILE" error; exit 1; }
 
         if [ -n "$SCRIPT_PRE" ] && [ -x "$SCRIPT_PRE" ]; then
             logecho "Executing script '$SCRIPT_PRE'..." logger
@@ -79,7 +79,7 @@ case "$1" in
             logecho "Uninstalling Rclone..."
 
             if ! /opt/bin/opkg remove rclone --autoremove; then
-                logecho "Failed to uninstall Rclone!" stderr
+                logecho "Failed to uninstall Rclone!" error
             fi
         fi
 
@@ -91,7 +91,7 @@ case "$1" in
         fi
     ;;
     "start")
-        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Rclone configuration file '$CONFIG_FILE' not found" stderr; exit 1; }
+        [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Rclone configuration file '$CONFIG_FILE' not found" error; exit 1; }
         type rclone > /dev/null 2>&1 || { echo "Warning: Command 'rclone' not found" >&2; }
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;

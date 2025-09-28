@@ -30,7 +30,7 @@ is_merlin_firmware && merlin=true
 
 if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
     persistent_state=""
-    logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware" stderr
+    logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware" error
 fi
 
 set_wl_leds() {
@@ -147,7 +147,7 @@ case "$1" in
 
             run_schedule
         else
-            logecho "LED control schedule is not set" stderr
+            logecho "LED control schedule is not set" error
         fi
     ;;
     "stop")

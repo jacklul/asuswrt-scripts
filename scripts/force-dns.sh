@@ -100,7 +100,7 @@ iptables_chains() {
                             _forward_start="$((_forward_start+1))"
                         done
                     else
-                        logecho "Unable to find the 'state RELATED,ESTABLISHED' rule in the FORWARD FILTER chain" stderr
+                        logecho "Unable to find the 'state RELATED,ESTABLISHED' rule in the FORWARD FILTER chain" error
                         _has_error=1
                     fi
                 fi
@@ -125,7 +125,7 @@ iptables_chains() {
                             _prerouting_start="$((_prerouting_start+2))"
                         done
                     else
-                        logecho "Unable to find the 'target VSERVER' rule in the PREROUTING NAT chain" stderr
+                        logecho "Unable to find the 'target VSERVER' rule in the PREROUTING NAT chain" error
                         _has_error=1
                     fi
                 fi
@@ -156,7 +156,7 @@ iptables_chains() {
                             _input_start="$((_input_start+2))"
                         done
                     else
-                        logecho "Unable to find the 'state INVALID' rule in the INPUT FILTER chain" stderr
+                        logecho "Unable to find the 'state INVALID' rule in the INPUT FILTER chain" error
                         _has_error=1
                     fi
                 fi
@@ -182,7 +182,7 @@ iptables_chains() {
         esac
     done
 
-    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall chains ($1)" stderr
+    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall chains ($1)" error
     [ -z "$_has_error" ] && return 0 || return 1
 }
 
@@ -284,7 +284,7 @@ iptables_rules() {
         fi
     done
 
-    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
+    [ -n "$_has_error" ] && logecho "Errors detected while modifying firewall rules ($1)" error
     [ -z "$_has_error" ] && return 0 || return 1
 }
 
@@ -299,8 +299,8 @@ rules_exist() {
 }
 
 firewall_rules() {
-    [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set" stderr; exit 1; }
-    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set" stderr; exit 1; }
+    [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set" error; exit 1; }
+    [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set" error; exit 1; }
 
     lockfile lockwait
 
@@ -376,7 +376,7 @@ case "$1" in
         if [ -n "$FALLBACK_DNS_SERVER" ]; then
             firewall_rules remove
         else
-            logecho "Fallback DNS servers are not set!" stderr
+            logecho "Fallback DNS servers are not set!" error
             exit 1
         fi
     ;;

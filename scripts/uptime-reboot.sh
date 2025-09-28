@@ -28,8 +28,8 @@ case "$1" in
         fi
     ;;
     "start")
-        [ -z "$TARGET_UPTIME" ] && { logecho "Error: TARGET_UPTIME is not set" stderr; exit 1; }
-        [ "$TARGET_UPTIME" -le 3600 ] && { logecho "Error: TARGET_UPTIME must be bigger than 3600" stderr; exit 1; }
+        [ -z "$TARGET_UPTIME" ] && { logecho "Error: TARGET_UPTIME is not set" error; exit 1; }
+        [ "$TARGET_UPTIME" -le 3600 ] && { logecho "Error: TARGET_UPTIME must be bigger than 3600" error; exit 1; }
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")

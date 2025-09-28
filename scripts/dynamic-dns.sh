@@ -37,10 +37,10 @@ run_ddns_update() {
 
 check_and_run() {
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; return 1; }
-    [ -z "$CONFIG_FILE" ] && { logecho "Error: CONFIG_FILE is not set" stderr; exit 1; }
-    [ -z "$IPECHO_URL" ] && { logecho "Error: IPECHO_URL is not set" stderr; exit 1; }
-    [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Inadyn config file '$CONFIG_FILE' not found" stderr; exit 1; }
-    inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logecho "Error: Inadyn config is not valid" stderr; exit 1; }
+    [ -z "$CONFIG_FILE" ] && { logecho "Error: CONFIG_FILE is not set" error; exit 1; }
+    [ -z "$IPECHO_URL" ] && { logecho "Error: IPECHO_URL is not set" error; exit 1; }
+    [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Inadyn config file '$CONFIG_FILE' not found" error; exit 1; }
+    inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logecho "Error: Inadyn config is not valid" error; exit 1; }
 
     if [ "$IPECHO_URL" = "nvram" ]; then
         wan_ip="$(nvram get wan0_ipaddr)"

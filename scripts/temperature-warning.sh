@@ -19,8 +19,8 @@ load_script_config
 state_file="$TMP_DIR/$script_name"
 
 validate_config() {
-    [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set" stderr; exit 1; }
-    [ -z "$WARNING_COOLDOWN" ] && { logecho "Error: WARNING_COOLDOWN is not set" stderr; exit 1; }
+    [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set" error; exit 1; }
+    [ -z "$WARNING_COOLDOWN" ] && { logecho "Error: WARNING_COOLDOWN is not set" error; exit 1; }
 }
 
 get_temperatures() {

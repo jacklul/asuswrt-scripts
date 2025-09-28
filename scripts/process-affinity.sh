@@ -53,15 +53,15 @@ set_affinity() {
             if taskset -p "$2" "$_pid" > /dev/null; then
                 logecho "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" logger
             else
-                logecho "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" stderr
+                logecho "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" error
             fi
         fi
     done
 }
 
 process_affinity() {
-    type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found" stderr; exit 1; }
-    [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: PROCESS_AFFINITIES is not set" stderr; exit 1; }
+    type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found" error; exit 1; }
+    [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: PROCESS_AFFINITIES is not set" error; exit 1; }
 
     if [ -n "$init_affinity" ]; then
         init_affinity_minus_one=$((init_affinity - 1))

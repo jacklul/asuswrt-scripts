@@ -89,7 +89,7 @@ firewall_rules() {
                 _cidr="$(mask_to_cidr "$_lan_netmask")"
                 _network="$(calculate_network "$_lan_ipaddr" "$_lan_netmask")"
 
-                { [ -z "$_cidr" ] || [ -z "$_network" ] ; } && { logecho "Error: Failed to calculate destination IPv4 network" stderr; exit 1; }
+                { [ -z "$_cidr" ] || [ -z "$_network" ] ; } && { logecho "Error: Failed to calculate destination IPv4 network" error; exit 1; }
 
                 _lan_network="$_network/$_cidr"
             fi
@@ -128,7 +128,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" error
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then

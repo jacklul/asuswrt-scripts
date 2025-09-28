@@ -21,7 +21,7 @@ PROCESSES_TO_KILL="" # processes/kernel modules to kill and block
 load_script_config
 
 process_killer() {
-    [ -z "$PROCESSES_TO_KILL" ] && { logecho "Error: PROCESSES_TO_KILL is not set" stderr; exit 1; }
+    [ -z "$PROCESSES_TO_KILL" ] && { logecho "Error: PROCESSES_TO_KILL is not set" error; exit 1; }
 
     for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
         filepath="$process"

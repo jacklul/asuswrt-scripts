@@ -27,9 +27,9 @@ get_random_password() {
 }
 
 rotate_passwords() {
-    [ -z "$WL_INTERFACES" ] && { logecho "Error: WL_INTERFACES is not set" stderr; exit 1; }
-    [ -z "$CHARACTER_LIST" ] && { logecho "Error: CHARACTER_LIST is not set" stderr; exit 1; }
-    [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: PASSWORD_LENGTH is not set" stderr; exit 1; }
+    [ -z "$WL_INTERFACES" ] && { logecho "Error: WL_INTERFACES is not set" error; exit 1; }
+    [ -z "$CHARACTER_LIST" ] && { logecho "Error: CHARACTER_LIST is not set" error; exit 1; }
+    [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: PASSWORD_LENGTH is not set" error; exit 1; }
 
     for interface in $WL_INTERFACES; do
         ssid="$(nvram get "${interface}_ssid")"
@@ -45,7 +45,7 @@ rotate_passwords() {
                 [ "$(nvram get "${interface}_bss_enabled")" = "1" ] && restart=1
             fi
         else
-            logecho "Invalid guest network: $interface" stderr
+            logecho "Invalid guest network: $interface" error
         fi
     done
 

@@ -50,7 +50,7 @@ Content-Transfer-Encoding: quoted-printable
 New firmware version <b>$1</b> is now available for your router at <a href="$router_ip">$router_ip</a>.
 EOT
 
-    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$tmp_file" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logecho "Failed to send an email message" stderr
+    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$tmp_file" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logecho "Failed to send an email message" error
     rm -f "$tmp_file"
 }
 
@@ -62,19 +62,19 @@ send_telegram_message() {
 
     if ! echo "$_result" | grep -Fq '"ok":true'; then
         if echo "$_result" | grep -Fq '"ok":'; then
-            logecho "Telegram API error: $_result" stderr
+            logecho "Telegram API error: $_result" error
         else
-            logecho "Connection to Telegram API failed: $_result" stderr
+            logecho "Connection to Telegram API failed: $_result" error
         fi
     fi
 }
 
 send_pushover_message() {
-    $curl_binary --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logecho "Failed to send Pushover message" stderr
+    $curl_binary --form-string "token=$PUSHOVER_TOKEN" --form-string "user=$PUSHOVER_USERNAME" --form-string "title=New router firmware notification @ $router_name" --form-string "message=New firmware version $1 is now available for your router at $router_ip." "https://api.pushover.net/1/messages.json" || logecho "Failed to send Pushover message" error
 }
 
 send_pushbullet_message () {
-    $curl_binary -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logecho "Failed to send Pushbullet message" stderr
+    $curl_binary -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logecho "Failed to send Pushbullet message" error
 }
 
 send_notification() {
@@ -151,7 +151,7 @@ case "$1" in
             if [ -n "$buildno" ] && [ -n "$extendno" ]; then
                 send_notification "${buildno}_${extendno}"
             else
-                logecho "Unable to obtain current version info" stderr
+                logecho "Unable to obtain current version info" error
             fi
         else
             cru a "$script_name-test" "*/1 * * * * sh $script_path test"

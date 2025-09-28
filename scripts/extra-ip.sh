@@ -17,7 +17,7 @@ RUN_EVERY_MINUTE= # verify that the addresses are still set (true/false), empty 
 load_script_config
 
 extra_ip() {
-    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: EXTRA_IPS/EXTRA_IPS6 is not set" stderr; exit 1; }
+    { [ -z "$EXTRA_IPS" ] && [ -z "$EXTRA_IPS6" ] ; } && { logecho "Error: EXTRA_IPS/EXTRA_IPS6 is not set" error; exit 1; }
 
     lockfile lockwait
 
@@ -50,7 +50,7 @@ extra_ip() {
                 fi
             fi
 
-            { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { logecho "Invalid entry: $_extra_ip" stderr; continue; }
+            { [ -z "$_interface" ] || [ -z "$_address" ] ; } && { logecho "Invalid entry: $_extra_ip" error; continue; }
 
             case "$1" in
                 "add")

@@ -183,7 +183,7 @@ firewall_rules() {
                                     && _rules_action=1 || _rules_error=1
                             done
                         else
-                            logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain" stderr
+                            logecho "Unable to find the 'target WGSI' rule in the INPUT filter chain" error
                             _rules_error=1
                         fi
                     else
@@ -201,7 +201,7 @@ firewall_rules() {
                                     && _rules_action=1 || _rules_error=1
                             done
                         else
-                            logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain" stderr
+                            logecho "Unable to find the 'target WGSF' rule in the FORWARD filter chain" error
                             _rules_error=1
                         fi
                     else
@@ -223,7 +223,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" error
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then

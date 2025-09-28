@@ -130,7 +130,7 @@ iptables_rules() {
 
                         if [ -z "$_fwmark" ]; then
                             if [ -z "$fwmark_exhausted_notify" ]; then
-                                logecho "Error: Exhausted fwmark pool" stderr
+                                logecho "Error: Exhausted fwmark pool" error
                                 fwmark_exhausted_notify=true
                             fi
 
@@ -170,7 +170,7 @@ iptables_rules() {
         $_ip route flush cache
     done
 
-    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying iptables or IP routing rules ($1)" stderr
+    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying iptables or IP routing rules ($1)" error
     [ -z "$rules_error" ] && return 0 || return 1
 }
 
@@ -222,12 +222,12 @@ ip_route_rules() {
         $_ip route flush cache
     done
 
-    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying IP routing rules ($1)" stderr
+    [ "$rules_error" = 1 ] && logecho "Errors detected while modifying IP routing rules ($1)" error
     [ -z "$rules_error" ] && return 0 || return 1
 }
 
 rules() {
-    { [ -z "$ROUTE_IPS" ] && [ -z "$ROUTE_IPS6" ] ; } && { logecho "Error: ROUTE_IPS/ROUTE_IPS6 is not set" stderr; exit 1; }
+    { [ -z "$ROUTE_IPS" ] && [ -z "$ROUTE_IPS6" ] ; } && { logecho "Error: ROUTE_IPS/ROUTE_IPS6 is not set" error; exit 1; }
 
     lockfile lockwait
 

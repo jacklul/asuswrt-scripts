@@ -29,9 +29,9 @@ find_swap_file() {
 }
 
 create_swap() {
-    [ -z "$SWAP_FILE" ] && { logecho "Error: SWAP_FILE is not set" stderr; exit 1; }
-    [ -z "$SWAP_SIZE" ] && { logecho "Error: SWAP_SIZE is not set" stderr; exit 1; }
-    grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps && { logecho "Error: Swap file is mounted" stderr; exit 1; }
+    [ -z "$SWAP_FILE" ] && { logecho "Error: SWAP_FILE is not set" error; exit 1; }
+    [ -z "$SWAP_SIZE" ] && { logecho "Error: SWAP_SIZE is not set" error; exit 1; }
+    grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps && { logecho "Error: Swap file is mounted" error; exit 1; }
 
     set -e
 
@@ -65,7 +65,7 @@ enable_swap() {
                     logecho "Set swappiness to: $SWAPPINESS" logger
                 fi
             else
-                logecho "Failed to enable swap on '$SWAP_FILE'" stderr
+                logecho "Failed to enable swap on '$SWAP_FILE'" error
             fi
         fi
     fi
@@ -87,7 +87,7 @@ disable_swap() {
     if swapoff "$_swap_file" ; then
         logecho "Disabled swap on '$_swap_file'" logger
     else
-        logecho "Failed to disable swap on '$_swap_file'" stderr
+        logecho "Failed to disable swap on '$_swap_file'" error
     fi
 }
 
@@ -112,7 +112,7 @@ case "$1" in
                         exit
                     fi
 
-                    [ "$timeout" -le 0 ] && logecho "Device '/dev/$DEVICENAME' did not mount within 60 seconds" stderr
+                    [ "$timeout" -le 0 ] && logecho "Device '/dev/$DEVICENAME' did not mount within 60 seconds" error
                 ;;
                 "remove")
                     # officially multiple swap files are not supported but try to handle it...
@@ -134,7 +134,7 @@ case "$1" in
         create_swap
     ;;
     "start")
-        [ "$(nvram get usb_idle_enable)" != "0" ] && { logecho "Error: USB idle timeout is set" stderr; exit 1; }
+        [ "$(nvram get usb_idle_enable)" != "0" ] && { logecho "Error: USB idle timeout is set" error; exit 1; }
 
         crontab_entry add "*/1 * * * * $script_path run"
         enable_swap

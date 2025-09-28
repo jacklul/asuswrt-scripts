@@ -23,7 +23,7 @@ backup_file="$TMP_DIR/$script_name.bak"
 rc_support() {
     case "$1" in
         "modify")
-            { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set" stderr; exit 1; }
+            { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set" error; exit 1; }
 
             if [ ! -f "$backup_file" ]; then
                 rc_support="$(nvram get rc_support)"
@@ -69,7 +69,7 @@ rc_support() {
 
                 logecho "Restored original rc_support" logger
             else
-                logecho "Could not find '$backup_file' - cannot restore original rc_support!" stderr
+                logecho "Could not find '$backup_file' - cannot restore original rc_support!" error
             fi
         ;;
     esac

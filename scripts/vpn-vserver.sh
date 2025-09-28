@@ -128,7 +128,7 @@ firewall_rules() {
         esac
     done
 
-    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" stderr
+    [ "$_rules_error" = 1 ] && logecho "Errors detected while modifying firewall rules ($1)" error
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then

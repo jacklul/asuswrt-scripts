@@ -64,12 +64,17 @@ readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FR
 
 if [ -z "$console_is_interactive" ]; then
     if [ "$CAPTURE_STDOUT" = true ] && [ "$CAPTURE_STDERR" = true ]; then
-        exec >> "$TMP_DIR/$script_name-out.log" 2>&1
+        common_log_file="$TMP_DIR/$script_name-out.log"
+        exec >> "$common_log_file" 2>&1
     elif [ "$CAPTURE_STDOUT" = true ]; then
-        exec 1>> "$TMP_DIR/$script_name-stdout.log"
+        common_log_file="$TMP_DIR/$script_name-stdout.log"
+        exec 1>> "$common_log_file"
     elif [ "$CAPTURE_STDERR" = true ]; then
-        exec 2>> "$TMP_DIR/$script_name-stderr.log"
+        common_log_file="$TMP_DIR/$script_name-stderr.log"
+        exec 2>> "$common_log_file"
     fi
+
+    [ -n "$common_log_file" ] && common_log_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
 fi
 
 if [ "$REMOVE_OPT_FROM_PATH" = true ]; then
@@ -103,27 +108,42 @@ load_script_config() {
     [ -f "$script_config" ] && . "$script_config"
 }
 
-logecho() { # $2 = force logging to syslog even if interactive
+trapexit() {
+    _code=$?
+    type script_trapexit > /dev/null 2>&1 && script_trapexit
+    [ -n "$lockfd" ] && lockfile unlock
+
+    if [ -f "$common_log_file" ]; then
+        _new_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
+        [ "$_new_lines" != "$common_log_lines" ] && echo "----- Output closed at $(date) -----" >> "$common_log_file"
+    fi
+
+    exit $_code
+}
+
+logecho() {
     [ -z "$1" ] && return 1
-    _send_to_logger=
-    _send_to_stderr=
+    _logecho_logger=
+    _logecho_error=
+
+    # send to logger if not running interactively
+    [ -z "$console_is_interactive" ] && _logecho_logger=true
 
     for arg in "$@"; do
         case "$arg" in
-            "logger")
-                _send_to_logger=true
+            "logger") # allow forcing sending to logger
+                _logecho_logger=true
             ;;
-            "stderr")
-                _send_to_stderr=true
+            "error") # allow to switch to stderr from stdout
+                _logecho_error=true
             ;;
         esac
     done
 
-    if [ "$NO_LOGGER" != true ] && { [ -z "$console_is_interactive" ] || [ -n "$_send_to_logger" ] ; }; then
-        logger -t "$script_name" "$1"
-    fi
+    [ "$NO_LOGGER" = true ] && _logecho_logger= # disable output to logger if configured
 
-    [ -z "$_send_to_stderr" ] && echo "$1" || echo "$1" >&2
+    [ -n "$_logecho_logger" ] && logger -t "$script_name" "$1"
+    [ -z "$_logecho_error" ] && echo "$1" || echo "$1" >&2
 }
 
 is_merlin_firmware() {
@@ -162,13 +182,13 @@ lockfile() {
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
             if [ -n "$lockfd" ]; then
-                logecho "Lockfile is already locked by this process ($_lockfile)" stderr
+                logecho "Lockfile is already locked by this process ($_lockfile)" error
                 exit 1
             fi
 
             for _fd_test in "/proc/$$/fd"/*; do
                 if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)" stderr
+                    logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)" error
                     exit 1
                 fi
             done
@@ -184,7 +204,7 @@ lockfile() {
                         _lockwait=$((_lockwait-1))
 
                         if [ "$_lockwait" -lt 0 ]; then
-                            logecho "Failed to acquire a lock after 60 seconds ($_lockfile)" stderr
+                            logecho "Failed to acquire a lock after 60 seconds ($_lockfile)" error
                             exit 1
                         fi
 
@@ -229,17 +249,10 @@ lockfile_fd() {
 
     while [ -f "/proc/$$/fd/$_lfd_min" ]; do
         _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logecho "Error: No free file descriptors available" stderr; exit 1; }
+        [ "$_lfd_min" -gt "$_lfd_max" ] && { logecho "Error: No free file descriptors available" error; exit 1; }
     done
 
     echo "$_lfd_min"
-}
-
-trapexit() {
-    code=$?
-    type script_trapexit > /dev/null 2>&1 && script_trapexit
-    [ -n "$lockfd" ] && lockfile unlock
-    exit $code
 }
 
 crontab_entry() {

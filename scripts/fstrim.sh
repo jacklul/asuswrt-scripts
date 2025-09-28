@@ -136,7 +136,7 @@ change_discard_max_bytes() {
     [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
     if ! type sg_vpd > /dev/null 2>&1 || ! type sg_readcap > /dev/null 2>&1; then
-        logecho "Missing required commands ('sg_vpd', 'sg_readcap')" stderr
+        logecho "Missing required commands ('sg_vpd', 'sg_readcap')" error
         return 0
     fi
 
@@ -149,13 +149,13 @@ change_discard_max_bytes() {
     if [ "$_contents" != "$_value" ]; then
         _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
         if [ "$((_value % _discard_granularity))" -ne 0 ]; then
-            logecho "Calculated value is not divisible by discard_granularity (/sys/block/$1)" stderr
+            logecho "Calculated value is not divisible by discard_granularity (/sys/block/$1)" error
             return 1
         fi
 
         _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
         if [ "$_value" -gt "$_discard_max_hw_bytes" ]; then
-            logecho "Calculated value exceeded discard_max_hw_bytes (/sys/block/$1)" stderr
+            logecho "Calculated value exceeded discard_max_hw_bytes (/sys/block/$1)" error
             return 1
         fi
 
@@ -174,7 +174,7 @@ process_device() {
 
 case "$1" in
     "run")
-        type fstrim > /dev/null 2>&1 || { logecho "Error: Command 'fstrim' not found" stderr; exit 1; }
+        type fstrim > /dev/null 2>&1 || { logecho "Error: Command 'fstrim' not found" error; exit 1; }
 
         lockfile lockfail
 
@@ -207,7 +207,7 @@ case "$1" in
                     if [ "$status" -eq 0 ]; then
                         logecho "Executed fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" logger
                     else
-                        logecho "Failed to execute fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" stderr
+                        logecho "Failed to execute fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" error
                     fi
                 done
             fi

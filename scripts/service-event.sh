@@ -89,7 +89,7 @@ trigger_event() {
 }
 
 service_monitor() {
-    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE" stderr; exit 1; }
+    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE" error; exit 1; }
 
     lockfile lockfail || { echo "Already running! ($lockpid)" >&2; exit 1; }
 
