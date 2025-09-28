@@ -29,12 +29,13 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 # 
 
 TEST_PING="1.1.1.1" # IP address to ping, leave empty to skip this check
-TEST_PING_LIMIT=300 # max ping time in ms, ping must respond faster than this to be considered successful, set to empty to disable
-TEST_URL="https://ipecho.net/plain" # URL for connection check, leave empty to skip this check
-TEST_RETRIES=3 # number of retries for connection test
+TEST_PING_LIMIT=300 # max ping time in ms, if ping is higher than this it marks ping test as failed, set to empty to disable
+TEST_URL="https://ipecho.net/plain" # URL for fetch check, leave empty to skip this check
+TEST_RETRIES=3 # number of retries for connectivity test, it is considered failed if all retries fail
 RESTART_LIMIT=5 # limit number of restarts per unit, 0 means no limit, counter resets on successful connectivity check
 ROTATE_SERVERS=false # will rotate through server list on each reconnect when enabled (appropriate .list file must exist)
 ROTATE_RANDOM=false # select random address from the list instead of rotating sequentially
+RESET_ON_START=false # reset all profiles to first server on the list when script is started/restarted
 CRON="*/1 * * * *" # how often to run the connectivity checks, schedule as cron string, by default every minute
 EXECUTE_COMMAND="" # execute a command after connection is restarted (receives arguments: $1 = unit - ovpnX/wgX)
 
@@ -47,6 +48,7 @@ state_file="$TMP_DIR/$script_name"
 
 script_trapexit() {
     ip rule del prio 55 > /dev/null 2>&1
+    [ -n "$nvram_commit" ] && nvram commit
 }
 
 restart_counter() {
@@ -141,6 +143,8 @@ restart_connection_by_ifname() {
         _line="$(grep -v '^\(#\|\s*$\)' "$_file" | sed -ne "${_next}p" -e 's/\r\n\|\n//g')"
 
         if [ "$_type" = "WireGuard" ]; then
+            _cur_ep_addr="$(nvram get "wgc${_id}_ep_addr")"
+
             # This is NOT compatible with lists created for VPNMON
             _new_ep_addr="$(echo "$_line" | cut -d ',' -f 1)"
             _new_ep_port="$(echo "$_line" | cut -d ',' -f 2)"
@@ -148,6 +152,8 @@ restart_connection_by_ifname() {
             _new_priv="$(echo "$_line" | cut -d ',' -f 4)"
             _new_ppub="$(echo "$_line" | cut -d ',' -f 5)"
             _new_psk="$(echo "$_line" | cut -d ',' -f 6)"
+
+            [ "$_cur_ep_addr" = "$_new_ep_addr" ] && return 0 # no change
 
             nvram set "wgc${_id}_addr=$_new_addr"
             nvram set "wgc${_id}_ep_addr=$_new_ep_addr"
@@ -159,9 +165,13 @@ restart_connection_by_ifname() {
 
             _new_addr="$_new_ep_addr:$_new_ep_port"
         elif [ "$_type" = "OpenVPN" ]; then
+            _cur_addr="$(nvram get "vpn_client${_id}_addr")"
+
             # This is compatible with lists created for VPNMON
             _new_addr="$(echo "$_line" | cut -d ',' -f 1)"
             _new_port="$(echo "$_line" | cut -d ',' -f 2)"
+
+            [ "$_cur_addr" = "$_new_addr" ] && return 0 # no change
 
             nvram set "vpn_client${_id}_addr=$_new_addr"
 
@@ -174,10 +184,20 @@ restart_connection_by_ifname() {
             _new_addr="$_new_addr:$_new_port"
         fi
 
-        [ -n "$_is_active" ] && service "restart_${_service}" >/dev/null 2>&1
-        [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
+        if [ -n "$_new_addr" ]; then
+            nvram_commit=true # mark that we need to commit nvram changes on script exit
 
-        logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" logger
+            if [ -n "$_is_active" ]; then
+                service "restart_${_service}" >/dev/null 2>&1
+                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
+
+                logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" logger
+            else
+                logecho "Set new server address for $_type client $_id: $_new_addr" logger
+            fi
+        else
+            logecho "Error: Failed to set new server address for $_type client $_id" stderr
+        fi
     elif interface_exists "$1"; then
         service "restart_${_service}" >/dev/null 2>&1
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
@@ -220,15 +240,19 @@ check_connection_by_ifname() {
                     if [ "$_ping" -gt "$TEST_PING_LIMIT" ]; then
                         echo "Ping time ${_ping}ms is higher than limit of ${TEST_PING_LIMIT}ms ($1)" >&2
                         _ping_success=
+                    else
+                        echo "Ping time ${_ping}ms is within limit of ${TEST_PING_LIMIT}ms ($1)"
                     fi
                 fi
+            else
+                echo "Failed to ping target ($1)" >&2
             fi
         else
             _ping_success=true
         fi
 
         if [ -n "$TEST_URL" ];then 
-            echo "Testing URL $TEST_URL via $1"
+            echo "Fetching URL $TEST_URL via $1"
 
             if curl -sf --retry 3 --retry-delay 2 --retry-all-errors --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
                 _url_success=true
@@ -324,13 +348,14 @@ case "$1" in
         lockfile unlock
     ;;
     "rotate")
+        [ -z "$2" ] && { echo "No unit provided" >&2; exit 1; }
         lockfile lockexit rotate
         manual_restart "$2" "$3" # if $3 = "reset" will use first server from the list
         lockfile unlock rotate
     ;;
     "identify")
-        printf "%-7s %-7s %-20s\n" "Unit" "Active" "Description"
-        printf "%-7s %-7s %-20s\n" "------" "------" "--------------------"
+        printf "%-7s %-7s %-22s %-20s\n" "Unit" "Active" "Server address" "Description"
+        printf "%-7s %-7s %-22s %-20s\n" "------" "------" "---------------------" "--------------------"
 
         IFS="$(printf '\n\b')"
         for entry in $(get_vpnc_clientlist); do
@@ -342,17 +367,42 @@ case "$1" in
 
             if [ "$type" = "WireGuard" ]; then
                 unit="wg${id}"
+                address="$(nvram get "wgc${id}_ep_addr_r"):$(nvram get "wgc${id}_ep_port")"
             elif [ "$type" = "OpenVPN" ]; then
                 unit="ovpn${id}"
+                address="$(nvram get "vpn_client${id}_addr"):$(nvram get "vpn_client${id}_port")"
             else
                 continue
             fi
 
-            printf "%-7s %-7s %-50s\n" "$unit" "$active" "$desc"
+            printf "%-7s %-7s %-22s %-50s\n" "$unit" "$active" "$address" "$desc"
         done
     ;;
     "start")
         crontab_entry add "$CRON $script_path run"
+
+        if [ "$RESET_ON_START" = true ]; then
+            oldIFS=$IFS
+            IFS="$(printf '\n\b')"
+            for entry in $(get_vpnc_clientlist | awk -F '>' '{print $2, $3}'); do
+                type="$(echo "$entry" | cut -d ' ' -f 1)"
+                id="$(echo "$entry" | cut -d ' ' -f 2)"
+
+                if [ "$type" = "WireGuard" ]; then
+                    unit="wg${id}"
+                elif [ "$type" = "OpenVPN" ]; then
+                    unit="ovpn${id}"
+                else
+                    continue
+                fi
+
+                if [ -f "$script_dir/$script_name-${unit}.list" ]; then
+                    echo "Resetting $unit to the first server on the list"
+                    manual_restart "$unit" reset
+                fi
+            done
+            IFS=$oldIFS
+        fi
     ;;
     "stop")
         crontab_entry delete
@@ -362,7 +412,7 @@ case "$1" in
         sh "$script_path" start
     ;;
     *)
-        echo "Usage: $0 run|start|stop|restart|identify"
+        echo "Usage: $0 run|start|stop|restart|rotate|identify"
         exit 1
     ;;
 esac
