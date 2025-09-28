@@ -37,7 +37,7 @@ ROTATE_SERVERS=false # will rotate through server list on each reconnect when en
 ROTATE_RANDOM=false # select random address from the list instead of rotating sequentially
 RESET_ON_START=false # reset all profiles to first server on the list when script is started/restarted
 CRON="*/1 * * * *" # how often to run the connectivity checks, schedule as cron string, by default every minute
-EXECUTE_COMMAND="" # execute a command after connection is restarted (receives arguments: $1 = unit - ovpnX/wgX)
+EXECUTE_COMMAND="" # execute a command after connection is restarted (receives arguments: $1 = unit - ovpnX/wgX, $2 = new server address or empty if not changed)
 
 load_script_config
 
@@ -189,7 +189,7 @@ restart_connection_by_ifname() {
 
             if [ -n "$_is_active" ]; then
                 service "restart_${_service}" >/dev/null 2>&1
-                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
+                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit" "$_new_addr"
 
                 logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" logger
             else

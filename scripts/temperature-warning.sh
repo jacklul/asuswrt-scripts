@@ -12,7 +12,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 TRIGGER_TEMPERATURE=80 # target temperature at which log the warning
 WARNING_COOLDOWN=300 # how long to wait (seconds) before logging another warning
-EXECUTE_COMMAND="" # execute a command each time warning is issued
+EXECUTE_COMMAND="" # execute a command each time warning is issued (receives arguments: $1 = sensors - "cpu 2.4g 5g 6g")
 
 load_script_config
 
@@ -63,28 +63,28 @@ case "$1" in
 
             if [ "$(printf "%.0f" "$cpu_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
                 logecho "CPU temperature warning: $cpu_temperature C" logger
-                warning=1
+                warning="cpu"
             fi
 
             if [ -n "$wifi_24g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_24g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
                 logecho "WiFi 2.4G temperature warning: $wifi_24g_temperature C" logger
-                warning=1
+                warning="$warning 2.4g"
             fi
 
             if [ -n "$wifi_5g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_5g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
                 logecho "WiFi 5G temperature warning: $wifi_5g_temperature C" logger
-                warning=1
+                warning="$warning 5g"
             fi
 
             if [ -n "$wifi_6g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_6g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
                 logecho "WiFi 6G temperature warning: $wifi_6g_temperature C" logger
-                warning=1
+                warning="$warning 6g"
             fi
 
             if [ -n "$warning" ]; then
                 echo "$uptime" > "$state_file"
 
-                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND
+                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$(echo "$warning" | awk '{$1=$1};1')"
             fi
         fi
     ;;
