@@ -114,15 +114,13 @@ send_notification() {
 check_and_notify() {
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; exit 1; }
 
-    buildno=$(nvram get buildno | sed 's/[-_.]*//g')
+    buildno=$(nvram get buildno)
     extendno=$(nvram get extendno)
     web_state_info=$(nvram get webs_state_info)
-
-    #extendno_ver=$(echo "$extendno" | awk -F '-' '{print $1}')
     web_buildno=$(echo "$web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
     #web_extendno_ver=$(echo "$web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
 
-    if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] ||  [ "$buildno" -gt "$web_buildno" ]; then
+    if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] || [ "$buildno" -gt "$web_buildno" ]; then
         echo "Could not gather valid values from NVRAM" >&2
         exit 1
     fi

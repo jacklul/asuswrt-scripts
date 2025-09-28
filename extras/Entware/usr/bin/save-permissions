@@ -7,6 +7,7 @@
 # to the file that can be later used by restore-permissions script.
 #
 
+[ -x /opt/bin/id ] || { echo "Install 'coreutils-id' package!" >&2; exit 1; }
 [ "$(id -u)" -ne 0 ] && { echo "This script must run as root."; exit 1; }
 [ -x /opt/bin/find ] || { echo "Install 'findutils' package!" >&2; exit 1; }
 [ -x /opt/bin/stat ] || { echo "Install 'coreutils-stat' package!" >&2; exit 1; }

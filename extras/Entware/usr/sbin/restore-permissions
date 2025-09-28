@@ -7,6 +7,7 @@
 # from the file created by save-permissions script.
 #
 
+[ -x /opt/bin/id ] || { echo "Install 'coreutils-id' package!" >&2; exit 1; }
 [ "$(id -u)" -ne 0 ] && { echo "This script must run as root."; exit 1; }
 [ -x /opt/bin/stat ] || { echo "Install 'coreutils-stat' package!" >&2; exit 1; }
 

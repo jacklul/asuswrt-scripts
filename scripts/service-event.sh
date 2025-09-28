@@ -34,7 +34,7 @@ custom_checks() {
     change_firewall=false
     change_wan=false
 
-    if ! ip addr show dev lo | grep -Fq "inet $CHECK_IP "; then
+    if ! ip addr show dev lo 2> /dev/null | grep -Fq "inet $CHECK_IP "; then
         if [ -n "$change_interface_detected" ]; then
             ip -4 addr add "$CHECK_IP" dev lo label lo:se
             change_interface=true
