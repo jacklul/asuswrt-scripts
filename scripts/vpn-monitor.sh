@@ -143,6 +143,11 @@ restart_connection_by_ifname() {
         _line="$(grep -v '^\(#\|\s*$\)' "$_file" | sed -ne "${_next}p" -e 's/\r\n\|\n//g')"
 
         if [ "$_type" = "WireGuard" ]; then
+            if [ "$(echo "$_line" | grep -o ',' | wc -l)" -lt 4 ]; then
+                echo "Invalid line in $_file: $_line" >&2
+                return 1
+            fi
+
             _cur_ep_addr="$(nvram get "wgc${_id}_ep_addr")"
 
             # This is NOT compatible with lists created for VPNMON
@@ -172,6 +177,7 @@ restart_connection_by_ifname() {
             _new_port="$(echo "$_line" | cut -d ',' -f 2)"
 
             [ "$_cur_addr" = "$_new_addr" ] && return 0 # no change
+            [ "$_new_addr" = "$_new_port" ] && _new_port= # if port is same as address it means port was not provided
 
             nvram set "vpn_client${_id}_addr=$_new_addr"
 
