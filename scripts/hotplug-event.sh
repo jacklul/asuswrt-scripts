@@ -94,7 +94,7 @@ case "$1" in
             esac
         fi
 
-        [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$2" "$3"
+        [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $2 $3"
 
         lockfile unlock "event_${2}_${3}"
         exit

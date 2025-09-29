@@ -189,7 +189,7 @@ restart_connection_by_ifname() {
 
             if [ -n "$_is_active" ]; then
                 service "restart_${_service}" >/dev/null 2>&1
-                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit" "$_new_addr"
+                [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $_unit $_new_addr"
 
                 logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" alert
             else
@@ -200,7 +200,7 @@ restart_connection_by_ifname() {
         fi
     elif interface_exists "$1"; then
         service "restart_${_service}" >/dev/null 2>&1
-        [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
+        [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $_unit"
 
         logecho "Restarted $_type client $_id ($reason)" alert
     fi

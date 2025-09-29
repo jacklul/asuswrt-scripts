@@ -84,7 +84,7 @@ case "$1" in
             if [ -n "$warning" ]; then
                 echo "$uptime" > "$state_file"
 
-                [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$(echo "$warning" | awk '{$1=$1};1')"
+                [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $(echo "$warning" | awk '{$1=$1};1')"
             fi
         fi
     ;;

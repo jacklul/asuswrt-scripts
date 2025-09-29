@@ -310,7 +310,7 @@ case "$1" in
             ;;
         esac
 
-        [ -n "$EXECUTE_COMMAND" ] && "$EXECUTE_COMMAND" "$2" "$3" "$event"
+        [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $2 $3 $event"
 
         lockfile unlock "event_${2}_${3}"
         exit

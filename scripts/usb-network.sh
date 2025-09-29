@@ -74,7 +74,7 @@ setup_inteface() {
     esac
 
     # no extra condition needed, already handled outside this function
-    [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$1" "$2"
+    [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $1 $2"
 
     lockfile unlock
 }

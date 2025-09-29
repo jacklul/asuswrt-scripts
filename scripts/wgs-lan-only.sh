@@ -68,7 +68,7 @@ firewall_rules() {
         fi
     fi
 
-    [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && [ -n "$_rules_action" ] && eval "$EXECUTE_COMMAND $1"
 
     lockfile unlock
     [ -z "$_rules_error" ] && return 0 || return 1

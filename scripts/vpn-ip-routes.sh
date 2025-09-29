@@ -281,7 +281,7 @@ LAST_FWMARK_POOL="$FWMARK_POOL"
 LAST_FWMARK_MASK="$FWMARK_MASK"
 EOT
 
-    [ -n "$EXECUTE_COMMAND" ] && { [ -n "$rules_added" ] || [ -n "$rules_removed" ] ; } && $EXECUTE_COMMAND "$1"
+    [ -n "$EXECUTE_COMMAND" ] && { [ -n "$rules_added" ] || [ -n "$rules_removed" ] ; } && eval "$EXECUTE_COMMAND $1"
 
     lockfile unlock
     [ -z "$rules_error" ] && return 0 || return 1
