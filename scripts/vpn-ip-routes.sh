@@ -15,7 +15,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
-ROUTE_IPS="" # route IPs to specific VPNs, in format '5=1.1.1.1' (VPNC_ID=IP), separated by spaces, to find VPNC_ID run 'jas vpn-ip-routes identify'
+ROUTE_IPS="" # route IPs to specific VPN profiles, in format '5=1.1.1.1' (VPNC_ID=IP), separated by spaces, to find VPNC_ID run 'jas vpn-ip-routes identify'
 ROUTE_IPS6="" # same as ROUTE_IPS but for IPv6, separated by spaces
 EXECUTE_COMMAND="" # execute a command after rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
@@ -299,10 +299,10 @@ case "$1" in
         for entry in $(get_vpnc_clientlist); do
             desc="$(echo "$entry" | awk -F '>' '{print $1}')"
             active="$(echo "$entry" | awk -F '>' '{print $6}')"
-            vpnc_idx="$(echo "$entry" | awk -F '>' '{print $7}')"
+            idx="$(echo "$entry" | awk -F '>' '{print $7}')"
             [ "$active" = "1" ] && active=yes || active=no
 
-            printf "%-3s %-7s %-50s\n" "$vpnc_idx" "$active" "$desc"
+            printf "%-3s %-7s %-50s\n" "$idx" "$active" "$desc"
         done
     ;;
     "start")
