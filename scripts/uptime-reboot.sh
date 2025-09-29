@@ -21,7 +21,7 @@ case "$1" in
             current_uptime=$(awk -F '.' '{print $1}' /proc/uptime)
 
             if [ "$current_uptime" -ge "$TARGET_UPTIME" ]; then
-                logecho "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!" logger
+                logecho "System uptime (${current_uptime}s) is bigger than target (${TARGET_UPTIME}s) - rebooting system now!" alert
                 crontab_entry delete
                 service reboot
             fi

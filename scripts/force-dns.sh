@@ -324,7 +324,7 @@ firewall_rules() {
                         _dns_server="$DNS_SERVER"
                         [ -n "$DNS_SERVER6" ] && _dns_server="$_dns_server $DNS_SERVER6"
 
-                        logecho "Forcing DNS servers: $_dns_server" logger
+                        logecho "Forcing DNS servers: $_dns_server" alert
                     fi
                 fi
             fi
@@ -344,7 +344,7 @@ firewall_rules() {
                             _fallback_dns_server="$FALLBACK_DNS_SERVER"
                             [ -n "$FALLBACK_DNS_SERVER6" ] && _fallback_dns_server="$_fallback_dns_server $FALLBACK_DNS_SERVER6"
 
-                            logecho "Forcing fallback DNS servers: $_fallback_dns_server" logger
+                            logecho "Forcing fallback DNS servers: $_fallback_dns_server" alert
                         fi
                     fi
                 fi

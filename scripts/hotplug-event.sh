@@ -44,7 +44,7 @@ EOT
 
                 killall hotplug2 2> /dev/null
 
-                logecho "Modified hotplug configuration" logger
+                logecho "Modified hotplug configuration" alert
             fi
         ;;
         "restore")
@@ -54,7 +54,7 @@ EOT
 
                 killall hotplug2 2> /dev/null
 
-                logecho "Restored original hotplug configuration" logger
+                logecho "Restored original hotplug configuration" alert
             fi
         ;;
     esac

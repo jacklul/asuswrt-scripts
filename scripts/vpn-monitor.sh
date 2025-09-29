@@ -191,9 +191,9 @@ restart_connection_by_ifname() {
                 service "restart_${_service}" >/dev/null 2>&1
                 [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit" "$_new_addr"
 
-                logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" logger
+                logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" alert
             else
-                logecho "Set new server address for $_type client $_id: $_new_addr" logger
+                logecho "Set new server address for $_type client $_id: $_new_addr" alert
             fi
         else
             logecho "Error: Failed to set new server address for $_type client $_id" error
@@ -202,7 +202,7 @@ restart_connection_by_ifname() {
         service "restart_${_service}" >/dev/null 2>&1
         [ -n "$EXECUTE_COMMAND" ] && $EXECUTE_COMMAND "$_unit"
 
-        logecho "Restarted $_type client $_id ($reason)" logger
+        logecho "Restarted $_type client $_id ($reason)" alert
     fi
 }
 

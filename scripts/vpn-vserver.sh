@@ -132,9 +132,9 @@ firewall_rules() {
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Enabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" logger
+            logecho "Enabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" alert
         else
-            logecho "Disabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" logger
+            logecho "Disabled virtual server rules for VPN addresses: $(echo "$VPN_ADDRESSES $VPN_ADDRESSES6" | awk '{$1=$1};1')" alert
         fi
     fi
 

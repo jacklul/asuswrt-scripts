@@ -25,7 +25,7 @@ state_file="$TMP_DIR/$script_name"
 
 run_ddns_update() {
     if inadyn --config="$CONFIG_FILE" --once --foreground; then
-        logecho "Custom Dynamic DNS update successful" logger
+        logecho "Custom Dynamic DNS update successful" alert
 
         [ -n "$wan_ip" ] && echo "$wan_ip" > "$state_file"
     else

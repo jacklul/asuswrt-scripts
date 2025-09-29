@@ -61,7 +61,7 @@ extra_ip() {
                             $_ip addr add "$_address" brd + dev "$_interface"
                         fi
 
-                        logecho "Added address '$_address' to interface '$_interface'" logger
+                        logecho "Added address '$_address' to interface '$_interface'" alert
                     fi
                 ;;
                 "remove")
@@ -72,7 +72,7 @@ extra_ip() {
                             $_ip addr delete "$_address" dev "$_interface"
                         fi
 
-                        logecho "Removed address '$_address' from interface '$_interface'" logger
+                        logecho "Removed address '$_address' from interface '$_interface'" alert
                     fi
                 ;;
             esac

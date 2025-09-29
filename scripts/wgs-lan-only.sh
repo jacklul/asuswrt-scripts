@@ -62,9 +62,9 @@ firewall_rules() {
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Restricting WireGuard server ($WG_INTERFACES) clients to allow only access to interface '$BRIDGE_INTERFACE'" logger
+            logecho "Restricting WireGuard server ($WG_INTERFACES) clients to allow only access to interface '$BRIDGE_INTERFACE'" alert
         else
-            logecho "Restored internet access for WireGuard server ($WG_INTERFACES) clients" logger
+            logecho "Restored internet access for WireGuard server ($WG_INTERFACES) clients" alert
         fi
     fi
 

@@ -123,16 +123,16 @@ trapexit() {
 
 logecho() {
     [ -z "$1" ] && return 1
-    _logecho_logger=
+    _logecho_alert=
     _logecho_error=
 
     # send to logger if not running interactively
-    [ -z "$console_is_interactive" ] && _logecho_logger=true
+    [ -z "$console_is_interactive" ] && _logecho_alert=true
 
     for arg in "$@"; do
         case "$arg" in
-            "logger") # allow forcing sending to logger
-                _logecho_logger=true
+            "alert") # allow forcing sending to logger
+                _logecho_alert=true
             ;;
             "error") # allow to switch to stderr from stdout
                 _logecho_error=true
@@ -140,9 +140,9 @@ logecho() {
         esac
     done
 
-    [ "$NO_LOGGER" = true ] && _logecho_logger= # disable output to logger if configured
+    [ "$NO_LOGGER" = true ] && _logecho_alert= # disable output to logger if configured
 
-    [ -n "$_logecho_logger" ] && logger -t "$script_name" "$1"
+    [ -n "$_logecho_alert" ] && logger -t "$script_name" "$1"
     [ -z "$_logecho_error" ] && echo "$1" || echo "$1" >&2
 }
 

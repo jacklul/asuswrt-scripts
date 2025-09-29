@@ -58,11 +58,11 @@ enable_swap() {
         if [ -f "$SWAP_FILE" ]; then
             if swapon "$SWAP_FILE" ; then
                 #shellcheck disable=SC2012
-                logecho "Enabled swap file '$SWAP_FILE' ($(/bin/ls -lh "$SWAP_FILE" | awk '{print $5}'))" logger
+                logecho "Enabled swap file '$SWAP_FILE' ($(/bin/ls -lh "$SWAP_FILE" | awk '{print $5}'))" alert
 
                 if [ -n "$SWAPPINESS" ]; then
                     echo "$SWAPPINESS" > /proc/sys/vm/swappiness
-                    logecho "Set swappiness to: $SWAPPINESS" logger
+                    logecho "Set swappiness to: $SWAPPINESS" alert
                 fi
             else
                 logecho "Failed to enable swap on '$SWAP_FILE'" error
@@ -85,7 +85,7 @@ disable_swap() {
     echo 3 > /proc/sys/vm/drop_caches
 
     if swapoff "$_swap_file" ; then
-        logecho "Disabled swap on '$_swap_file'" logger
+        logecho "Disabled swap on '$_swap_file'" alert
     else
         logecho "Failed to disable swap on '$_swap_file'" error
     fi

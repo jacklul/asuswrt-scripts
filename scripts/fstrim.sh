@@ -205,7 +205,7 @@ case "$1" in
 
                     #shellcheck disable=SC2181
                     if [ "$status" -eq 0 ]; then
-                        logecho "Executed fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" logger
+                        logecho "Executed fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" alert
                     else
                         logecho "Failed to execute fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" error
                     fi

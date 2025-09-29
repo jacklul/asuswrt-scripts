@@ -36,7 +36,7 @@ rotate_passwords() {
 
         if [ -n "$ssid" ]; then
             if [ "$(nvram get "${interface}_bss_enabled")" = "1" ]; then
-                logecho "Rotating password for guest WiFi: $ssid" logger
+                logecho "Rotating password for guest WiFi: $ssid" alert
 
                 new_password="$(get_random_password)"
                 nvram set "${interface}_wpa_psk"="$new_password"

@@ -62,22 +62,22 @@ case "$1" in
             get_temperatures
 
             if [ "$(printf "%.0f" "$cpu_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "CPU temperature warning: $cpu_temperature C" logger
+                logecho "CPU temperature warning: $cpu_temperature C" alert
                 warning="cpu"
             fi
 
             if [ -n "$wifi_24g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_24g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "WiFi 2.4G temperature warning: $wifi_24g_temperature C" logger
+                logecho "WiFi 2.4G temperature warning: $wifi_24g_temperature C" alert
                 warning="$warning 2.4g"
             fi
 
             if [ -n "$wifi_5g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_5g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "WiFi 5G temperature warning: $wifi_5g_temperature C" logger
+                logecho "WiFi 5G temperature warning: $wifi_5g_temperature C" alert
                 warning="$warning 5g"
             fi
 
             if [ -n "$wifi_6g_temperature" ] && [ "$(printf "%.0f\n" "$wifi_6g_temperature")" -ge "$TRIGGER_TEMPERATURE" ]; then
-                logecho "WiFi 6G temperature warning: $wifi_6g_temperature C" logger
+                logecho "WiFi 6G temperature warning: $wifi_6g_temperature C" alert
                 warning="$warning 6g"
             fi
 

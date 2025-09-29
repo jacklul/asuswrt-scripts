@@ -57,7 +57,7 @@ rc_support() {
 
             nvram set rc_support="$rc_support"
 
-            logecho "Modified rc_support" logger
+            logecho "Modified rc_support" alert
         ;;
         "restore")
             rm -f "$state_file"
@@ -67,7 +67,7 @@ rc_support() {
 
                 nvram set rc_support="$rc_support"
 
-                logecho "Restored original rc_support" logger
+                logecho "Restored original rc_support" alert
             else
                 logecho "Could not find '$backup_file' - cannot restore original rc_support!" error
             fi

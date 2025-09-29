@@ -58,12 +58,12 @@ setup_inteface() {
             fi
 
             if ! brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl addif "$BRIDGE_INTERFACE" "$2"; then
-                logecho "Added interface '$2' to bridge '$BRIDGE_INTERFACE'" logger
+                logecho "Added interface '$2' to bridge '$BRIDGE_INTERFACE'" alert
             fi
         ;;
         "remove")
             if brctl show "$BRIDGE_INTERFACE" | grep -Fq "$2" && brctl delif "$BRIDGE_INTERFACE" "$2"; then
-                logecho "Removed interface '$2' from bridge '$BRIDGE_INTERFACE'" logger
+                logecho "Removed interface '$2' from bridge '$BRIDGE_INTERFACE'" alert
             fi
 
             if [ -d "/sys/class/net/$2" ] && is_interface_up "$2"; then

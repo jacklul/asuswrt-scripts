@@ -194,10 +194,10 @@ www_override() {
                 $tweak set && applied="$applied $tweak"
             done
 
-            [ -n "$applied" ] && logecho "Applied WebUI tweaks: $(echo "$applied" | awk '{$1=$1};1')" logger
+            [ -n "$applied" ] && logecho "Applied WebUI tweaks: $(echo "$applied" | awk '{$1=$1};1')" alert
         ;;
         "unset")
-            logecho "Removing WebUI tweaks..." logger
+            logecho "Removing WebUI tweaks..." alert
 
             cpu_temperature unset
             guest_wifi_qr_code unset

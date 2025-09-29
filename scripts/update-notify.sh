@@ -141,7 +141,7 @@ case "$1" in
     ;;
     "test")
         if { is_started_by_system && cru l | grep -Fq "#$script_name-test#"; } || [ "$2" = "now" ]; then
-            logecho "Testing notification..." logger
+            logecho "Testing notification..." alert
 
             cru d "$script_name-test"
 

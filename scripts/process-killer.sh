@@ -42,11 +42,11 @@ process_killer() {
             filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
 
             if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logecho "Blocked kernel module: $process" logger && usleep 250000
+                lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logecho "Blocked kernel module: $process" alert && usleep 250000
                 mount -o bind /dev/null "$filepath"
             fi
         else
-            [ -n "$(pidof "$filename")" ] && killall "$filename" && logecho "Killed process: $process" logger
+            [ -n "$(pidof "$filename")" ] && killall "$filename" && logecho "Killed process: $process" alert
 
             if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
                 usleep 250000

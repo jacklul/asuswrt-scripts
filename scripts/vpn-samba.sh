@@ -132,9 +132,9 @@ firewall_rules() {
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" logger
+            logecho "Masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" alert
         else
-            logecho "Stopped masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" logger
+            logecho "Stopped masquerading Samba connections coming from VPN networks: $(echo "$VPN_NETWORKS $VPN_NETWORKS6" | awk '{$1=$1};1')" alert
         fi
     fi
 

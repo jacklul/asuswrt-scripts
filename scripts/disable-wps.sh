@@ -36,7 +36,7 @@ disable_wps() {
         nvram commit
         service restart_wireless
 
-        logecho "WPS has been disabled" logger
+        logecho "WPS has been disabled" alert
     fi
 }
 

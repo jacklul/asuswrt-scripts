@@ -80,9 +80,9 @@ trigger_event() {
     if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
         lockfile check "event_${_action}_${_target}" && return # already processing this event
 
-        logecho "Running script (args: '$_action' '$_target') *" logger
+        logecho "Running script (args: '$_action' '$_target') *" alert
     else
-        logecho "Running script (args: '$_action' '$_target')" logger
+        logecho "Running script (args: '$_action' '$_target')" alert
     fi
 
     sh "$script_path" event "$_action" "$_target" "$3" &
@@ -95,7 +95,7 @@ service_monitor() {
 
     set -e
 
-    logecho "Started service event monitoring..." logger
+    logecho "Started service event monitoring..." alert
 
     if [ -f "$state_file" ]; then
         _last_line="$(cat "$state_file")"
@@ -109,7 +109,7 @@ service_monitor() {
     while true; do
         _total_lines="$(wc -l < "$SYSLOG_FILE")"
         if [ "$_total_lines" -lt "$((_last_line-1))" ]; then
-            logecho "Log file has been rotated, resetting line pointer..." logger
+            logecho "Log file has been rotated, resetting line pointer..." alert
             _last_line=1
             continue
         fi

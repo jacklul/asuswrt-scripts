@@ -72,7 +72,7 @@ iptables_chain() {
                 fi
             done
 
-            [ -n "$_allow_ports" ] && logecho "Allowed ports in the $_chain_type chain: $(echo "$_allow_ports" | awk '{$1=$1};1')" logger
+            [ -n "$_allow_ports" ] && logecho "Allowed ports in the $_chain_type chain: $(echo "$_allow_ports" | awk '{$1=$1};1')" alert
 
             $_iptables -A "$_chain" -j DROP || _has_error=1
         ;;
@@ -227,9 +227,9 @@ firewall_rules() {
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" logger
+            logecho "Blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" alert
         else
-            logecho "Stopped blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" logger
+            logecho "Stopped blocking connections coming from VPN interfaces: $(echo "$VPN_INTERFACES" | awk '{$1=$1};1')" alert
         fi
     fi
 

@@ -71,7 +71,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logecho "LEDs are now ON$persistent_state" logger
+            logecho "LEDs are now ON$persistent_state" alert
         ;;
         "off")
             if [ -n "$merlin" ]; then
@@ -85,7 +85,7 @@ switch_leds() {
                 service ctrl_led
             fi
 
-            logecho "LEDs are now OFF$persistent_state" logger
+            logecho "LEDs are now OFF$persistent_state" alert
         ;;
     esac
 }
@@ -143,7 +143,7 @@ case "$1" in
             crontab_entry add "${script_name}-On" "$ON_MINUTE $ON_HOUR * * * $script_path on"
             crontab_entry add "${script_name}-Off" "$OFF_MINUTE $OFF_HOUR * * * $script_path off"
 
-            logecho "LED control schedule has been enabled" logger
+            logecho "LED control schedule has been enabled" alert
 
             run_schedule
         else
@@ -159,7 +159,7 @@ case "$1" in
             switch_leds on
         fi
 
-        logecho "LED control schedule has been disabled" logger
+        logecho "LED control schedule has been disabled" alert
     ;;
     "restart")
         sh "$script_path" stop

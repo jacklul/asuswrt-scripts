@@ -58,19 +58,19 @@ case "$1" in
         [ ! -f "$FILTER_FILE" ] && { logecho "Error: Could not find filter file: $FILTER_FILE" error; exit 1; }
 
         if [ -n "$SCRIPT_PRE" ] && [ -x "$SCRIPT_PRE" ]; then
-            logecho "Executing script '$SCRIPT_PRE'..." logger
+            logecho "Executing script '$SCRIPT_PRE'..." alert
 
             . "$SCRIPT_PRE"
         fi
 
-        logecho "Backing up now..." logger
+        logecho "Backing up now..." alert
 
         #shellcheck disable=SC2086
         "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" $PARAMETERS
         status="$?"
 
         if [ -n "$SCRIPT_POST" ] && [ -x "$SCRIPT_POST" ]; then
-            logecho "Executing script '$SCRIPT_POST'..." logger
+            logecho "Executing script '$SCRIPT_POST'..." alert
 
             . "$SCRIPT_POST"
         fi
@@ -84,9 +84,9 @@ case "$1" in
         fi
 
         if [ "$status" -eq 0 ]; then
-            logecho "Finished successfully" logger
+            logecho "Finished successfully" alert
         else
-            logecho "Finished with error code $status" logger
+            logecho "Finished with error code $status" alert
             exit 1
         fi
     ;;

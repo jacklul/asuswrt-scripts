@@ -51,7 +51,7 @@ set_affinity() {
 
         if [ "$_pid_affinity" -ne "$2" ]; then
             if taskset -p "$2" "$_pid" > /dev/null; then
-                logecho "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" logger
+                logecho "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" alert
             else
                 logecho "Failed to change CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" error
             fi

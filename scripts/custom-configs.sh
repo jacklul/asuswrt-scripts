@@ -63,9 +63,9 @@ restart_process() {
                 _cmdline="$(echo "$_cmdline" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')"
 
                 #shellcheck disable=SC2086
-                "$_full_binary_path" $_cmdline && _started=1 && logecho "Restarted process: $_full_binary_path $_cmdline" logger
+                "$_full_binary_path" $_cmdline && _started=1 && logecho "Restarted process: $_full_binary_path $_cmdline" alert
             else
-                $_cmdline && _started=1 && logecho "Restarted process: $_cmdline" logger
+                $_cmdline && _started=1 && logecho "Restarted process: $_cmdline" alert
             fi
         fi
     done
@@ -131,11 +131,11 @@ modify_config_file() {
     fi
 
     if [ -f "/jffs/configs/$_basename" ] && is_file_replace_supported "$1"; then
-        logecho "Replacing '$1' with '/jffs/configs/$_basename'..." logger
+        logecho "Replacing '$1' with '/jffs/configs/$_basename'..." alert
 
         cat "/jffs/configs/$_basename" > "$1.new"
     elif [ -f "/jffs/configs/$_basename.add" ] && is_file_add_supported "$1"; then
-        logecho "Appending '/jffs/configs/$_basename.add' to '$1'..." logger
+        logecho "Appending '/jffs/configs/$_basename.add' to '$1'..." alert
 
         cp "$1" "$1.new"
         cat "/jffs/configs/$_basename.add" >> "$1.new"
@@ -153,7 +153,7 @@ run_postconf_script() {
     _basename="$(basename "$1" | cut -d '.' -f 1)"
 
     if [ -x "/jffs/scripts/$_basename.postconf" ]; then
-        logecho "Running '/jffs/scripts/$_basename.postconf' script..." logger
+        logecho "Running '/jffs/scripts/$_basename.postconf' script..." alert
 
         [ ! -f "$1.new" ] && cp "$1" "$1.new"
         sh "/jffs/scripts/$_basename.postconf" "$1.new" < /dev/null
@@ -206,7 +206,7 @@ restore_files() {
         if  [ -f "$_file.bak" ] && [ -f "$_file.new" ]; then
             cp -f "$_file.bak" "$_file"
             rm -f "$_file.new"
-            logecho "Restored: $_file" logger
+            logecho "Restored: $_file" alert
         fi
     done
 }
@@ -240,7 +240,7 @@ modify_service_config_file() {
 
                 case "$2" in
                     "avahi-daemon")
-                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logecho "Restarted process: avahi-daemon" logger
+                        /usr/sbin/avahi-daemon --kill && /usr/sbin/avahi-daemon -D && logecho "Restarted process: avahi-daemon" alert
                     ;;
                     "samba")
                         restart_process nmbd
@@ -311,7 +311,7 @@ restore_service_config_file() {
 
         rm -f "$1.new"
 
-        logecho "Restarted service: $_service" logger
+        logecho "Restarted service: $_service" alert
     fi
 }
 

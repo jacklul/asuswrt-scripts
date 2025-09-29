@@ -71,9 +71,9 @@ firewall_rules() {
 
     if [ -n "$_rules_action" ]; then
         if [ "$_rules_action" = 1 ]; then
-            logecho "Enabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" logger
+            logecho "Enabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" alert
         else
-            logecho "Disabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" logger
+            logecho "Disabled VPN Kill-switch on interfaces: $(echo "$WAN_INTERFACES" | awk '{$1=$1};1')" alert
         fi
     fi
 

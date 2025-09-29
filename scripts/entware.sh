@@ -101,7 +101,7 @@ init_opt() {
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
             fi
 
-            logecho "Mounted '$1' on /opt" logger
+            logecho "Mounted '$1' on /opt" alert
         else
             logecho "Failed to mount '$1' on /opt" error
             exit 1
@@ -148,7 +148,7 @@ services() {
         "start")
             if is_entware_mounted; then
                 if [ -f /opt/etc/init.d/rc.unslung ]; then
-                    logecho "Starting services..." logger
+                    logecho "Starting services..." alert
 
                     /opt/etc/init.d/rc.unslung start "$script_path"
 
@@ -165,11 +165,11 @@ services() {
         ;;
         "stop")
             if [ -f /opt/etc/init.d/rc.unslung ]; then
-                logecho "Stopping services..." logger
+                logecho "Stopping services..." alert
 
                 /opt/etc/init.d/rc.unslung stop "$script_path"
             elif [ -d "/tmp/$script_name-init.d-backup" ]; then
-                logecho "Killing services..." logger
+                logecho "Killing services..." alert
 
                 if "/tmp/$script_name-init.d-backup/rc.unslung" kill "$script_path"; then
                     rm -rf "/tmp/$script_name-init.d-backup"
@@ -200,7 +200,7 @@ entware() {
 
             if is_entware_mounted; then
                 if unmount_opt; then
-                    logecho "Unmounted /opt" logger
+                    logecho "Unmounted /opt" alert
                 else
                     logecho "Failed to unmount /opt" error
                 fi

@@ -261,7 +261,7 @@ rules() {
             _added_profiles="$_added_profiles '$(get_profile_desc "$_idx")'"
         done
 
-        logecho "Added IP routing rules for VPN profiles: $(echo "$_added_profiles" | awk '{$1=$1};1')" logger
+        logecho "Added IP routing rules for VPN profiles: $(echo "$_added_profiles" | awk '{$1=$1};1')" alert
     fi
 
     if [ "$rules_removed" = 1 ]; then
@@ -270,7 +270,7 @@ rules() {
             _removed_profiles="$_removed_profiles '$(get_profile_desc "$_idx")'"
         done
 
-        logecho "Removed IP routing rules for VPN profiles: $(echo "$_removed_profiles" | awk '{$1=$1};1')" logger
+        logecho "Removed IP routing rules for VPN profiles: $(echo "$_removed_profiles" | awk '{$1=$1};1')" alert
     fi
 
     cat <<EOT > "$state_file"
