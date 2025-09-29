@@ -37,9 +37,6 @@ SUBSYSTEM == block, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
 SUBSYSTEM == net, DEVICENAME is set, ACTION ~~ ^(add|remove)$ {
     exec "$script_path" event %SUBSYSTEM% %ACTION% ;
 }
-SUBSYSTEM == misc, DEVICENAME ~~ ^(tun|tap)$, ACTION ~~ ^(add|remove)$ {
-    exec "$script_path" event %SUBSYSTEM% %ACTION% ;
-}
 EOT
 
                 killall hotplug2 2> /dev/null
@@ -87,9 +84,6 @@ case "$1" in
                 ;;
                 "net")
                     execute_script_basename "usb-network.sh" hotplug
-                ;;
-                "misc")
-                    # empty for now
                 ;;
             esac
         fi
