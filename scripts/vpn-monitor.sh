@@ -28,6 +28,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 # This is compatible with lists created for VPNMON
 # 
 
+VPNC_IDS="" # select which VPN profiles to monitor, separated by spaces, empty means all, to find VPNC_ID run 'jas vpn-ip-routes identify'
 TEST_PING="1.1.1.1" # IP address to ping, leave empty to skip this check
 TEST_PING_LIMIT=300 # max ping time in ms, if ping is higher than this it marks ping test as failed, set to empty to disable
 TEST_URL="https://ipecho.net/plain" # URL for fetch check, leave empty to skip this check
@@ -208,11 +209,11 @@ restart_connection_by_ifname() {
 
 check_connection_by_ifname() {
     _retries="$TEST_RETRIES"
-    _tun_ip=
+    _addr=
 
-    if [ "$(echo "$1" | cut -c 1-3)" = "wgc" ] && [ -n "$2" ]; then # $1 = ifname, $2 = vpnc idx
-        _tun_ip="$(nvram get "${1}_addr" | cut -d '/' -f1)"
-        ip rule add from "$_tun_ip" lookup "$2" prio 55 > /dev/null 2>&1
+    if [ -n "$2" ]; then
+        _addr="$(ip addr show "$1" | awk '/inet / {print $2}')"
+        [ -n "$_addr" ] && ip rule add from "$_addr" lookup "$2" prio 55 > /dev/null 2>&1
     fi
 
     _success=
@@ -276,7 +277,7 @@ check_connection_by_ifname() {
     [ -z "$_ping_success" ] && reason="ping"
     [ -z "$_url_success" ] && reason="$(echo "$reason url" | sed 's/^ *//g')"
 
-    [ -n "$_tun_ip" ] && ip rule del prio 55 > /dev/null 2>&1
+    [ -n "$_addr" ] && ip rule del prio 55 > /dev/null 2>&1
     [ -n "$_success" ] && return 0
     return 1;
 }
@@ -293,6 +294,8 @@ check_connections() {
         _type="$(echo "$_entry" | cut -d ' ' -f 1)"
         _id="$(echo "$_entry" | cut -d ' ' -f 2)"
         _idx="$(echo "$_entry" | cut -d ' ' -f 3)"
+
+        [ -n "$VPNC_IDS" ] && ! echo " $VPNC_IDS " | grep -Fq " $_idx " && continue
 
         if [ "$_type" = "WireGuard" ]; then
             _unit="wg${_id}"
@@ -354,14 +357,15 @@ case "$1" in
         lockfile unlock rotate
     ;;
     "identify")
-        printf "%-7s %-7s %-22s %-20s\n" "Unit" "Active" "Server address" "Description"
-        printf "%-7s %-7s %-22s %-20s\n" "------" "------" "---------------------" "--------------------"
+        printf "%-3s %-7s %-7s %-22s %-20s\n" "ID" "Unit" "Active" "Server address" "Description"
+        printf "%-3s %-7s %-7s %-22s %-20s\n" "--" "------" "------" "---------------------" "--------------------"
 
         IFS="$(printf '\n\b')"
         for entry in $(get_vpnc_clientlist); do
             desc="$(echo "$entry" | awk -F '>' '{print $1}')"
             type="$(echo "$entry" | awk -F '>' '{print $2}')"
             id="$(echo "$entry" | awk -F '>' '{print $3}')"
+            idx="$(echo "$entry" | awk -F '>' '{print $7}')"
             active="$(echo "$entry" | awk -F '>' '{print $6}')"
             [ "$active" = "1" ] && active=yes || active=no
 
@@ -375,7 +379,7 @@ case "$1" in
                 continue
             fi
 
-            printf "%-7s %-7s %-22s %-50s\n" "$unit" "$active" "$address" "$desc"
+            printf "%-3s %-7s %-7s %-22s %-50s\n" "$idx" "$unit" "$active" "$address" "$desc"
         done
     ;;
     "start")
@@ -399,6 +403,7 @@ case "$1" in
                 if [ -f "$script_dir/$script_name-${unit}.list" ]; then
                     echo "Resetting $unit to the first server on the list"
                     manual_restart "$unit" reset
+                    restart_counter reset "$_unit"
                 fi
             done
             IFS=$oldIFS
