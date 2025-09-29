@@ -12,7 +12,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 VPN_ADDRESSES="" # VPN addresses (IPv4) to affect, in format '10.10.10.10', separated by spaces, empty means auto detect, to find VPN addresses run 'jas vpn-vserver identify'
 VPN_ADDRESSES6="" # same as VPN_ADDRESSES but for IPv6, separated by spaces, no auto detect available
-VPN_EXCLUSIVE=false # limit virtual server rules to VPN addresses only, this removes firmware made rules for WAN addresses
+MAKE_EXCLUSIVE=false # limit virtual server rules to VPN addresses only, this removes firmware made rules for WAN addresses
 EXECUTE_COMMAND="" # execute a command after firewall rules are applied or removed (receives arguments: $1 = action - add/remove)
 RUN_EVERY_MINUTE= # verify that the rules are still set (true/false), empty means false when service-event script is available but otherwise true
 RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
@@ -97,7 +97,7 @@ firewall_rules() {
                     fi
                 done
 
-                if [ "$VPN_EXCLUSIVE" = true ]; then
+                if [ "$MAKE_EXCLUSIVE" = true ]; then
                     _firmware_rules="$($_iptables -t nat -S | grep -F "j VSERVER" | grep -Fv "jas-$script_name")"
 
                     if [ -n "$_firmware_rules" ]; then
