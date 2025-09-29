@@ -34,7 +34,6 @@ TEST_PING_LIMIT=300 # max ping time in ms, if ping is higher than this it marks 
 TEST_URL="https://ipecho.net/plain" # URL for fetch check, leave empty to skip this check
 TEST_RETRIES=3 # number of retries for connectivity test, it is considered failed if all retries fail
 RESTART_LIMIT=5 # limit number of restarts per unit, 0 means no limit, counter resets on successful connectivity check
-ROTATE_SERVERS=false # will rotate through server list on each reconnect when enabled (appropriate .list file must exist)
 ROTATE_RANDOM=false # select random address from the list instead of rotating sequentially
 RESET_ON_START=false # reset all profiles to first server on the list when script is started/restarted
 CRON="*/1 * * * *" # how often to run the connectivity checks, schedule as cron string, by default every minute
@@ -119,7 +118,7 @@ restart_connection_by_ifname() {
         _is_active=true
     fi
 
-    if [ "$ROTATE_SERVERS" = true ] && [ -f "$_file" ]; then
+    if [ -f "$_file" ]; then
         _total="$(cat "$_file" | grep -cv '^\(#\|\s*$\)')"
 
         if [ -z "$_total" ] || [ "$_total" -eq 0 ]; then
