@@ -91,7 +91,7 @@ trigger_event() {
 service_monitor() {
     [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE" error; exit 1; }
 
-    lockfile lockfail || { echo "Already running! ($lockpid)" >&2; exit 1; }
+    lockfile lockfail || { echo "Failed to start - already running! ($lockpid)" >&2; exit 1; }
 
     set -e
 
@@ -230,10 +230,10 @@ integrated_event() {
 
 run_in_background() {
     [ -n "$merlin" ] && exit # Do not run on Asuswrt-Merlin firmware
-    lockfile check && { [ -n "$console_is_interactive" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
+    lockfile check && { [ -n "$IS_INTERACTIVE" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
 
     if is_started_by_system && [ "$PPID" -ne 1 ]; then
-        nohup "$script_path" run > /dev/null 2>&1 &
+        { nohup "$script_path" run > /dev/null 2>&1 & } &
     else
         service_monitor
     fi
@@ -334,7 +334,7 @@ EOT
             if is_started_by_system; then
                 run_in_background
             else
-                echo "Will launch within one minute by cron..."
+                echo "Will launch within one minute by cron..." >&2
             fi
         fi
     ;;

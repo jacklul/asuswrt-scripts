@@ -61,7 +61,7 @@ case "$1" in
         process_killer
     ;;
     "start")
-        if [ ! -t 0 ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
+        if [ -z "$IS_INTERACTIVE" ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && process_killer; } & # delay when freshly booted
         else
             process_killer

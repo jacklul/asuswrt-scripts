@@ -339,7 +339,7 @@ entware_init() {
     { [ "$REQUIRE_NTP" = true ] && [ "$(nvram get ntp_ready)" != "1" ] ; } && { echo "Time is not synchronized" >&2; exit 1; }
 
     if [ -n "$IN_RAM" ]; then
-        lockfile lockfail inram || { echo "Already running! ($lockpid)" >&2; exit 1; }
+        lockfile lockfail inram || { echo "Failed to run - already running! ($lockpid)" >&2; exit 1; }
 
         # Disable the cron job now as we will be running in a loop
         # There will be no reason to keep the cronjob active after Entware is initialized in tmpfs
@@ -383,10 +383,10 @@ entware_init() {
 }
 
 run_in_background() {
-    lockfile check && { [ -n "$console_is_interactive" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
+    lockfile check && { [ -n "$IS_INTERACTIVE" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
 
     if [ -n "$IN_RAM" ] && is_started_by_system && [ "$PPID" -ne 1 ]; then
-        nohup "$script_path" run > /dev/null 2>&1 &
+        { nohup "$script_path" run > /dev/null 2>&1 & } &
     else
         entware_init
     fi

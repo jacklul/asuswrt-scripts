@@ -57,15 +57,15 @@ readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FR
 
 ####################
 
-[ -t 0 ] && console_is_interactive=true
+[ -t 0 ] && readonly IS_INTERACTIVE=true
 
 #shellcheck disable=SC2174
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
 
-if [ -z "$console_is_interactive" ]; then
+if [ -z "$IS_INTERACTIVE" ]; then
     if [ "$CAPTURE_STDOUT" = true ] && [ "$CAPTURE_STDERR" = true ]; then
         common_log_file="$TMP_DIR/$script_name-out.log"
-        exec >> "$common_log_file" 2>&1
+        exec 1>> "$common_log_file" 2>&1
     elif [ "$CAPTURE_STDOUT" = true ]; then
         common_log_file="$TMP_DIR/$script_name-stdout.log"
         exec 1>> "$common_log_file"
@@ -113,7 +113,7 @@ trapexit() {
     type script_trapexit > /dev/null 2>&1 && script_trapexit
     [ -n "$lockfd" ] && lockfile unlock
 
-    if [ -f "$common_log_file" ]; then
+    if [ -n "$common_log_file" ] && [ -f "$common_log_file" ]; then
         _new_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
         [ "$_new_lines" != "$common_log_lines" ] && echo "----- Output closed at $(date) -----" >> "$common_log_file"
     fi
@@ -127,7 +127,7 @@ logecho() {
     _logecho_error=
 
     # send to logger if not running interactively
-    [ -z "$console_is_interactive" ] && _logecho_alert=true
+    [ -z "$IS_INTERACTIVE" ] && _logecho_alert=true
 
     for arg in "$@"; do
         case "$arg" in
@@ -193,6 +193,12 @@ lockfile() {
                 fi
             done
 
+            if [ -n "$lockpid" ] && [ ! -f "/proc/$lockpid/stat" ]; then
+                echo "Removing stale lockfile: $_lockfile" >&2
+                rm -f "$_lockfile"
+                lockpid=
+            fi
+
             _fd=$(lockfile_fd)
             eval exec "$_fd>$_lockfile"
 
@@ -237,7 +243,12 @@ lockfile() {
             return 1
         ;;
         "kill")
-            [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ] && kill -9 "$lockpid" && return 0
+            if [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ]; then
+                kill -9 "$lockpid"
+                rm -f "$_lockfile"
+                return 0
+            fi
+
             return 1
         ;;
     esac

@@ -36,7 +36,6 @@ download_url="$BASE_URL/$BRANCH"
 [ -z "$TMP_DIR" ] && TMP_DIR=/tmp
 check_file="$TMP_DIR/$script_name"
 tmp_file="$TMP_DIR/$script_name.tmp"
-[ ! -t 0 ] && not_interactive=true
 
 call_action() {
     _entry="$1"
@@ -52,15 +51,15 @@ call_action() {
                 fi
             fi
 
-            [ -n "$not_interactive" ] && logger -t "$script_name" "Starting '$_entry'..."
+            [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Starting '$_entry'..."
             echo "Starting '${fwe}$_entry${frt}'..."
         ;;
         "stop")
-            [ -n "$not_interactive" ] && logger -t "$script_name" "Stopping '$_entry'..."
+            [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Stopping '$_entry'..."
             echo "Stopping '${fwe}$_entry${frt}'..."
         ;;
         "restart")
-            [ -n "$not_interactive" ] && logger -t "$script_name" "Restarting '$_entry'..."
+            [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Restarting '$_entry'..."
             echo "Restarting '${fwe}$_entry${frt}'..."
         ;;
         *)
@@ -69,7 +68,7 @@ call_action() {
         ;;
     esac
 
-    /bin/sh "$_entry" "$_action"
+    ( /bin/sh "$_entry" "$_action" )
 }
 
 scripts_action() {
@@ -213,7 +212,7 @@ case "$1" in
     "start")
         if [ ! -f "$check_file" ]; then
             date "+%Y-%m-%d %H:%M:%S" > "$check_file"
-            [ -n "$not_interactive" ] && export JAS_BOOT=1 # Assume started by system when non-interactive
+            [ -z "$IS_INTERACTIVE" ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
         # If custom-configs script is available add 'jas' alias to profile.add
@@ -224,20 +223,20 @@ case "$1" in
             fi
         fi
 
-        [ -n "$not_interactive" ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
+        [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Starting scripts ($SCRIPTS_DIR)..."
         echo "Starting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action start
     ;;
     "stop")
-        [ -n "$not_interactive" ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
+        [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Stopping scripts ($SCRIPTS_DIR)..."
         echo "Stopping scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action stop
         [ -f "$check_file" ] && rm -f "$check_file"
     ;;
     "restart")
-        [ -n "$not_interactive" ] && logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
+        [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
         echo "Restarting scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action restart

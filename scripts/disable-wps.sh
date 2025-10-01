@@ -47,7 +47,7 @@ case "$1" in
     "start")
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
 
-        if [ ! -t 0 ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
+        if [ -z "$IS_INTERACTIVE" ] && [ "$(awk -F '.' '{print $1}' /proc/uptime)" -lt 300 ]; then
             { sleep 60 && disable_wps; } & # delay when freshly booted
         else
             disable_wps
