@@ -8,7 +8,9 @@
 #
 
 #jas-update=custom-configs.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -27,7 +29,8 @@ readonly NO_POSTCONF_FILES="/etc/profile" # files that cannot run postconf scrip
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided" >&2; exit 1; }
 
-    _binary_name="$(echo "$1"| awk '{print $1}')"
+    local _binary_name="$(echo "$1"| awk '{print $1}')"
+    local _base_path
 
     for _base_path in /usr/sbin /usr/bin /sbin /bin; do
         [ -f "$_base_path/$_binary_name" ] && echo "$_base_path/$_binary_name" && return
@@ -37,7 +40,8 @@ get_binary_location() {
 restart_process() {
     [ -z "$1" ] && { echo "Process name not provided" >&2; exit 1; }
 
-    _started=
+    local _pid _cmdline _timeout _started _full_binary_path
+
     for _pid in $(/bin/ps w | grep -F "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
         [ ! -f "/proc/$_pid/cmdline" ] && continue
         _cmdline="$(tr '\0' ' ' < "/proc/$_pid/cmdline")"
@@ -74,8 +78,9 @@ restart_process() {
 is_file_add_supported() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$NO_ADD_FILES" ] && return 0
-    _new="$(echo "$1" | sed 's/\.new$//')"
+    local _new="$(echo "$1" | sed 's/\.new$//')"
 
+    local _no_add_file
     for _no_add_file in $NO_ADD_FILES; do
         [ "$_no_add_file" = "$_new" ] && return 1
     done
@@ -86,8 +91,9 @@ is_file_add_supported() {
 is_file_replace_supported() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$NO_REPLACE_FILES" ] && return 0
-    _new="$(echo "$1" | sed 's/\.new$//')"
+    local _new="$(echo "$1" | sed 's/\.new$//')"
 
+    local _no_replace_file
     for _no_replace_file in $NO_REPLACE_FILES; do
         [ "$_no_replace_file" = "$_new" ] && return 1
     done
@@ -98,8 +104,9 @@ is_file_replace_supported() {
 is_file_postconf_supported() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$NO_POSTCONF_FILES" ] && return 0
-    _new="$(echo "$1" | sed 's/\.new$//')"
+    local _new="$(echo "$1" | sed 's/\.new$//')"
 
+    local _no_postconf_file
     for _no_postconf_file in $NO_POSTCONF_FILES; do
         [ "$_no_postconf_file" = "$_new" ] && return 1
     done
@@ -124,11 +131,8 @@ modify_config_file() {
     [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
     # $2 = custom /jffs/configs/[NAME.conf]
 
-    if [ -n "$2" ]; then
-        _basename="$2"
-    else
-        _basename="$(basename "$1")"
-    fi
+    local _basename="$(basename "$1")"
+    [ -n "$2" ] && _basename="$2"
 
     if [ -f "/jffs/configs/$_basename" ] && is_file_replace_supported "$1"; then
         logecho "Replacing '$1' with '/jffs/configs/$_basename'..." alert
@@ -150,7 +154,7 @@ run_postconf_script() {
         return
     fi
 
-    _basename="$(basename "$1" | cut -d '.' -f 1)"
+    local _basename="$(basename "$1" | cut -d '.' -f 1)"
 
     if [ -x "/jffs/scripts/$_basename.postconf" ]; then
         logecho "Running '/jffs/scripts/$_basename.postconf' script..." alert
@@ -164,8 +168,8 @@ add_modified_mark() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
 
-    _basename="$(basename "$1" | cut -d '.' -f 1)"
-    _comment="#"
+    local _basename="$(basename "$1" | cut -d '.' -f 1)"
+    local _comment="#"
 
     case "$_basename" in
         "zebra")
@@ -186,6 +190,7 @@ commit_new_file() {
 }
 
 modify_files() {
+    local _file
     for _file in $FILES; do
         if [ -f "$_file" ] && ! grep -Fq "Modified by $script_name script" "$_file"; then
             [ ! -f "$_file.bak" ] && cp "$_file" "$_file.bak"
@@ -202,6 +207,7 @@ modify_files() {
 }
 
 restore_files() {
+    local _file
     for _file in $FILES; do
         if  [ -f "$_file.bak" ] && [ -f "$_file.new" ]; then
             cp -f "$_file.bak" "$_file"
@@ -216,7 +222,7 @@ modify_service_config_file() {
     [ -z "$2" ] && { echo "Process name not provided" >&2; exit 1; }
     # $3 = custom /jffs/configs/[NAME.conf]
 
-    _match="$2"
+    local _match="$2"
     case "$2" in
         "samba")
             _match="nmbd\|smbd"
@@ -266,8 +272,8 @@ restore_service_config_file() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ -z "$2" ] && { echo "Process/service name not provided" >&2; exit 1; }
 
-    _match="$2"
-    _service="$2"
+    local _match="$2"
+    local _service="$2"
 
     case "$2" in
         "mcpd")

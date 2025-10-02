@@ -8,7 +8,9 @@
 #
 
 #jas-update=guest-password.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -31,26 +33,28 @@ rotate_passwords() {
     [ -z "$CHARACTER_LIST" ] && { logecho "Error: CHARACTER_LIST is not set" error; exit 1; }
     [ -z "$PASSWORD_LENGTH" ] && { logecho "Error: PASSWORD_LENGTH is not set" error; exit 1; }
 
-    for interface in $WL_INTERFACES; do
-        ssid="$(nvram get "${interface}_ssid")"
+    local _interface _ssid _new_password _changed _restart
 
-        if [ -n "$ssid" ]; then
-            if [ "$(nvram get "${interface}_bss_enabled")" = "1" ]; then
-                logecho "Rotating password for guest WiFi: $ssid" alert
+    for _interface in $WL_INTERFACES; do
+        _ssid="$(nvram get "${_interface}_ssid")"
 
-                new_password="$(get_random_password)"
-                nvram set "${interface}_wpa_psk"="$new_password"
+        if [ -n "$_ssid" ]; then
+            if [ "$(nvram get "${_interface}_bss_enabled")" = "1" ]; then
+                logecho "Rotating password for guest WiFi: $_ssid" alert
 
-                changed=1
-                [ "$(nvram get "${interface}_bss_enabled")" = "1" ] && restart=1
+                _new_password="$(get_random_password)"
+                nvram set "${_interface}_wpa_psk"="$_new_password"
+
+                _changed=1
+                [ "$(nvram get "${_interface}_bss_enabled")" = "1" ] && _restart=1
             fi
         else
-            logecho "Invalid guest network: $interface" error
+            logecho "Invalid guest network: $_interface" error
         fi
     done
 
-    [ -n "$changed" ] && nvram commit
-    [ -n "$restart" ] && service restart_wireless
+    [ -n "$_changed" ] && nvram commit
+    [ -n "$_restart" ] && service restart_wireless
 }
 
 case "$1" in

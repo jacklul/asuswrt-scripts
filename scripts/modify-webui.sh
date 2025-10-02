@@ -5,7 +5,9 @@
 #
 
 #jas-update=modify-webui.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -18,7 +20,7 @@ load_script_config
 is_merlin_firmware && merlin=true
 
 sed_and_check() {
-    _md5sum="$(md5sum "$4" | awk '{print $1}')"
+    local _md5sum="$(md5sum "$4" | awk '{print $1}')"
 
     sed_helper "$1" "$2" "$3" "$4"
 
@@ -33,7 +35,7 @@ sed_and_check() {
 
 #shellcheck disable=SC2016
 cpu_temperature() {
-    _applied=
+    local _applied
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/cpu_ram_status.asp; then
@@ -74,7 +76,7 @@ cpu_temperature() {
 }
 
 guest_wifi_qr_code() {
-    _applied=
+    local _applied
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/Guest_network.asp; then
@@ -101,7 +103,7 @@ guest_wifi_qr_code() {
 }
 
 notrendmicro_support() {
-    _applied=
+    local _applied
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/state.js; then
@@ -118,7 +120,7 @@ notrendmicro_support() {
                 mkdir -p "$TMP_WWW_DIR/require/modules"
                 [ ! -f "$TMP_WWW_DIR/require/modules/menuTree.js" ] && cp -f /www/require/modules/menuTree.js "$TMP_WWW_DIR/require/modules/menuTree.js"
 
-                inetspeed_tab="$(grep -F 'url: "AdaptiveQoS_InternetSpeed.asp' /www/require/modules/menuTree.js | tail -n 1)"
+                local inetspeed_tab="$(grep -F 'url: "AdaptiveQoS_InternetSpeed.asp' /www/require/modules/menuTree.js | tail -n 1)"
 
                 if [ -n "$inetspeed_tab" ]; then
                     sed_and_check replace '{url: "AdaptiveQoS_InternetSpeed.asp"' '//{url: "AdaptiveQoS_InternetSpeed.asp"' "$TMP_WWW_DIR/require/modules/menuTree.js" && \
@@ -160,7 +162,7 @@ notrendmicro_support() {
 }
 
 https_lanport_allow_443() {
-    _applied=
+    local _applied
     case "$1" in
         "set")
             if ! mount | grep -Fq /www/Advanced_System_Content.asp; then
@@ -189,12 +191,13 @@ www_override() {
 
             mkdir -p "$TMP_WWW_DIR"
 
-            applied=
-            for tweak in $TWEAKS; do
-                $tweak set && applied="$applied $tweak"
+            local _tweak _applied
+
+            for _tweak in $TWEAKS; do
+                $_tweak set && _applied="$_applied $_tweak"
             done
 
-            [ -n "$applied" ] && logecho "Applied WebUI tweaks: $(echo "$applied" | awk '{$1=$1};1')" alert
+            [ -n "$_applied" ] && logecho "Applied WebUI tweaks: $(echo "$_applied" | awk '{$1=$1};1')" alert
         ;;
         "unset")
             logecho "Removing WebUI tweaks..." alert

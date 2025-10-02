@@ -12,7 +12,9 @@
 #
 
 #jas-update=led-control.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -34,8 +36,10 @@ if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
 fi
 
 set_wl_leds() {
-    _state=0
+    local _state=0
     [ "$1" = "off" ] && _state=1
+
+    local _interface _status
 
     for _interface in /sys/class/net/eth*; do
         [ ! -d "$_interface" ] && continue
@@ -50,9 +54,10 @@ set_wl_leds() {
 }
 
 loop_led_ctrl() {
-    _state=1
+    local _state=1
     [ "$1" = "off" ] && _state=0
 
+    local _led
     for _led in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25; do
         led_ctrl $_led $_state || break
     done
@@ -92,30 +97,31 @@ switch_leds() {
 
 run_schedule() {
     if [ -n "$ON_HOUR" ] && [ -n "$ON_MINUTE" ] && [ -n "$OFF_HOUR" ] && [ -n "$OFF_MINUTE" ]; then
-        timeout=60
-        while [ "$(nvram get ntp_ready)" != "1" ] && [ "$timeout" -ge 0 ]; do
-            timeout=$((timeout-1))
+        local _timeout=60
+        while [ "$(nvram get ntp_ready)" != "1" ] && [ "$_timeout" -ge 0 ]; do
+            _timeout=$((_timeout-1))
             sleep 1
         done
 
         if [ "$(nvram get ntp_ready)" = "1" ]; then
-            on="$(date --date="$ON_HOUR:$ON_MINUTE" +%s)"
-            off="$(date --date="$OFF_HOUR:$OFF_MINUTE" +%s)"
-            now="$(date +%s)"
+            local _on="$(date --date="$ON_HOUR:$ON_MINUTE" +%s)"
+            local _off="$(date --date="$OFF_HOUR:$OFF_MINUTE" +%s)"
+            local _now="$(date +%s)"
+            local _set_leds_on _set_leds_off
 
-            if [ "$on" -le "$off" ]; then
-                [ "$on" -le "$now" ] && [ "$now" -lt "$off" ] && set_leds_on=1 || set_leds_on=0
+            if [ "$_on" -le "$_off" ]; then
+                [ "$_on" -le "$_now" ] && [ "$_now" -lt "$_off" ] && _set_leds_on=1 || _set_leds_on=0
             else
-                [ "$on" -gt "$now" ] && [ "$now" -ge "$off" ] && set_leds_on=0 || set_leds_on=1
+                [ "$_on" -gt "$_now" ] && [ "$_now" -ge "$_off" ] && _set_leds_on=0 || _set_leds_on=1
             fi
 
-            if [ "$set_leds_on" = 1 ]; then
+            if [ "$_set_leds_on" = 1 ]; then
                 if [ -n "$merlin" ]; then
                     [ "$(nvram get led_disable)" = 1 ] && sh "$script_path" off
                 else
                     sh "$script_path" off
                 fi
-            elif [ "$set_leds_on" = 0 ]; then
+            elif [ "$_set_leds_on" = 0 ]; then
                 if [ -n "$merlin" ]; then
                     [ "$(nvram get led_disable)" = 0 ] && sh "$script_path" on
                 else

@@ -6,7 +6,9 @@
 #
 
 #jas-update=modify-features.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -21,41 +23,45 @@ state_file="$TMP_DIR/$script_name"
 backup_file="$TMP_DIR/$script_name.bak"
 
 rc_support() {
+    local _rc_support _rc_support_last
+
     case "$1" in
         "modify")
             { [ -z "$FEATURES_REMOVE" ] && [ -z "$FEATURES_ADD" ] ; } && { logecho "Error: FEATURES_REMOVE/FEATURES_ADD is not set" error; exit 1; }
 
             if [ ! -f "$backup_file" ]; then
-                rc_support="$(nvram get rc_support)"
-                echo "$rc_support" > "$backup_file"
+                _rc_support="$(nvram get rc_support)"
+                echo "$_rc_support" > "$backup_file"
                 chmod 644 "$backup_file"
             else
-                rc_support="$(cat "$backup_file")"
+                _rc_support="$(cat "$backup_file")"
             fi
 
             if [ -f "$state_file" ]; then
-                rc_support_last="$(cat "$state_file")"
+                _rc_support_last="$(cat "$state_file")"
             fi
 
-            [ "$(nvram get rc_support)" = "$rc_support_last" ] && exit
+            [ "$(nvram get rc_support)" = "$_rc_support_last" ] && exit
 
-            for feature_to_remove in $FEATURES_REMOVE; do
-                if echo "$rc_support" | grep -Fq "$feature_to_remove"; then
-                    rc_support="$(echo "$rc_support" | sed "s/$feature_to_remove//g")"
+            local _feature_to_remove _feature_to_add
+
+            for _feature_to_remove in $FEATURES_REMOVE; do
+                if echo "$_rc_support" | grep -Fq "$_feature_to_remove"; then
+                    _rc_support="$(echo "$_rc_support" | sed "s/$_feature_to_remove//g")"
                 fi
             done
 
-            for feature_to_add in $FEATURES_ADD; do
-                if ! echo "$rc_support" | grep -Fq "$feature_to_add"; then
-                    rc_support="$rc_support $feature_to_add"
+            for _feature_to_add in $FEATURES_ADD; do
+                if ! echo "$_rc_support" | grep -Fq "$_feature_to_add"; then
+                    _rc_support="$_rc_support $_feature_to_add"
                 fi
             done
 
-            rc_support="$(echo "$rc_support" | tr -s ' ')"
+            _rc_support="$(echo "$_rc_support" | tr -s ' ')"
 
-            echo "$rc_support" > "$state_file"
+            echo "$_rc_support" > "$state_file"
 
-            nvram set rc_support="$rc_support"
+            nvram set rc_support="$_rc_support"
 
             logecho "Modified rc_support" alert
         ;;
@@ -63,9 +69,9 @@ rc_support() {
             rm -f "$state_file"
 
             if [ -f "$backup_file" ]; then
-                rc_support="$(cat "$backup_file")"
+                local _rc_support="$(cat "$backup_file")"
 
-                nvram set rc_support="$rc_support"
+                nvram set rc_support="$_rc_support"
 
                 logecho "Restored original rc_support" alert
             else
@@ -79,7 +85,8 @@ case "$1" in
     "run")
         rc_support modify
     ;;
-    "check") # used by service-event script
+    "check")
+        # used by service-event script
         if [ -f "$state_file" ]; then
             rc_support_last="$(cat "$state_file")"
 

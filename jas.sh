@@ -6,6 +6,7 @@
 #
 
 #jas-update=jas.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
 
 readonly script_path="$(readlink -f "$0")"
@@ -38,8 +39,8 @@ check_file="$TMP_DIR/$script_name"
 tmp_file="$TMP_DIR/$script_name.tmp"
 
 call_action() {
-    _entry="$1"
-    _action="$2"
+    local _entry="$1"
+    local _action="$2"
 
     case "$_action" in
         "start")
@@ -74,7 +75,8 @@ call_action() {
 scripts_action() {
     [ ! -d "$SCRIPTS_DIR" ] && return
 
-    _action="$1"
+    local _action="$1"
+    local _entry
 
     # Start scripts that must start first
     if [ -n "$START_FIRST" ] && [ "$_action" = "start" ]; then
@@ -113,6 +115,8 @@ scripts_action() {
 }
 
 require_installed() {
+    local _not_installed
+
     if [ -n "$SCRIPTS_DIR" ] && [ ! -d "$SCRIPTS_DIR" ]; then
         echo "Scripts directory '${fwe}$SCRIPTS_DIR${frt}' doesn't exist!"
         _not_installed=true
@@ -162,8 +166,9 @@ download_file() {
 
 download_and_check() {
     if [ -n "$1" ]; then
-        _dirname="$(dirname "$1")"
-        _basename="$(basename "$1")"
+        local _dirname="$(dirname "$1")"
+        local _basename="$(basename "$1")"
+        local _remote_basename
 
         if download_file "$download_url/$_dirname/$_basename?$(date +%s)" "$tmp_file"; then
             if grep -Fq "#jas-update" "$tmp_file"; then

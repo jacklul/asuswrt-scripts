@@ -10,7 +10,9 @@
 #
 
 #jas-update=vpn-ip-routes.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -36,7 +38,7 @@ is_vpnc_active() {
 }
 
 get_profile_desc() {
-    _desc="$(get_vpnc_clientlist | awk -F '>' '{print $7, $1}' | grep "^$1" | awk '{sub(/^[^ ]* /, ""); print}')"
+    local _desc="$(get_vpnc_clientlist | awk -F '>' '{print $7, $1}' | grep "^$1" | awk '{sub(/^[^ ]* /, ""); print}')"
     [ -n "$_desc" ] && echo "$_desc" || echo "ID = $1"
 }
 
@@ -47,14 +49,14 @@ get_fwmark_for_idx() {
         *) ;;
     esac
 
-    _varname="_fwmark_$1"
-    _value="$(eval "echo \$$_varname")"
+    local _varname="_fwmark_$1"
+    local _value="$(eval "echo \$$_varname")"
 
     if [ -n "$_value" ]; then
         echo "$_value"
     else
         [ -z "$fwmark_pool" ] && fwmark_pool="$FWMARK_POOL"
-        _first_fwmark=$(echo "$fwmark_pool" | cut -d ' ' -f 1)
+        local _first_fwmark=$(echo "$fwmark_pool" | cut -d ' ' -f 1)
         [ -z "$_first_fwmark" ] && return 1 # No more available fmarks
         fwmark_pool=$(echo "$fwmark_pool" | sed -E "s/$_first_fwmark//" | awk '{$1=$1};1')
         eval "$_varname=$_first_fwmark"
@@ -63,7 +65,10 @@ get_fwmark_for_idx() {
 }
 
 cleanup_ip_rules() {
-    # inherited: _ip
+    local _ip="$1"
+    [ -z "$_ip" ] && _ip="ip -4"
+
+    local _idx _priority removed_idx
 
     # Clean up any existing ip rules for inactive profiles
     for _idx in 5 6 7 8 9 10 11 12 13 14 15 16; do # VPNC_UNIT_BASIC - MAX_VPNC_PROFILE (max 12 profiles)
@@ -81,10 +86,12 @@ cleanup_ip_rules() {
 }
 
 iptables_rules() {
-    _for_iptables="iptables"
+    local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
     modprobe xt_comment
+
+    local _iptables _route_ips _ip _chain _route_ip _idx _ip_addr _fwmark _priority
 
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
@@ -157,7 +164,7 @@ iptables_rules() {
                 done
             ;;
             "remove")
-                remove_iptables_rules_by_comment "mangle"
+                remove_iptables_rules_by_comment "$_iptables" "mangle"
 
                 if $_iptables -t mangle -nL "$CHAIN" > /dev/null 2>&1; then
                     $_iptables -t mangle -F "$CHAIN"
@@ -166,7 +173,7 @@ iptables_rules() {
             ;;
         esac
 
-        cleanup_ip_rules
+        cleanup_ip_rules "$_ip"
         $_ip route flush cache
     done
 
@@ -175,8 +182,10 @@ iptables_rules() {
 }
 
 ip_route_rules() {
-    _for_ip="ip"
+    local _for_ip="ip"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_ip="$_for_ip ip6"
+
+    local _ip _route_ips _route_ip _idx _ip_addr _priority
 
     for _ip in $_for_ip; do
         if [ "$_ip" = "ip6" ]; then
@@ -218,7 +227,7 @@ ip_route_rules() {
             ;;
         esac
 
-        cleanup_ip_rules
+        cleanup_ip_rules "$_ip"
         $_ip route flush cache
     done
 
@@ -233,6 +242,8 @@ rules() {
 
     # Compare with previous configuration
     if [ -f "$state_file" ]; then
+        local LAST_ROUTE_IPS LAST_ROUTE_IPS6 LAST_USE_FWMARKS LAST_FWMARK_POOL LAST_FWMARK_MASK
+
         . "$state_file"
 
         [ "$ROUTE_IPS" != "$LAST_ROUTE_IPS" ] && do_update=1
@@ -256,7 +267,8 @@ rules() {
     fi
 
     if [ "$rules_added" = 1 ]; then
-        _added_profiles=
+        local _added_profiles _idx
+
         for _idx in $added_idx; do
             _added_profiles="$_added_profiles '$(get_profile_desc "$_idx")'"
         done
@@ -265,7 +277,8 @@ rules() {
     fi
 
     if [ "$rules_removed" = 1 ]; then
-        _removed_profiles=
+        local _removed_profiles _idx
+
         for _idx in $removed_idx; do
             _removed_profiles="$_removed_profiles '$(get_profile_desc "$_idx")'"
         done

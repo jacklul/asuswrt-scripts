@@ -5,7 +5,9 @@
 #
 
 #jas-update=vpn-vserver.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -27,9 +29,10 @@ get_interface_address() {
 
 firewall_rules() {
     if { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; }; then
-        _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3}' | grep "^1" | cut -d ' ' -f 2-)"
+        local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3}' | grep "^1" | cut -d ' ' -f 2-)"
+        local _entry _type _id _ifname _address
 
-        _oldIFS=$IFS
+        local _oldIFS=$IFS
         IFS="$(printf '\n\b')"
         for _entry in $_vpnc_profiles; do
             _type="$(echo "$_entry" | cut -d ' ' -f 1)"
@@ -61,13 +64,13 @@ firewall_rules() {
 
     lockfile lockwait
 
-    _for_iptables="iptables"
-    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
-
     modprobe xt_comment
 
-    _rules_action=
-    _rules_error=
+    local _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    local _iptables _rules_action _rules_error _vpn_addresses _state_file _vserver_start _vpn_address _firmware_rules
+
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_addresses="$VPN_ADDRESSES6"
@@ -111,7 +114,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                remove_iptables_rules_by_comment "nat" && _rules_action=-1
+                remove_iptables_rules_by_comment "$_iptables" "nat" && _rules_action=-1
 
                 if [ -f "$_state_file" ]; then
                     _firmware_rules="$(cat "$_state_file")"

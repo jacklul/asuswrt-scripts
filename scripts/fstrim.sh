@@ -9,7 +9,9 @@
 #
 
 #jas-update=fstrim.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -30,10 +32,10 @@ is_ssd_device_name() {
 }
 
 filter_device() {
-    _idVendor="$1"
-    _idProduct="$2"
-    _match_idVendor=
-    _match_idProduct=
+    local _idVendor="$1"
+    local _idProduct="$2"
+    local _match_idVendor=
+    local _match_idProduct=
 
     if [ -n "$FILTER_IDVENDOR" ]; then
         for _filter in $FILTER_IDVENDOR; do
@@ -62,15 +64,15 @@ is_valid_ssd_device() {
     [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
     [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
-    _dev="/sys/block/$1"
+    local _dev="/sys/block/$1"
 
     if [ -n "$FILTER_IDVENDOR" ] || [ -n "$FILTER_IDPRODUCT" ]; then
-        _idVendor=
-        _idProduct=
-        _search_path="$(readlink -f "$_dev/device")"
+        local _idVendor=
+        local _idProduct=
+        local _search_path="$(readlink -f "$_dev/device")"
 
         # Search recursively for idVendor/idProduct
-        _depth=10
+        local _depth=10
         while [ "$_depth" -gt 0 ]; do
             [ -f "$_search_path/idVendor" ] && _idVendor="$(cat "$_search_path/idVendor")"
             [ -f "$_search_path/idProduct" ] && _idProduct="$(cat "$_search_path/idProduct")"
@@ -87,14 +89,14 @@ is_valid_ssd_device() {
     fi
 
     # Check if device is SSD
-    _rotational=$(cat "$dev/queue/rotational" 2> /dev/null || echo "N/A")
+    local _rotational=$(cat "$dev/queue/rotational" 2> /dev/null || echo "N/A")
     if [ "$_rotational" != "0" ]; then
         echo "Device is not an SSD: $_dev"
         return 1
     fi
 
     # Check if TRIM is supported
-    _max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2> /dev/null || echo "N/A")
+    local _max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2> /dev/null || echo "N/A")
     case "$_max_discard" in
         ''|0|*[!0-9]*)
             echo "Device does not support discard: $_dev"
@@ -110,13 +112,15 @@ change_provisioning_mode() {
     [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
     if type sg_vpd > /dev/null 2>&1; then
-        _unmap_supported="$(sg_vpd -p lbpv "/dev/$1" | grep "Unmap command supported" | cut -d ': ' -f 2)"
+        local _unmap_supported="$(sg_vpd -p lbpv "/dev/$1" | grep "Unmap command supported" | cut -d ': ' -f 2)"
 
         if [ "$_unmap_supported" != "1" ]; then
             echo "Unmap command is not supported on device: /sys/block/$1"
             return 1
         fi
     fi
+
+    local _file _contents
 
     # Set provisioning_mode to 'unmap' to allow TRIM commands to go through
     find "/sys/block/$1/device" -name "provisioning_mode" | while read -r _file; do
@@ -140,20 +144,20 @@ change_discard_max_bytes() {
         return 0
     fi
 
-    _lba_count="$(sg_vpd -p bl "/dev/$1" | grep "Maximum unmap LBA count" | cut -d ': ' -f 2)"
-    _block_length="$(cat "/sys/block/$1/queue/logical_block_size")"
-    _value=$((_lba_count *_block_length))
-    _file="/sys/block/$1/queue/discard_max_bytes"
-    _contents=$(cat "$_file" 2> /dev/null || echo "")
+    local _lba_count="$(sg_vpd -p bl "/dev/$1" | grep "Maximum unmap LBA count" | cut -d ': ' -f 2)"
+    local _block_length="$(cat "/sys/block/$1/queue/logical_block_size")"
+    local _value=$((_lba_count *_block_length))
+    local _file="/sys/block/$1/queue/discard_max_bytes"
+    local _contents=$(cat "$_file" 2> /dev/null || echo "")
 
     if [ "$_contents" != "$_value" ]; then
-        _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
+        local _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
         if [ "$((_value % _discard_granularity))" -ne 0 ]; then
             logecho "Calculated value is not divisible by discard_granularity (/sys/block/$1)" error
             return 1
         fi
 
-        _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
+        local _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
         if [ "$_value" -gt "$_discard_max_hw_bytes" ]; then
             logecho "Calculated value exceeded discard_max_hw_bytes (/sys/block/$1)" error
             return 1
@@ -200,7 +204,7 @@ case "$1" in
                     output="$(fstrim -v "$mount_point" 2>&1)"
                     status=$?
                     log="/tmp/fstrim_$name.log"
-                    #shellcheck disable=SC3037
+                    #shellcheck disable=SC3036
                     echo -e "$output" > "$log"
 
                     #shellcheck disable=SC2181

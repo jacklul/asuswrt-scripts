@@ -5,7 +5,9 @@
 #
 
 #jas-update=vpn-firewall.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -23,11 +25,12 @@ readonly CHAIN_INPUT="jas-${script_name}-input"
 readonly CHAIN_FORWARD="jas-${script_name}-forward"
 
 iptables_chain() {
-    # inherited: _iptables
-    _extra=""
-    _has_error=""
+    local _iptables="$1"
+    [ -z "$_iptables" ] && _iptables="iptables"
 
-    case "$2" in
+    local _extra _has_error _chain _allow_ports _chain_type
+
+    case "$3" in
         "INPUT")
             _chain="$CHAIN_INPUT"
             _allow_ports="$ALLOW_PORTS_INPUT"
@@ -42,9 +45,11 @@ iptables_chain() {
         ;;
     esac
 
-    case "$1" in
+    case "$2" in
         "add")
             $_iptables -N "$_chain"
+
+            local _port _proto
 
             #shellcheck disable=SC2086
             for _port in $_allow_ports; do
@@ -86,12 +91,14 @@ iptables_chain() {
 }
 
 iptables_rule() {
-    # inherited: _iptables
-    _interface="$3"
-    _num="$4"
-    _has_error=""
+    local _iptables="$1"
+    [ -z "$_iptables" ] && _iptables="iptables"
+    local _interface="$4"
+    local _num="$5"
 
-    case "$1" in
+    local _has_error _action
+
+    case "$2" in
         "add")
             _action="-I"
         ;;
@@ -100,7 +107,9 @@ iptables_rule() {
         ;;
     esac
 
-    case "$2" in
+    local _chain _target_chain _chain_wgs _chain_ovpn
+
+    case "$3" in
         "INPUT")
             _chain="INPUT"
             _target_chain="$CHAIN_INPUT"
@@ -138,13 +147,13 @@ iptables_rule() {
 
 firewall_rules() {
     if [ -z "$VPN_INTERFACES" ]; then
-        vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2}' | grep "^1")" # get only active ones
+        local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2}' | grep "^1")" # get only active ones
 
-        if echo "$vpnc_profiles" | grep -Fq "WireGuard"; then
+        if echo "$_vpnc_profiles" | grep -Fq "WireGuard"; then
             VPN_INTERFACES="$VPN_INTERFACES wgc+"
         fi
 
-        if echo "$vpnc_profiles" | grep -Fq "OpenVPN"; then
+        if echo "$_vpnc_profiles" | grep -Fq "OpenVPN"; then
             VPN_INTERFACES="$VPN_INTERFACES tun1+"
         fi
 
@@ -153,14 +162,14 @@ firewall_rules() {
 
     lockfile lockwait
 
-    for_iptables="iptables"
-    [ "$(nvram get ipv6_service)" != "disabled" ] && for_iptables="$for_iptables ip6tables"
-
     modprobe xt_comment
 
-    _rules_action=
-    _rules_error=
-    for _iptables in $for_iptables; do
+    local _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    local _iptables _rules_action _rules_error _router_ip _input_start _forward_start _vpn_interface
+
+    for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _router_ip="$(nvram get ipv6_rtr_addr)"
         else
@@ -174,12 +183,12 @@ firewall_rules() {
         case "$1" in
             "add")
                 if ! $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then
-                    if iptables_chain add INPUT; then
+                    if iptables_chain "$_iptables" add INPUT; then
                         _input_start="$($_iptables -nvL INPUT --line-numbers | grep -E "WGSI .* all" | tail -1 | awk '{print $1}')"
 
                         if [ -n "$_input_start" ]; then
                             for _vpn_interface in $VPN_INTERFACES; do
-                                iptables_rule add INPUT "$_vpn_interface" "$_input_start" \
+                                iptables_rule "$_iptables" add INPUT "$_vpn_interface" "$_input_start" \
                                     && _rules_action=1 || _rules_error=1
                             done
                         else
@@ -192,12 +201,12 @@ firewall_rules() {
                 fi
 
                 if ! $_iptables -nL "$CHAIN_FORWARD" > /dev/null 2>&1; then
-                    if iptables_chain add FORWARD; then
+                    if iptables_chain "$_iptables" add FORWARD; then
                         _forward_start="$($_iptables -nvL FORWARD --line-numbers | grep -E "WGSF .* all" | tail -1 | awk '{print $1}')"
 
                         if [ -n "$_forward_start" ]; then
                             for _vpn_interface in $VPN_INTERFACES; do
-                                iptables_rule add FORWARD "$_vpn_interface" "$_forward_start" \
+                                iptables_rule "$_iptables" add FORWARD "$_vpn_interface" "$_forward_start" \
                                     && _rules_action=1 || _rules_error=1
                             done
                         else
@@ -210,14 +219,14 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                remove_iptables_rules_by_comment "filter" && _rules_action=-1
+                remove_iptables_rules_by_comment "$_iptables" "filter" && _rules_action=-1
 
                 if $_iptables -nL "$CHAIN_INPUT" > /dev/null 2>&1; then
-                    iptables_chain remove INPUT || _rules_error=1
+                    iptables_chain "$_iptables" remove INPUT || _rules_error=1
                 fi
 
                 if $_iptables -nL "$CHAIN_FORWARD" > /dev/null 2>&1; then
-                    iptables_chain remove FORWARD || _rules_error=1
+                    iptables_chain "$_iptables" remove FORWARD || _rules_error=1
                 fi
             ;;
         esac

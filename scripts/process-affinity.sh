@@ -5,7 +5,9 @@
 #
 
 #jas-update=process-affinity.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -24,7 +26,8 @@ set_affinity() {
     [ -z "$1" ] && { echo "You must specify a process name" >&2; exit 1; }
     [ -z "$2" ] && { echo "You must specify an affinity mask" >&2; exit 1; }
 
-    _process_basename="$(basename "$1")"
+    local _process_basename="$(basename "$1")"
+    local _process_path
 
     if echo "$1" | grep -Fq "/"; then
         _process_path="$(readlink -f "$1")"
@@ -33,6 +36,8 @@ set_affinity() {
     fi
 
     [ -z "$_process_path" ] && { echo "Executable '$_process_path' not found" >&2; return; }
+
+    local _pid _actual_process_path _pid_affinity
 
     for _pid in $(pidof "$_process_basename"); do
         _actual_process_path="$(readlink -f "/proc/$_pid/exe")"
@@ -63,18 +68,22 @@ process_affinity() {
     type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found" error; exit 1; }
     [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: PROCESS_AFFINITIES is not set" error; exit 1; }
 
-    if [ -n "$init_affinity" ]; then
-        init_affinity_minus_one=$((init_affinity - 1))
+    local _init_affinity_minus_one
 
-        if [ "$init_affinity_minus_one" -le 0 ]; then
-            unset init_affinity_minus_one
+    if [ -n "$init_affinity" ]; then
+        _init_affinity_minus_one=$((init_affinity - 1))
+
+        if [ "$_init_affinity_minus_one" -le 0 ]; then
+            unset _init_affinity_minus_one
         else
-            init_affinity_minus_one=$(printf '%x\n' "$init_affinity_minus_one")
+            _init_affinity_minus_one=$(printf '%x\n' "$_init_affinity_minus_one")
         fi
     fi
 
+    local _process _affinity
+
     for _process in $PROCESS_AFFINITIES; do
-        _affinity=$init_affinity_minus_one
+        _affinity=$_init_affinity_minus_one
 
         case $1 in
             "set")

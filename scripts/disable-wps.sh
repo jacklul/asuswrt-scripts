@@ -8,7 +8,9 @@
 #
 
 #jas-update=disable-wps.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -21,9 +23,11 @@ disable_wps() {
     [ "$(nvram get wps_enable)" != "0" ] && nvram set wps_enable=0 && _changed=1
     [ "$(nvram get wps_enable_x)" != "0" ] && nvram set wps_enable_x=0 && _changed=1
 
-    wps_mode_not_disabled="$(nvram show 2>/dev/null | grep "_wps_mode" | grep -v "=disabled" | cut -d '=' -f 1)"
+    local _wps_mode_not_disabled="$(nvram show 2>/dev/null | grep "_wps_mode" | grep -v "=disabled" | cut -d '=' -f 1)"
+    local _variable _value _changed
+
     IFS="$(printf '\n\b')"
-    for _variable in $wps_mode_not_disabled; do
+    for _variable in $_wps_mode_not_disabled; do
         _value="$(nvram get "$_variable")"
 
         if [ -n "$_value" ] && [ "$_value" != "disabled" ]; then

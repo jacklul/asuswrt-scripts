@@ -18,6 +18,8 @@
 #  ./fsck.sh install /tmp/mnt/sda1
 #
 
+#shellcheck shell=ash
+
 tag="$(basename "$0")"
 [ -t 0 ] && interactive=true
 stop_fsck="$(nvram get stop_fsck 2> /dev/null)"
@@ -32,7 +34,7 @@ logger_echo() {
 }
 
 get_base_device() {
-    _device="$1"
+    local _device="$1"
 
     case "$_device" in
         /dev/nvme*n*p[0-9]*)
@@ -78,9 +80,12 @@ trap_cleanup() {
     fi
 }
 
+#shellcheck disable=SC2155
 run_fsck() {
-    _device="$1"
-    _mount="$(cat /proc/mounts | grep "^$_device " | head -n 1)"
+    local _device="$1"
+    local _mount="$(cat /proc/mounts | grep "^$_device " | head -n 1)"
+
+    local _fstype _mountpoint _options
 
     if [ -n "$_mount" ]; then
         # Only check ext* filesystems
@@ -108,7 +113,7 @@ run_fsck() {
 
     if [ -n "$_mount" ]; then
         # Wait for the mountpoint to become idle
-        _timer=30
+        local _timer=30
         while lsof | grep -Fq "$_mountpoint" && [ "$_timer" -gt 0 ] ; do
             _timer=$((_timer-1))
             sleep 1
@@ -123,12 +128,14 @@ run_fsck() {
 
     [ "$restart_nasapps" = true ] && unmounted=true # so we can know to restart nasapps later
 
+    local _output _result _log
+
     # Run e2fsck
     _output="$(e2fsck -p -v "$_device" 2>&1)"
     _result=$?
     _log="/tmp/fsck_$(basename "$_device").log"
 
-    #shellcheck disable=SC3037
+    #shellcheck disable=SC3036
     echo -e "$(type e2fsck 2>&1)\n$_output" > "$_log"
     logger_echo "Filesystem check $([ "$_result" -eq 0 ] && echo "succeeded" || echo "failed") on $_device - see '$_log' for details"
 

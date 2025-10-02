@@ -8,7 +8,9 @@
 #
 
 #jas-update=dynamic-dns.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -42,6 +44,9 @@ check_and_run() {
     [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Inadyn config file '$CONFIG_FILE' not found" error; exit 1; }
     inadyn -f "$CONFIG_FILE" --check-config > /dev/null || { logecho "Error: Inadyn config is not valid" error; exit 1; }
 
+    local _force
+    wan_ip=
+
     if [ "$IPECHO_URL" = "nvram" ]; then
         wan_ip="$(nvram get wan0_ipaddr)"
     elif [ "$IPECHO_URL" = "nvram2" ]; then
@@ -49,10 +54,10 @@ check_and_run() {
     elif [ -n "$IPECHO_URL" ]; then
         wan_ip="$(fetch "$IPECHO_URL" "" "$IPECHO_TIMEOUT")"
     else
-        force=true
+        _force=true
     fi
 
-    if [ -n "$force" ] || { [ -n "$wan_ip" ] && [ "$wan_ip" != "$last_wan_ip" ] ; }; then
+    if [ -n "$_force" ] || { [ -n "$wan_ip" ] && [ "$wan_ip" != "$last_wan_ip" ] ; }; then
         run_ddns_update
     fi
 }

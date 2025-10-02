@@ -9,7 +9,9 @@
 #
 
 #jas-update=entware.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -44,10 +46,10 @@ is_entware_mounted() {
 }
 
 retry_command() {
-    _command="$1"
-    _retries="$2"
-    _count=1
+    local _command="$1"
+    local _retries="$2"
     [ -z "$_retries" ] && _retries=3
+    local _count=1
 
     while [ "$_count" -le "$_retries" ]; do
         if [ "$_count" -gt 1 ]; then
@@ -67,7 +69,7 @@ retry_command() {
 }
 
 unmount_opt() {
-    _timer=60
+    local _timer=60
     while [ "$_timer" -gt 0 ] ; do
         umount /opt 2> /dev/null && return 0
         _timer=$((_timer-1))
@@ -81,10 +83,10 @@ init_opt() {
     [ -z "$1" ] && { echo "Target path not provided" >&2; exit 1; }
 
     # Wait for app_init_run.sh to finish before messing with /opt mount
-    timeout=60
-    while /bin/ps w | grep -q "[a]pp_init_run.sh" && [ "$timeout" -ge 0 ]; do
+    local _timeout=60
+    while /bin/ps w | grep -q "[a]pp_init_run.sh" && [ "$_timeout" -ge 0 ]; do
         sleep 1
-        timeout=$((timeout-1))
+        _timeout=$((_timeout-1))
     done
 
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
@@ -97,7 +99,7 @@ init_opt() {
 
         if mount --bind "$1" /opt; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
-                _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
+                local _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
             fi
 
@@ -131,6 +133,7 @@ backup_initd_scripts() {
     sed_helper replace "/opt/etc/init.d/" "/tmp/$script_name-init.d-backup/" "/tmp/$script_name-init.d-backup/rc.unslung"
     sed_helper replace "/opt/bin/find" "/tmp/$script_name-init.d-backup/find" "/tmp/$script_name-init.d-backup/rc.unslung"
 
+    local _file
     for _file in /opt/etc/init.d/*; do
         [ ! -x "$_file" ] && continue
 
@@ -348,15 +351,15 @@ entware_init() {
         if [ ! -f /opt/etc/init.d/rc.unslung ]; then
             echo "Will attempt to install for $WAIT_LIMIT minutes with 60 second intervals."
 
-            timeout="$WAIT_LIMIT"
-            while [ "$timeout" -ge 0 ]; do
-                [ "$timeout" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..." >&2; sleep 60; }
+            local _timeout="$WAIT_LIMIT"
+            while [ "$_timeout" -ge 0 ]; do
+                [ "$_timeout" -lt "$WAIT_LIMIT" ] && { echo "Unsuccessful installation, sleeping for 60 seconds..." >&2; sleep 60; }
                 [ -f /opt/etc/init.d/rc.unslung ] && break # already mounted?
                 entware_in_ram && break # successfull?
-                timeout=$((timeout-1))
+                _timeout=$((_timeout-1))
             done
 
-            [ "$timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)" error
+            [ "$_timeout" -le 0 ] && [ "$WAIT_LIMIT" != 0 ] && logecho "Failed to install Entware (tried for $WAIT_LIMIT minutes)" error
         fi
 
         lockfile unlock inram
@@ -373,9 +376,9 @@ entware_init() {
             # this currently has been disabled due to some caveats...
             #[ -z "$IN_RAM" ] && backup_initd_scripts
 
-            target_path="$(mount | grep -F "$last_entware_device" | head -n 1 | awk '{print $3}')"
+            local _target_path="$(mount | grep -F "$last_entware_device" | head -n 1 | awk '{print $3}')"
 
-            if [ -z "$target_path" ]; then # device/mount is gone
+            if [ -z "$_target_path" ]; then # device/mount is gone
                 entware stop
             fi
         fi

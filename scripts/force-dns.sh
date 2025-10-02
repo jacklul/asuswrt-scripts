@@ -11,7 +11,9 @@
 #
 
 #jas-update=force-dns.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -78,8 +80,7 @@ fi
 
 # These "iptables_" functions are based on code from YazFi (https://github.com/jackyaz/YazFi) then modified using code from dnsfiler.c
 iptables_chains() {
-    _has_error=
-    modprobe xt_comment
+    local _has_error _iptables _forward_start _prerouting_start _input_start _target_interface _router_ip
 
     for _iptables in $for_iptables; do
         case "$1" in
@@ -162,7 +163,7 @@ iptables_chains() {
                 fi
             ;;
             "remove")
-                remove_iptables_rules_by_comment "filter nat"
+                remove_iptables_rules_by_comment "$_iptables" "filter nat"
 
                 if $_iptables -nL "$CHAIN_DOT" > /dev/null 2>&1; then
                     $_iptables -F "$CHAIN_DOT"
@@ -187,9 +188,10 @@ iptables_chains() {
 }
 
 iptables_rules() {
-    _dns_server="$2"
-    _dns_server6="$3"
-    _has_error=
+    local _dns_server="$2"
+    local _dns_server6="$3"
+
+    local _has_error _iptables _action _block_router_dns _set_dns_server _permit_ip _router_ip
 
     case "$1" in
         "add")
@@ -227,6 +229,7 @@ iptables_rules() {
         fi
 
         if [ -n "$PERMIT_MAC" ]; then
+            local _mac
             for _mac in $PERMIT_MAC; do
                 _mac="$(echo "$_mac" | awk '{$1=$1};1')"
 
@@ -241,6 +244,7 @@ iptables_rules() {
 
         if [ -n "$_permit_ip" ]; then
             if [ "${_permit_ip#*"-"}" != "$_permit_ip" ]; then # IP ranges found
+                local _ip
                 for _ip in $_permit_ip; do
                     _ip="$(echo "$_ip" | awk '{$1=$1};1')"
 
@@ -304,11 +308,13 @@ firewall_rules() {
 
     lockfile lockwait
 
+    modprobe xt_comment
+
     for_iptables="iptables"
     [ "$ipv6_service" != "disabled" ] && for_iptables="$for_iptables ip6tables"
 
-    _rules_action=
-    _rules_error=
+    local _rules_action _rules_error _dns_server _fallback_dns_server
+
     case "$1" in
         "add")
             if ! rules_exist "$DNS_SERVER"; then

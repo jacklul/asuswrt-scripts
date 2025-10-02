@@ -11,7 +11,9 @@
 #
 
 #jas-update=process-killer.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -23,34 +25,35 @@ load_script_config
 process_killer() {
     [ -z "$PROCESSES_TO_KILL" ] && { logecho "Error: PROCESSES_TO_KILL is not set" error; exit 1; }
 
-    for process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
-        filepath="$process"
+    local _process _filepath _filewhich _filename _fileext _modulename
 
-        if [ ! -f "$filepath" ]; then
-            tmp=$(which "$process")
+    for _process in $(echo "$PROCESSES_TO_KILL" | grep -o -e "[^ ]*"); do
+        _filepath="$_process"
 
-            [ -n "$tmp" ] && filepath=$tmp
+        if [ ! -f "$_filepath" ]; then
+            _filewhich=$(which "$_process")
+            [ -n "$_filewhich" ] && _filepath=$_filewhich
         fi
 
-        [ -f "$filepath" ] && mount | grep -F "$filepath" > /dev/null && continue
+        [ -f "$_filepath" ] && mount | grep -F "$_filepath" > /dev/null && continue
 
-        filename="$(basename "$filepath")"
-        fileext="${filename##*.}"
+        _filename="$(basename "$_filepath")"
+        _fileext="${_filename##*.}"
 
-        if [ "$fileext" = "ko" ]; then
-            modulename="${filename%.*}"
-            filepath="/lib/modules/$(uname -r)/$(modprobe -l "$modulename")"
+        if [ "$_fileext" = "ko" ]; then
+            _modulename="${_filename%.*}"
+            _filepath="/lib/modules/$(uname -r)/$(modprobe -l "$_modulename")"
 
-            if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
-                lsmod | grep -Fq "$modulename" && modprobe -r "$modulename" && logecho "Blocked kernel module: $process" alert && usleep 250000
-                mount -o bind /dev/null "$filepath"
+            if [ -f "$_filepath" ] && [ ! -h "$_filepath" ]; then
+                lsmod | grep -Fq "$_modulename" && modprobe -r "$_modulename" && logecho "Blocked kernel module: $_process" alert && usleep 250000
+                mount -o bind /dev/null "$_filepath"
             fi
         else
-            [ -n "$(pidof "$filename")" ] && killall "$filename" && logecho "Killed process: $process" alert
+            [ -n "$(pidof "$_filename")" ] && killall "$_filename" && logecho "Killed process: $_process" alert
 
-            if [ -f "$filepath" ] && [ ! -h "$filepath" ]; then
+            if [ -f "$_filepath" ] && [ ! -h "$_filepath" ]; then
                 usleep 250000
-                mount -o bind /dev/null "$filepath"
+                mount -o bind /dev/null "$_filepath"
             fi
         fi
     done

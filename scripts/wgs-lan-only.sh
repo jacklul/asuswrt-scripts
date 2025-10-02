@@ -5,7 +5,9 @@
 #
 
 #jas-update=wgs-lan-only.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -31,13 +33,13 @@ firewall_rules() {
 
     lockfile lockwait
 
-    _for_iptables="iptables"
-    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
-
     modprobe xt_comment
 
-    _rules_action=
-    _rules_error=
+    local _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    local _iptables _rules_action _rules_error _wg_interface
+
     for _iptables in $_for_iptables; do
         case "$1" in
             "add")
@@ -53,7 +55,7 @@ firewall_rules() {
                 done
             ;;
             "remove")
-                remove_iptables_rules_by_comment "filter" && _rules_action=-1
+                 "$_iptables" "filter" && _rules_action=-1
             ;;
         esac
     done

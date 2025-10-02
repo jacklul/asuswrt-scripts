@@ -12,7 +12,9 @@
 #
 
 #jas-update=service-event.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -74,8 +76,8 @@ custom_checks() {
 }
 
 trigger_event() {
-    _action="$1"
-    _target="$2"
+    local _action="$1"
+    local _target="$2"
 
     if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
         lockfile check "event_${_action}_${_target}" && return # already processing this event
@@ -97,6 +99,8 @@ service_monitor() {
 
     logecho "Started service event monitoring..." alert
 
+    local _last_line _initialized 
+
     if [ -f "$state_file" ]; then
         _last_line="$(cat "$state_file")"
         _initialized=true
@@ -105,6 +109,8 @@ service_monitor() {
         _last_line="$((_last_line+1))"
         custom_checks || true
     fi
+
+    local _total_lines _new_lines _matching_lines  _last_line_old _new_line _line_number _events _oldIFS _event _event_action _event_target _event_triggered
 
     while true; do
         _total_lines="$(wc -l < "$SYSLOG_FILE")"
@@ -174,6 +180,8 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
+    local _tmp_script_path
+
     # $1 = type, $2 = event, $3 = target, $4 = extra
     case "$1" in
         "firewall")
@@ -203,7 +211,7 @@ integrated_event() {
             _tmp_script_path="$(resolve_script_basename "modify-features.sh")"
             if [ -n "$_tmp_script_path" ] && [ -x "$_tmp_script_path" ]; then
                 if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
-                    timer=30; while { # wait till rc_support is modified
+                    local timer=30; while { # wait till rc_support is modified
                         sh "$_tmp_script_path" check
                     } && [ "$timer" -ge 0 ]; do
                         timer=$((timer-1))

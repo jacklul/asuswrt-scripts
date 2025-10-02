@@ -9,7 +9,9 @@
 #
 
 #jas-update=vpn-monitor.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -56,8 +58,8 @@ restart_counter() {
         return
     fi
 
-    _state_file="$state_file-$2.tmp"
-    _counter=0
+    local _state_file="$state_file-$2.tmp"
+    local _counter=0
 
     if [ -f "$_state_file" ]; then
         _counter="$(cat "$_state_file")"
@@ -92,9 +94,7 @@ restart_counter() {
 }
 
 restart_connection_by_ifname() {
-    _type=
-    _reset=
-    _is_active=
+    local _type _id _unit _file _nvram_addr _service
 
     if [ "$(echo "$1" | cut -c 1-3)" = "wgc" ]; then # WireGuard
         _type="WireGuard"
@@ -110,28 +110,35 @@ restart_connection_by_ifname() {
         _file="$script_dir/$script_name-ovpn${_id}.list"
         _nvram_addr="vpn_client${_id}_addr"
         _service="vpnclient${_id}"
+    else
+        echo "Invalid interface: $1" >&2
+        return 1
     fi
 
+    local _reset=
     [ "$2" = "reset" ] && _reset=true
 
+    local _is_active=
     if interface_exists "$1"; then
         _is_active=true
     fi
 
     if [ -f "$_file" ]; then
-        _total="$(cat "$_file" | grep -cv '^\(#\|\s*$\)')"
+        local _total="$(cat "$_file" | grep -cv '^\(#\|\s*$\)')"
 
         if [ -z "$_total" ] || [ "$_total" -eq 0 ]; then
             return 1
         fi
 
+        local _next
+
         if [ -z "$_reset" ]; then
             if [ "$ROTATE_RANDOM" = true ]; then
-                _rand=$(awk 'BEGIN {srand(); print int(32768 * rand())}')
+                local _rand=$(awk 'BEGIN {srand(); print int(32768 * rand())}')
                 _next=$((_rand%_total+1))
             else
-                _current="$(nvram get "$_nvram_addr")"
-                _last=$(grep -v '^\(#\|\s*$\)' "$_file" | grep -n "$_current" | head -n 1 | cut -d: -f1)
+                local _current="$(nvram get "$_nvram_addr")"
+                local _last=$(grep -v '^\(#\|\s*$\)' "$_file" | grep -n "$_current" | head -n 1 | cut -d: -f1)
                 [ -z "$_last" ] && _last=0
                 _next=$((_last+1))
                 [ "$_next" -gt "$_total" ] && _next=1
@@ -140,7 +147,8 @@ restart_connection_by_ifname() {
             _next=1
         fi
 
-        _line="$(grep -v '^\(#\|\s*$\)' "$_file" | sed -ne "${_next}p" -e 's/\r\n\|\n//g')"
+        local _line="$(grep -v '^\(#\|\s*$\)' "$_file" | sed -ne "${_next}p" -e 's/\r\n\|\n//g')"
+        local _new_addr
 
         if [ "$_type" = "WireGuard" ]; then
             if [ "$(echo "$_line" | grep -o ',' | wc -l)" -lt 4 ]; then
@@ -148,15 +156,15 @@ restart_connection_by_ifname() {
                 return 1
             fi
 
-            _cur_ep_addr="$(nvram get "wgc${_id}_ep_addr")"
+            local _cur_ep_addr="$(nvram get "wgc${_id}_ep_addr")"
 
             # This is NOT compatible with lists created for VPNMON
-            _new_ep_addr="$(echo "$_line" | cut -d ',' -f 1)"
-            _new_ep_port="$(echo "$_line" | cut -d ',' -f 2)"
-            _new_addr="$(echo "$_line" | cut -d ',' -f 3)"
-            _new_priv="$(echo "$_line" | cut -d ',' -f 4)"
-            _new_ppub="$(echo "$_line" | cut -d ',' -f 5)"
-            _new_psk="$(echo "$_line" | cut -d ',' -f 6)"
+            local _new_ep_addr="$(echo "$_line" | cut -d ',' -f 1)"
+            local _new_ep_port="$(echo "$_line" | cut -d ',' -f 2)"
+            local _new_addr="$(echo "$_line" | cut -d ',' -f 3)"
+            local _new_priv="$(echo "$_line" | cut -d ',' -f 4)"
+            local _new_ppub="$(echo "$_line" | cut -d ',' -f 5)"
+            local _new_psk="$(echo "$_line" | cut -d ',' -f 6)"
 
             [ "$_cur_ep_addr" = "$_new_ep_addr" ] && return 0 # no change
 
@@ -170,11 +178,11 @@ restart_connection_by_ifname() {
 
             _new_addr="$_new_ep_addr:$_new_ep_port"
         elif [ "$_type" = "OpenVPN" ]; then
-            _cur_addr="$(nvram get "vpn_client${_id}_addr")"
+            local _cur_addr="$(nvram get "vpn_client${_id}_addr")"
 
             # This is compatible with lists created for VPNMON
-            _new_addr="$(echo "$_line" | cut -d ',' -f 1)"
-            _new_port="$(echo "$_line" | cut -d ',' -f 2)"
+            local _new_addr="$(echo "$_line" | cut -d ',' -f 1)"
+            local _new_port="$(echo "$_line" | cut -d ',' -f 2)"
 
             [ "$_cur_addr" = "$_new_addr" ] && return 0 # no change
             [ "$_new_addr" = "$_new_port" ] && _new_port= # if port is same as address it means port was not provided
@@ -213,15 +221,16 @@ restart_connection_by_ifname() {
 }
 
 check_connection_by_ifname() {
-    _retries="$TEST_RETRIES"
-    _addr=
+    local _retries="$TEST_RETRIES"
+    local _addr
 
     if [ -n "$2" ]; then
         _addr="$(ip addr show "$1" | awk '/inet / {print $2}')"
         [ -n "$_addr" ] && ip rule add from "$_addr" lookup "$2" prio 55 > /dev/null 2>&1
     fi
 
-    _success=
+    local _success _ping_success _url_success _ping
+
     while [ "$_retries" -gt 0 ]; do
         _ping_success=
         _url_success=
@@ -291,9 +300,11 @@ check_connections() {
     { [ -z "$TEST_PING" ] && [ -z "$TEST_URL" ] ; } && { logecho "Error: TEST_PING/TEST_URL is not set" error; exit 1; }
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; return 1; }
 
-    _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3, $7}' | grep "^1" | cut -d ' ' -f 2-)"
+    local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3, $7}' | grep "^1" | cut -d ' ' -f 2-)"
 
-    _oldIFS=$IFS
+    local _entry _type _id _idx _unit _iface _counter
+
+    local _oldIFS=$IFS
     IFS="$(printf '\n\b')"
     for _entry in $_vpnc_profiles; do
         _type="$(echo "$_entry" | cut -d ' ' -f 1)"
@@ -317,7 +328,7 @@ check_connections() {
         fi
 
         if interface_exists "$_iface" && ! check_connection_by_ifname "$_iface" "$_idx"; then
-            echo "$_unit connection is DOWN ($_counter)"
+            echo "$_unit connection is DOWN"
 
             restart_connection_by_ifname "$_iface"
             restart_counter increment "$_unit"
@@ -334,6 +345,8 @@ manual_restart() {
     [ -z "$1" ] && { echo "No unit provided" >&2; exit 1; }
     [ "$2" = "reset" ] && echo "Will restart using first server on the list"
     reason="manual"
+
+    local _id _if
 
     if [ "$(echo "$1" | cut -c 1-2)" = "wg" ]; then
         _id=$(echo "$1" | cut -c 3-)

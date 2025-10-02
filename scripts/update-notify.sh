@@ -8,7 +8,9 @@
 #
 
 #jas-update=update-notify.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -55,10 +57,10 @@ EOT
 }
 
 send_telegram_message() {
-    _linebreak=$(printf '\n\r')
-    _message="<b>New router firmware notification @ $router_name</b>${_linebreak}${_linebreak}New firmware version <b>$1</b> is now available for your router at $router_ip."
+    local _linebreak=$(printf '\n\r')
+    local _message="<b>New router firmware notification @ $router_name</b>${_linebreak}${_linebreak}New firmware version <b>$1</b> is now available for your router at $router_ip."
 
-    _result=$($curl_binary -fsS --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=$_message" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
+    local _result=$($curl_binary -fsS --data chat_id="$TELEGRAM_CHAT_ID" --data "protect_content=true" --data "disable_web_page_preview=true" --data "parse_mode=HTML" --data "text=$_message" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage")
 
     if ! echo "$_result" | grep -Fq '"ok":true'; then
         if echo "$_result" | grep -Fq '"ok":'; then
@@ -114,24 +116,24 @@ send_notification() {
 check_and_notify() {
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; exit 1; }
 
-    buildno=$(nvram get buildno)
-    extendno=$(nvram get extendno)
-    web_state_info=$(nvram get webs_state_info)
-    web_buildno=$(echo "$web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
-    #web_extendno_ver=$(echo "$web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
+    local _buildno=$(nvram get buildno)
+    local _extendno=$(nvram get extendno)
+    local _web_state_info=$(nvram get webs_state_info)
+    local _web_buildno=$(echo "$_web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
+    #local _web_extendno_ver=$(echo "$_web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
 
-    if [ -z "$buildno" ] || [ -z "$extendno" ] || [ -z "$web_state_info" ] || [ "$buildno" -gt "$web_buildno" ]; then
+    if [ -z "$_buildno" ] || [ -z "$_extendno" ] || [ -z "$_web_state_info" ] || [ "$_buildno" -gt "$_web_buildno" ]; then
         echo "Could not gather valid values from NVRAM" >&2
         exit 1
     fi
 
-    new_version="$(echo "$web_state_info" | awk -F '_' '{print $2 "_" $3}')"
-    current_version="${buildno}_${extendno}"
+    local _new_version="$(echo "$_web_state_info" | awk -F '_' '{print $2 "_" $3}')"
+    local _current_version="${_buildno}_${_extendno}"
 
-    if [ -n "$new_version" ] && [ "$current_version" != "$new_version" ] && { [ ! -f "$state_file" ] || [ "$(cat "$state_file")" != "$new_version" ] ; }; then
-        send_notification "$new_version"
+    if [ -n "$_new_version" ] && [ "$_current_version" != "$_new_version" ] && { [ ! -f "$state_file" ] || [ "$(cat "$state_file")" != "$_new_version" ] ; }; then
+        send_notification "$_new_version"
 
-        echo "$new_version" > "$state_file"
+        echo "$_new_version" > "$state_file"
     fi
 }
 

@@ -5,6 +5,7 @@
 #
 
 #jas-update=common.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
 
 # Make sure this file is not included multiple times
@@ -109,12 +110,12 @@ load_script_config() {
 }
 
 trapexit() {
-    _code=$?
+    local _code=$?
     type script_trapexit > /dev/null 2>&1 && script_trapexit
     [ -n "$lockfd" ] && lockfile unlock
 
     if [ -n "$common_log_file" ] && [ -f "$common_log_file" ]; then
-        _new_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
+        local _new_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
         [ "$_new_lines" != "$common_log_lines" ] && echo "----- Output closed at $(date) -----" >> "$common_log_file"
     fi
 
@@ -123,8 +124,8 @@ trapexit() {
 
 logecho() {
     [ -z "$1" ] && return 1
-    _logecho_alert=
-    _logecho_error=
+
+    local _logecho_alert _logecho_error
 
     # send to logger if not running interactively
     [ -z "$IS_INTERACTIVE" ] && _logecho_alert=true
@@ -158,7 +159,7 @@ is_merlin_firmware() {
 
 is_started_by_system() {
     [ -n "$JAS_BOOT" ] && return 0
-    _ppid=$PPID
+    local _ppid=$PPID
     [ "$_ppid" -eq 1 ] && return 0
 
     while true; do
@@ -175,9 +176,12 @@ is_started_by_system() {
 
 lockfile() {
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
-    _lockfile="/var/lock/jas-$script_name.lock"
+    local _lockfile="/var/lock/jas-$script_name.lock"
     [ -n "$2" ] && _lockfile="/var/lock/jas-$script_name-$2.lock"
     [ -f "$_lockfile" ] && lockpid="$(cat "$_lockfile")"
+
+    local _min_fd=100
+    local _fd
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
@@ -186,25 +190,28 @@ lockfile() {
                 exit 1
             fi
 
-            for _fd_test in "/proc/$$/fd"/*; do
-                if [ "$(readlink -f "$_fd_test")" = "$_lockfile" ]; then
-                    logecho "File descriptor ($(basename "$_fd_test")) is already open for the same lockfile ($_lockfile)" error
+            for _fd in "/proc/$$/fd"/*; do
+                _fd="$(basename "$_fd")"
+                [ "$_fd" -lt "$_min_fd" ] && continue
+
+                if [ "$(readlink -f "/proc/$$/fd/$_fd")" = "$_lockfile" ]; then
+                    logecho "File descriptor ($(basename "$_fd")) is already open for the same lockfile ($_lockfile)" error
                     exit 1
                 fi
             done
 
+            # Remove stale lockfile if the process does not exist anymore
             if [ -n "$lockpid" ] && [ ! -f "/proc/$lockpid/stat" ]; then
-                echo "Removing stale lockfile: $_lockfile" >&2
                 rm -f "$_lockfile"
                 lockpid=
             fi
 
-            _fd=$(lockfile_fd)
+            _fd=$(lockfile_fd "$_min_fd")
             eval exec "$_fd>$_lockfile"
 
             case "$1" in
                 "lockwait")
-                    _lockwait=60
+                    local _lockwait=60
                     while ! flock -nx "$_fd"; do
                         eval exec "$_fd>&-"
                         _lockwait=$((_lockwait-1))
@@ -215,7 +222,7 @@ lockfile() {
                         fi
 
                         sleep 1
-                        _fd=$(lockfile_fd)
+                        _fd=$(lockfile_fd "$_min_fd")
                         eval exec "$_fd>$_lockfile"
                     done
                 ;;
@@ -230,13 +237,16 @@ lockfile() {
             echo $$ > "$_lockfile"
             chmod 644 "$_lockfile"
             lockfd="$_fd"
+            #lockfile="$_lockfile"
         ;;
         "unlock")
             [ -z "$lockfd" ] && return 1
+            _lockfile="$(readlink -f "/proc/$$/fd/$lockfd")"
             flock -u "$lockfd"
             eval exec "$lockfd>&-"
             lockfd=
             rm -f "$_lockfile"
+            return 0
         ;;
         "check")
             [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ] && return 0
@@ -255,18 +265,21 @@ lockfile() {
 }
 
 lockfile_fd() {
-    _lfd_min=100
-    _lfd_max=200
+    local _min="$1"
+    [ -z "$_min" ] && _min=100
+    local _max=$((_min+100))
 
-    while [ -f "/proc/$$/fd/$_lfd_min" ]; do
-        _lfd_min=$((_lfd_min+1))
-        [ "$_lfd_min" -gt "$_lfd_max" ] && { logecho "Error: No free file descriptors available" error; exit 1; }
+    while [ -f "/proc/$$/fd/$_min" ]; do
+        _min=$((_min+1))
+        [ "$_min" -gt "$_max" ] && { logecho "Error: No free file descriptors available" error; exit 1; }
     done
 
-    echo "$_lfd_min"
+    echo "$_min"
 }
 
 crontab_entry() {
+    local _action _name _data _no_cron_queue _cron_queue
+
     _action="$1"
     _name="$2"
 
@@ -330,9 +343,9 @@ sed_quote() {
 }
 
 sed_helper() {
-    _pattern=$(sed_quote "$2")
-    _content=$(sed_quote "$3")
-    _file="$4"
+    local _pattern=$(sed_quote "$2")
+    local _content=$(sed_quote "$3")
+    local _file="$4"
 
     case "$1" in
         "replace")
@@ -359,6 +372,8 @@ sed_helper() {
 }
 
 get_curl_binary() {
+    local _curl_binary
+
     if [ -f /opt/bin/curl ]; then
         _curl_binary="/opt/bin/curl" # prefer Entware's curl
     elif [ -f /usr/bin/curl ]; then
@@ -375,6 +390,7 @@ get_curl_binary() {
 #shellcheck disable=SC2086
 fetch() {
     [ -z "$1" ] && { echo "No URL specified"; return 1; }
+    local _url _output _timeout
 
     _url="$1"
     _output="$2"
@@ -413,8 +429,8 @@ fetch() {
 get_script_basename() {
     { [ -z "$1" ] || [ ! -f "$1" ] ; } && return 1
 
-    _basename="$(basename "$1")"
-    _new_basename="$(grep -E '^#(\s+)?jas-update=' "$1" | sed 's/.*jas-update=//' | sed 's/[[:space:]]*$//')"
+    local _basename="$(basename "$1")"
+    local _new_basename="$(grep -E '^#(\s+)?jas-update=' "$1" | sed 's/.*jas-update=//' | sed 's/[[:space:]]*$//')"
 
     if [ -n "$_new_basename" ]; then
         echo "$_new_basename"
@@ -424,7 +440,7 @@ get_script_basename() {
 }
 
 resolve_script_basename() {
-    _name="$(basename "$1")"
+    local _name="$(basename "$1")"
     [ -z "$_name" ] && return 1
 
     if [ -f "$SCRIPTS_DIR/$_name" ]; then
@@ -436,8 +452,12 @@ resolve_script_basename() {
         return 1
     fi
 
+    local _entry
+
     # Read from cache if available
     if [ -n "$script_basename_cache" ] && echo "$script_basename_cache" | grep -Fq " $_name="; then
+        local _path
+
         for _entry in $script_basename_cache; do
             _path="$(echo "$_entry" | cut -d '=' -f 2)"
             _entry="$(echo "$_entry" | cut -d '=' -f 1)"
@@ -450,6 +470,8 @@ resolve_script_basename() {
     fi
 
     if [ -z "$script_basename_cache" ]; then # generate cache only once
+        local _entry_name _found_entry
+
         # In case user renamed the script, we need to rescan all scripts and read jas-update tags
         for _entry in "$SCRIPTS_DIR"/*.sh; do
             _entry="$(readlink -f "$_entry")"
@@ -472,7 +494,7 @@ resolve_script_basename() {
 }
 
 execute_script_basename() {
-    _script="$(resolve_script_basename "$1")"
+    local _script="$(resolve_script_basename "$1")"
 
     if [ -n "$_script" ] && [ -x "$_script" ]; then
         [ "$2" = "check" ] && return 0
@@ -486,7 +508,7 @@ execute_script_basename() {
 
 interface_exists() {
     [ -z "$1" ] && return 1
-    _iface="$1"
+    local _iface="$1"
 
     if [ "$(printf "%s" "$_iface" | tail -c 1)" = "*" ]; then
         _iface="${_iface%?}"
@@ -502,12 +524,12 @@ interface_exists() {
 }
 
 get_wan_interface() {
-    _id="$1"
+    local _id="$1"
     [ -z "$_id" ] && _id=0
 
-    _interface="$(nvram get "wan${_id}_ifname")"
+    local _interface="$(nvram get "wan${_id}_ifname")"
+    local _test="$(nvram get "wan${_id}_gw_ifname")"
 
-    _test="$(nvram get "wan${_id}_gw_ifname")"
     if [ "$_test" != "$_interface" ]; then
         _interface="$_test"
     fi
@@ -517,9 +539,10 @@ get_wan_interface() {
 
 mask_to_cidr() {
     [ -z "$1" ] && return 1
-    _mask="$1"
-    _cidr=0
-    _oldIFS=$IFS
+    local _mask="$1"
+    local _cidr=0
+
+    local _oldIFS=$IFS
     IFS='.'
     for _octet in $_mask; do
         case $_octet in
@@ -536,25 +559,29 @@ mask_to_cidr() {
         esac
     done
     IFS=$_oldIFS
+
     echo "$_cidr"
 }
 
 #shellcheck disable=SC2086
 calculate_network() {
     { [ -z "$1" ] || [ -z "$2" ] ; } && return 1
-    _ip="$1"
-    _mask="$2"
-    _oldIFS=$IFS
+    local _ip="$1"
+    local _mask="$2"
+
+    local _oldIFS=$IFS
     IFS='.'
     set -- $_ip
-    _ip1=$1; _ip2=$2; _ip3=$3; _ip4=$4
+    local _ip1=$1; _ip2=$2; _ip3=$3; _ip4=$4
     set -- $_mask
-    _mask1=$1; _mask2=$2; _mask3=$3; _mask4=$4
+    local _mask1=$1; _mask2=$2; _mask3=$3; _mask4=$4
     IFS=$_oldIFS
-    _net1=$((_ip1 & _mask1))
-    _net2=$((_ip2 & _mask2))
-    _net3=$((_ip3 & _mask3))
-    _net4=$((_ip4 & _mask4))
+
+    local _net1=$((_ip1 & _mask1))
+    local _net2=$((_ip2 & _mask2))
+    local _net3=$((_ip3 & _mask3))
+    local _net4=$((_ip4 & _mask4))
+
     echo "$_net1.$_net2.$_net3.$_net4"
 }
 
@@ -564,14 +591,15 @@ get_vpnc_clientlist() {
 }
 
 remove_iptables_rules_by_comment() {
-    # inherited: _iptables
-    _remove_rules_tables="filter nat mangle"
-    [ -n "$1" ] && _remove_rules_tables="$1"
-    _remove_rules_comment="jas-$script_name"
-    [ -n "$2" ] && _remove_rules_comment="$2"
-    [ -z "$_iptables" ] && _iptables="iptables"
-    [ -n "$3" ] && _iptables="$3"
-    _remove_rules_success=
+    local _iptables="iptables"
+    [ -n "$1" ] && _iptables="$1"
+    local _remove_rules_tables="filter nat mangle"
+    [ -n "$2" ] && _remove_rules_tables="$2"
+    local _remove_rules_comment="jas-$script_name"
+    [ -n "$3" ] && _remove_rules_comment="$3"
+
+    local _remove_rules_table _remove_rules _cmd
+    local _remove_rules_success=
 
     # Based on https://github.com/MartineauUK/Unbound-Asuswrt-Merlin/blob/dev/unbound_DNS_via_OVPN.sh
     for _remove_rules_table in $_remove_rules_tables; do

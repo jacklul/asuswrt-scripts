@@ -9,7 +9,9 @@
 #
 
 #jas-update=usb-network.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -27,7 +29,7 @@ require_bridge_interface() {
 is_interface_up() {
     [ ! -d "/sys/class/net/$1" ] && return 1
 
-    _operstate="$(cat "/sys/class/net/$1/operstate")"
+    local _operstate="$(cat "/sys/class/net/$1/operstate")"
 
     case "$_operstate" in
         "up")
@@ -80,8 +82,9 @@ setup_inteface() {
 }
 
 setup_interfaces() {
-    for interface in /sys/class/net/usb*; do
-        [ -d "$interface" ] && setup_inteface "$1" "$(basename "$interface")"
+    local _interface
+    for _interface in /sys/class/net/usb*; do
+        [ -d "$_interface" ] && setup_inteface "$1" "$(basename "$_interface")"
     done
 }
 

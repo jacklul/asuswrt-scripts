@@ -5,7 +5,9 @@
 #
 
 #jas-update=vpn-samba.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -27,37 +29,37 @@ readonly CHAIN="jas-${script_name}"
 firewall_rules() {
     if { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; }; then
         if [ "$(nvram get wgs_enable)" = "1" ]; then
-            wgs_addr="$(nvram get wgs_addr)" # WireGuard - 10.6.0.1/32
+            local _wgs_addr="$(nvram get wgs_addr)" # WireGuard - 10.6.0.1/32
 
-            if [ -n "$wgs_addr" ]; then
-                VPN_NETWORKS="$VPN_NETWORKS $(echo "$wgs_addr" | cut -d '.' -f -3).0/24"
+            if [ -n "$_wgs_addr" ]; then
+                VPN_NETWORKS="$VPN_NETWORKS $(echo "$_wgs_addr" | cut -d '.' -f -3).0/24"
             fi
         fi
 
         if [ "$(nvram get vpn_server_state)" = "2" ]; then
-            vpn_server_sn="$(nvram get vpn_server_sn)" # OpenVPN - 10.8.0.0
-            vpn_server_nm="$(nvram get vpn_server_nm)" # OpenVPN - 255.255.255.0
+            local _vpn_server_sn="$(nvram get vpn_server_sn)" # OpenVPN - 10.8.0.0
+            local _vpn_server_nm="$(nvram get vpn_server_nm)" # OpenVPN - 255.255.255.0
 
-            if [ -n "$vpn_server_sn" ] && [ -n "$vpn_server_nm" ]; then
-                _openvpn_network="$vpn_server_sn/$(mask_to_cidr "$vpn_server_nm")"
+            if [ -n "$_vpn_server_sn" ] && [ -n "$_vpn_server_nm" ]; then
+                local _openvpn_network="$_vpn_server_sn/$(mask_to_cidr "$_vpn_server_nm")"
                 [ -n "$_openvpn_network" ] && VPN_NETWORKS="$VPN_NETWORKS $_openvpn_network"
             fi
         fi
 
         if [ "$(nvram get ipsec_server_enable)" = "1" ]; then
-            ipsec_profile=s"$(nvram get ipsec_profile_1)" # IPSec - after 14th '>' is 10.10.10
+            local _ipsec_profile=s"$(nvram get ipsec_profile_1)" # IPSec - after 14th '>' is 10.10.10
 
-            if [ -n "$ipsec_profile" ]; then
-                VPN_NETWORKS="$VPN_NETWORKS $(echo "$ipsec_profile" | cut -d '>' -f 15).0/24"
+            if [ -n "$_ipsec_profile" ]; then
+                VPN_NETWORKS="$VPN_NETWORKS $(echo "$_ipsec_profile" | cut -d '>' -f 15).0/24"
             fi
         fi
 
         # PPTP has build-in toggle for Samba access, so this is not needed
         #if [ "$(nvram get pptpd_enable)" = "1" ]; then
-        #    pptpd_clients="$(nvram get pptpd_clients)"
+        #    local _pptpd_clients="$(nvram get pptpd_clients)"
         #
-        #    if [ -n "$pptpd_clients" ]; then
-        #        VPN_NETWORKS="$VPN_NETWORKS $(echo "$pptpd_clients" | cut -d '.' -f -3).0/24"
+        #    if [ -n "$_pptpd_clients" ]; then
+        #        VPN_NETWORKS="$VPN_NETWORKS $(echo "$_pptpd_clients" | cut -d '.' -f -3).0/24"
         #    fi
         #fi
 
@@ -68,13 +70,13 @@ firewall_rules() {
 
     lockfile lockwait
 
-    _for_iptables="iptables"
-    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
-
     modprobe xt_comment
 
-    _rules_action=
-    _rules_error=
+    local _for_iptables="iptables"
+    [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    local _iptables _rules_action _rules_error _vpn_networks _lan_network _lan_ipaddr _lan_netmask _cidr _network _vpn_network
+
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_networks="$VPN_NETWORKS6"
@@ -118,7 +120,7 @@ firewall_rules() {
                 fi
             ;;
             "remove")
-                remove_iptables_rules_by_comment "nat" && _rules_action=-1
+                remove_iptables_rules_by_comment "$_iptables" "nat" && _rules_action=-1
 
                 if $_iptables -t nat -nL "$CHAIN" > /dev/null 2>&1; then
                     $_iptables -t nat -F "$CHAIN"

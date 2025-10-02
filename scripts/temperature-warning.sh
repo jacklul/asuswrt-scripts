@@ -5,7 +5,9 @@
 #
 
 #jas-update=temperature-warning.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -24,9 +26,11 @@ validate_config() {
 }
 
 get_temperatures() {
-    _eth_24g=""
-    _eth_5g=""
-    _eth_6g=""
+    local _eth_24g=""
+    local _eth_5g=""
+    local _eth_6g=""
+
+    local _interface _status
 
     for _interface in /sys/class/net/eth*; do
         [ ! -d "$_interface" ] && continue

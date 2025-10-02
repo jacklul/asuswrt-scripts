@@ -8,7 +8,9 @@
 #
 
 #jas-update=swap.sh
+#shellcheck shell=ash
 #shellcheck disable=SC2155
+
 #shellcheck source=./common.sh
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
@@ -20,6 +22,7 @@ SWAPPINESS= # change the value of vm.swappiness (/proc/sys/vm/swappiness), if le
 load_script_config
 
 find_swap_file() {
+    local _dir
     for _dir in /tmp/mnt/*; do
         if [ -d "$_dir" ] && [ -f "$_dir/swap.img" ]; then
             SWAP_FILE="$_dir/swap.img"
@@ -79,7 +82,7 @@ enable_swap() {
 disable_swap() {
     [ -z "$1" ] && return
 
-    _swap_file="$1"
+    local _swap_file="$1"
 
     sync
     echo 3 > /proc/sys/vm/drop_caches
