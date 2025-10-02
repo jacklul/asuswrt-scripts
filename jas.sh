@@ -401,8 +401,10 @@ case "$1" in
                 status=$?
 
                 if [ "$status" -eq 0 ]; then
+                    cp "$tmp_file" "$tmp_file.selfupdate"
+
                     # hacky way to avoid issues while running script that has changed on disk
-                    { sleep 1 && cat "$tmp_file" > "$script_path"; rm -f "$tmp_file"; } &
+                    { sleep 1 && cat "$tmp_file.selfupdate" > "$script_path"; rm -f "$tmp_file.selfupdate"; } &
 
                     printf "%s! updated - please re-run!%s\n" "$fcn" "$frt"
                     exit 0
