@@ -162,7 +162,6 @@ case "$1" in
     ;;
     "start")
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
-        check_and_notify
     ;;
     "stop")
         crontab_entry delete
