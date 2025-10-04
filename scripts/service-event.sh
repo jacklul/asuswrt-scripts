@@ -180,6 +180,10 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
+    if [ -z "$merlin" ] && [ "$4" = "ccheck" ]; then
+        sleep 1 # add a small delay for custom checks triggered events
+    fi
+
     local _tmp_script_path
 
     # $1 = type, $2 = event, $3 = target, $4 = extra
