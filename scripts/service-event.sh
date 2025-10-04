@@ -37,35 +37,29 @@ custom_checks() {
     change_wan=false
 
     if ! ip addr show dev lo 2> /dev/null | grep -Fq "inet $CHECK_IP "; then
-        if [ -n "$change_interface_detected" ]; then
-            ip -4 addr add "$CHECK_IP" dev lo label lo:se
-            change_interface=true
-            change_interface_detected=
-        else
-            change_interface_detected=true
-        fi
+        ip -4 addr add "$CHECK_IP" dev lo label lo:se
+        change_interface_detected=true
+    elif [ -n "$change_interface_detected" ]; then
+        change_interface=true
+        change_interface_detected=
     fi
 
     if ! iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1; then
-        if [ -n "$change_firewall_detected" ]; then
-            iptables -N "$CHECK_CHAIN"
-            change_firewall=true
-            change_firewall_detected=
-        else
-            change_firewall_detected=true
-        fi
+        iptables -N "$CHECK_CHAIN"
+        change_firewall_detected=true
+    elif [ -n "$change_firewall_detected" ]; then
+        change_firewall=true
+        change_firewall_detected=
     fi
 
     # Currently disabled as it triggers on script start because $wan_state_last is not stored persistently
     #wan_state="$(nvram get wan0_state_t 2> /dev/null)$(nvram get wan1_state_t 2> /dev/null)"
     #if [ "$wan_state" != "$wan_state_last" ]; then
-    #    if [ -n "$change_wan_detected" ]; then
-    #        wan_state_last="$wan_state"
-    #        change_wan=true
-    #        change_wan_detected=
-    #    else
-    #        change_wan_detected=true
-    #    fi
+    #    wan_state_last="$wan_state"
+    #    change_wan_detected=true
+    #elif [ -n "$change_wan_detected" ]; then
+    #    change_wan=true
+    #    change_wan_detected=
     #fi
 
     if [ "$change_interface" = true ] || [ "$change_firewall" = true ] || [ "$change_wan" = true ]; then
