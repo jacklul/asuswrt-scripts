@@ -34,7 +34,7 @@ readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
 custom_checks() {
     change_interface=false
     change_firewall=false
-    change_wan=false
+    #change_wan=false
 
     if ! ip addr show dev lo 2> /dev/null | grep -Fq "inet $CHECK_IP "; then
         ip -4 addr add "$CHECK_IP" dev lo label lo:se
@@ -62,7 +62,7 @@ custom_checks() {
     #    change_wan_detected=
     #fi
 
-    if [ "$change_interface" = true ] || [ "$change_firewall" = true ] || [ "$change_wan" = true ]; then
+    if [ "$change_interface" = true ] || [ "$change_firewall" = true ]; then # || [ "$change_wan" = true ]
         return 1
     fi
 
@@ -151,7 +151,7 @@ service_monitor() {
         fi
 
         if [ -z "$_event_triggered" ] && ! custom_checks; then
-            if [ "$change_interface" = true ] || [ "$change_wan" = true ]; then
+            if [ "$change_interface" = true ]; then # || [ "$change_wan" = true ]
                 trigger_event "restart" "net" "ccheck"
             fi
 
