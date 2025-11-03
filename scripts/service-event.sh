@@ -21,12 +21,14 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
 SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
+SLEEP_INTEGRATION=3 # how many seconds to wait before executing integration related scripts, this also delays execution of EXECUTE_COMMAND when applicable, set to empty to disable
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target, $3 = normalized event name)
 
 load_script_config
 
 is_merlin_firmware && merlin=true
+[ -z "$SLEEP" ] && SLEEP=1 # this cannot be empty, set to the lowest possible value
 state_file="$TMP_DIR/$script_name"
 readonly CHECK_CHAIN="jas-$script_name"
 readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
@@ -174,7 +176,7 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
-    [ -z "$merlin" ] && sleep 1 # add a small delay
+    [ -z "$merlin" ] && [ -n "$SLEEP_INTEGRATION" ] && sleep "$SLEEP_INTEGRATION"
 
     local _tmp_script_path
 
