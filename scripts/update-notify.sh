@@ -116,24 +116,27 @@ send_notification() {
 check_and_notify() {
     { [ "$(nvram get wan0_state_t)" != "2" ] && [ "$(nvram get wan1_state_t)" != "2" ] ; } && { echo "WAN network is not connected" >&2; exit 1; }
 
-    local _buildno=$(nvram get buildno)
-    local _extendno=$(nvram get extendno)
-    local _web_state_info=$(nvram get webs_state_info)
-    local _web_buildno=$(echo "$_web_state_info" | awk -F '_' '{print $2}' | sed 's/[-_.]*//g')
-    #local _web_extendno_ver=$(echo "$_web_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}')
+    local _firmver=$(nvram get firmver | sed 's/[^0-9]//g')
+    local _buildno=$(nvram get buildno | sed 's/[^0-9]//g')
+    local _extendno=$(nvram get extendno | awk -F '-' '{print $1}' | sed 's/[^0-9]//g')
+    local _current_version="${_firmver}_${_buildno}_${_extendno}"
 
-    if [ -z "$_buildno" ] || [ -z "$_extendno" ] || [ -z "$_web_state_info" ] || [ "$_buildno" -gt "$_web_buildno" ]; then
+    local _webs_state_info="$(nvram get webs_state_info)"
+    local _webs_firmver=$(echo "$_webs_state_info" | awk -F '_' '{print $1}' | sed 's/[^0-9]//g')
+    local _webs_buildno=$(echo "$_webs_state_info" | awk -F '_' '{print $2}' | sed 's/[^0-9]//g')
+    local _webs_extendno=$(echo "$_webs_state_info" | awk -F '_' '{print $3}' | awk -F '-' '{print $1}' | sed 's/[^0-9]//g')
+
+    if [ -z "$_firmver" ] || [ -z "$_buildno" ] || [ -z "$_extendno" ] || [ -z "$_webs_state_info" ]; then
         echo "Could not gather valid values from NVRAM" >&2
         exit 1
     fi
 
-    local _new_version="$(echo "$_web_state_info" | awk -F '_' '{print $2 "_" $3}')"
-    local _current_version="${_buildno}_${_extendno}"
+    if [ "$_firmver" -lt "$_webs_firmver" ] || [ "$_buildno" -lt "$_webs_buildno" ] || [ "$_extendno" -lt "$_webs_extendno" ]; then
+        if [ "$_current_version" != "$_webs_state_info" ] && { [ ! -f "$state_file" ] || [ "$(cat "$state_file")" != "$_webs_state_info" ] ; }; then
+            send_notification "$_webs_state_info"
 
-    if [ -n "$_new_version" ] && [ "$_current_version" != "$_new_version" ] && { [ ! -f "$state_file" ] || [ "$(cat "$state_file")" != "$_new_version" ] ; }; then
-        send_notification "$_new_version"
-
-        echo "$_new_version" > "$state_file"
+            echo "$_webs_state_info" > "$state_file"
+        fi
     fi
 }
 
@@ -147,11 +150,17 @@ case "$1" in
 
             cru d "$script_name-test"
 
-            buildno=$(nvram get buildno)
-            extendno=$(nvram get extendno)
+            webs_state_info="$(nvram get webs_state_info)"
 
-            if [ -n "$buildno" ] && [ -n "$extendno" ]; then
-                send_notification "${buildno}_${extendno}"
+            if [ -z "$webs_state_info" ]; then
+                firmver=$(nvram get firmver | sed 's/[^0-9]//g')
+                buildno=$(nvram get buildno | sed 's/[^0-9]//g')
+                extendno=$(nvram get extendno)
+                webs_state_info="${firmver}_${buildno}_${extendno}"
+            fi
+
+            if [ -n "$webs_state_info" ]; then
+                send_notification "$webs_state_info"
             else
                 logecho "Unable to obtain current version info" error
             fi

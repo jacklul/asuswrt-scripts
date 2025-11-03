@@ -411,6 +411,9 @@ By default, it runs every <ins>6 hours starting from 00:00</ins>.
 - [Pushbullet](https://www.pushbullet.com)
 - Custom script
 
+> [!WARNING]
+> On some devices, the firmware update check task will not update NVRAM values correctly, making this script fail to work.
+
 > [!TIP]
 > You can test the notifications by running `./update-notify.sh test` (if it works from the cron) and `./update-notify.sh test now` (if it actually sends) commands.
 
