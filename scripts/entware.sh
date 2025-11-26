@@ -80,6 +80,14 @@ retry_command() {
     return 1
 }
 
+mount_opt() {
+    [ -z "$1" ] && { echo "Target path not provided" >&2; exit 1; }
+    [ -L "$opt" ] && rm -f "$opt" # remove existing symlink
+    [ ! -d "$opt" ] && mkdir -p "$opt" # recreate the mountpoint if missing
+
+    mount --bind "$1" "$opt" && return 0 || return 1
+}
+
 unmount_opt() {
     local _timer=60
     while [ "$_timer" -gt 0 ] ; do
@@ -109,12 +117,7 @@ init_opt() {
             fi
         fi
 
-        if [ -L "$opt" ]; then
-            rm -f "$opt" # remove the symlink
-            mkdir -p "$opt" # recreate the directory
-        fi
-
-        if mount --bind "$1" "$opt"; then
+        if mount_opt "$1"; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
                 local _mount_device="$(mount | grep -F "on $opt " | tail -n 1 | awk '{print $1}')"
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
@@ -573,13 +576,7 @@ case "$1" in
         echo "Checking and creating required directories..."
 
         [ ! -d "$target_path/$ENTWARE_DIR" ] && mkdir -v "$target_path/$ENTWARE_DIR"
-
-        if [ -L "$opt" ]; then
-            rm -f "$opt" # remove the symlink
-            mkdir -p "$opt" # recreate the directory
-        fi
-
-        mount --bind "$target_path/$ENTWARE_DIR" "$opt" && echo "Mounted $target_path/$ENTWARE_DIR on $opt"
+        mount_opt "$target_path/$ENTWARE_DIR" && echo "Mounted $target_path/$ENTWARE_DIR on $opt"
 
         for dir in bin etc lib/opkg tmp var/lock; do
             if [ ! -d "/opt/$dir" ]; then
