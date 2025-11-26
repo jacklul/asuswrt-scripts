@@ -35,7 +35,7 @@ process_killer() {
             [ -n "$_filewhich" ] && _filepath=$_filewhich
         fi
 
-        [ -f "$_filepath" ] && mount | grep -F "$_filepath" > /dev/null && continue
+        [ -f "$_filepath" ] && mount | grep -Fq "$_filepath" && continue
 
         _filename="$(basename "$_filepath")"
         _fileext="${_filename##*.}"
