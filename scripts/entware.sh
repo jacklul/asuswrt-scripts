@@ -30,6 +30,7 @@ load_script_config
 
 default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
 state_file="$TMP_DIR/$script_name"
+opt=/opt
 last_entware_device=""
 [ -f "$state_file" ] && last_entware_device="$(cat "$state_file")"
 [ -z "$BASE_URL" ] && BASE_URL="$default_base_url"
@@ -37,8 +38,19 @@ check_url="$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
 [ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
 
+# Resolve /opt if it is a symlink
+if [ -L "$opt" ]; then
+    opt_symlink="$(readlink "$opt")"
+    [ -z "$opt_symlink" ] && { echo "Unable to read $opt symlink" >&2; exit 1; }
+
+    case "$opt_symlink" in
+        "/"*) opt="$opt_symlink" ;; # absolute path
+        *) opt="$(readlink -f "$(dirname "$opt")/$opt_symlink")" ;; # relative path
+    esac
+fi
+
 is_opt_mounted() {
-    if mount | grep -Fq "on /opt " || [ -n "$(df /opt 2> /dev/null | grep -v "/$" | tail -n +2)" ]; then
+    if mount | grep -Fq "on $opt "; then
         return 0
     else
         return 1
@@ -71,7 +83,7 @@ retry_command() {
 unmount_opt() {
     local _timer=60
     while [ "$_timer" -gt 0 ] ; do
-        umount /opt 2> /dev/null && return 0
+        umount "$opt" 2> /dev/null && return 0
         _timer=$((_timer-1))
         sleep 1
     done
@@ -92,21 +104,25 @@ init_opt() {
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
         if is_opt_mounted; then
             if ! unmount_opt; then
-                logecho "Failed to unmount /opt" error
+                logecho "Failed to unmount $opt" error
                 exit 1
             fi
         fi
 
-        if mount --bind "$1" /opt; then
+        if [ -L "$opt" ]; then
+            rm -f "$opt" # remove the symlink
+            mkdir -p "$opt" # recreate the directory
+        fi
+
+        if mount --bind "$1" "$opt"; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
-                local _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
-                [ -z "$_mount_device" ] && _mount_device="$(df /opt 2> /dev/null | tail -n +2 | tail -n 1 | awk '{print $1}')"
+                local _mount_device="$(mount | grep -F "on $opt " | tail -n 1 | awk '{print $1}')"
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
             fi
 
-            logecho "Mounted '$1' on /opt" alert
+            logecho "Mounted '$1' on $opt" alert
         else
-            logecho "Failed to mount '$1' on /opt" error
+            logecho "Failed to mount '$1' on $opt" error
             exit 1
         fi
     else
@@ -204,9 +220,9 @@ entware() {
 
             if is_opt_mounted; then
                 if unmount_opt; then
-                    logecho "Unmounted /opt" alert
+                    logecho "Unmounted $opt" alert
                 else
-                    logecho "Failed to unmount /opt" error
+                    logecho "Failed to unmount $opt" error
                 fi
             fi
 
@@ -557,7 +573,13 @@ case "$1" in
         echo "Checking and creating required directories..."
 
         [ ! -d "$target_path/$ENTWARE_DIR" ] && mkdir -v "$target_path/$ENTWARE_DIR"
-        mount --bind "$target_path/$ENTWARE_DIR" /opt && echo "Mounted $target_path/$ENTWARE_DIR on /opt"
+
+        if [ -L "$opt" ]; then
+            rm -f "$opt" # remove the symlink
+            mkdir -p "$opt" # recreate the directory
+        fi
+
+        mount --bind "$target_path/$ENTWARE_DIR" "$opt" && echo "Mounted $target_path/$ENTWARE_DIR on $opt"
 
         for dir in bin etc lib/opkg tmp var/lock; do
             if [ ! -d "/opt/$dir" ]; then

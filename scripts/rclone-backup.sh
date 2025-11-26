@@ -46,7 +46,7 @@ case "$1" in
             if opkg update && opkg install rclone; then
                 RCLONE_PATH="/opt/bin/rclone"
 
-                if mount | grep -F "on /opt " | grep -Fq "tmpfs"; then
+                if df "$(readlink -f /opt)" | tail -n +2 | grep -Fq "tmpfs"; then
                     entware_on_tmpfs=1
                 fi
             else
