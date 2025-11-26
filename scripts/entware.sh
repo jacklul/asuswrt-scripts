@@ -45,7 +45,12 @@ if [ -L "$opt" ]; then
 
     case "$opt_symlink" in
         "/"*) opt="$opt_symlink" ;; # absolute path
-        *) opt="$(readlink -f "$(dirname "$opt")/$opt_symlink")" ;; # relative path
+        *)
+            # relative path
+            opt_dirname="$(dirname "$opt")"
+            [ "$opt_dirname" != "/" ] && opt_dirname="$opt_dirname/" # prevent double slash
+            opt="${opt_dirname}${opt_symlink}"
+        ;;
     esac
 fi
 
