@@ -90,7 +90,7 @@ mount_opt() {
 
 unmount_opt() {
     local _timer=60
-    while [ "$_timer" -gt 0 ] ; do
+    while [ "$_timer" -gt 0 ]; do
         umount "$opt" 2> /dev/null && return 0
         _timer=$((_timer-1))
         sleep 1
