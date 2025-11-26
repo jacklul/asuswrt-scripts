@@ -37,8 +37,8 @@ check_url="$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
 [ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
 
-is_entware_mounted() {
-    if mount | grep -Fq "on /opt "; then
+is_opt_mounted() {
+    if mount | grep -Fq "on /opt " || [ -n "$(df /opt 2> /dev/null | grep -v "/$" | tail -n +2)" ]; then
         return 0
     else
         return 1
@@ -90,7 +90,7 @@ init_opt() {
     done
 
     if [ -f "$1/etc/init.d/rc.unslung" ]; then
-        if is_entware_mounted; then
+        if is_opt_mounted; then
             if ! unmount_opt; then
                 logecho "Failed to unmount /opt" error
                 exit 1
@@ -100,6 +100,7 @@ init_opt() {
         if mount --bind "$1" /opt; then
             if [ -z "$IN_RAM" ]; then # no need for this when running from RAM
                 local _mount_device="$(mount | grep -F "on /opt " | tail -n 1 | awk '{print $1}')"
+                [ -z "$_mount_device" ] && _mount_device="$(df /opt 2> /dev/null | tail -n +2 | tail -n 1 | awk '{print $1}')"
                 [ -n "$_mount_device" ] && basename "$_mount_device" > "$state_file"
             fi
 
@@ -149,7 +150,7 @@ backup_initd_scripts() {
 services() {
     case "$1" in
         "start")
-            if is_entware_mounted; then
+            if is_opt_mounted; then
                 if [ -f /opt/etc/init.d/rc.unslung ]; then
                     logecho "Starting services..." alert
 
@@ -201,7 +202,7 @@ entware() {
         "stop")
             services stop
 
-            if is_entware_mounted; then
+            if is_opt_mounted; then
                 if unmount_opt; then
                     logecho "Unmounted /opt" alert
                 else
@@ -324,7 +325,7 @@ entware_in_ram() {
         fi
 
         # In case of script restart - /tmp/entware will already exist but won't be mounted
-        ! is_entware_mounted && init_opt /tmp/entware
+        ! is_opt_mounted && init_opt /tmp/entware
 
         logecho "Starting services..."
 
@@ -364,7 +365,7 @@ entware_init() {
 
         lockfile unlock inram
     else
-        if ! is_entware_mounted; then
+        if ! is_opt_mounted; then
             for dir in /tmp/mnt/*; do
                 if [ -d "$dir/$ENTWARE_DIR" ]; then
                     entware start "$dir/$ENTWARE_DIR"
@@ -405,7 +406,7 @@ case "$1" in
         if [ "$SUBSYSTEM" = "block" ] && [ -n "$DEVICENAME" ]; then
             case "$ACTION" in
                 "add")
-                    is_entware_mounted && exit
+                    is_opt_mounted && exit
 
                     target_path="$(mount | grep -F "$DEVICENAME" | head -n 1 | awk '{print $3}')"
 
@@ -441,7 +442,7 @@ case "$1" in
         sh "$script_path" start
     ;;
     "install")
-        is_entware_mounted && { echo "Entware seems to be already mounted - unmount it before continuing" >&2; exit 1; }
+        is_opt_mounted && { echo "Entware seems to be already mounted - unmount it before continuing" >&2; exit 1; }
 
         for arg in "$@"; do
             [ "$arg" = "install" ] && continue
