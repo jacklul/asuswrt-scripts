@@ -29,6 +29,8 @@ Scripts based on an existing resource have it linked in the header.**
 > - Wait around 15 seconds then execute `nvram get script_usbmount` - **if there is no output then your router is affected**
 > - Plug in any USB storage - make sure the router mounts it as storage (needs supported filesystem)
 > - Run `cat /tmp/yesitworks` - **if you see `No such file or directory` message then your router is affected**
+> 
+> Make sure to reset the variable to empty value if your router is not affected - `nvram set script_usbmount=`
 >
 > </details>
 
