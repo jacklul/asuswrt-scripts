@@ -34,7 +34,7 @@ find_swap_file() {
 create_swap() {
     [ -z "$SWAP_FILE" ] && { logecho "Error: SWAP_FILE is not set" error; exit 1; }
     [ -z "$SWAP_SIZE" ] && { logecho "Error: SWAP_SIZE is not set" error; exit 1; }
-    grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps && { logecho "Error: Swap file is mounted" error; exit 1; }
+    { [ -f "$SWAP_FILE" ] && grep -Fq "$(readlink -f "$SWAP_FILE")" /proc/swaps ; } && { logecho "Error: Swap file is mounted" error; exit 1; }
 
     set -e
 
