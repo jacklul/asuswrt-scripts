@@ -384,6 +384,8 @@ By default, integrates with all scripts present in this repository (where applic
 
 This script enables swap file on start, with configurable size and location.
 
+**This script does not create swap file automatically - run `./swap.sh create /tmp/mnt/USBDEVICE/swap.img` manually.**
+
 _Recommended to use [`hotplug-event`](#user-content-hotplug-event) as well for better reliability._
 
 ---
