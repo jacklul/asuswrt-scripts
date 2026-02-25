@@ -72,7 +72,7 @@ cpu_temperature() {
             fi
         ;;
     esac
-    [ -z "$_applied" ] && return 1
+    [ -n "$_applied" ] && return 0 || return 1
 }
 
 guest_wifi_qr_code() {
@@ -99,7 +99,7 @@ guest_wifi_qr_code() {
             fi
         ;;
     esac
-    [ -z "$_applied" ] && return 1
+    [ -n "$_applied" ] && return 0 || return 1
 }
 
 notrendmicro_support() {
@@ -158,7 +158,7 @@ notrendmicro_support() {
             fi
         ;;
     esac
-    [ -z "$_applied" ] && return 1
+    [ -n "$_applied" ] && return 0 || return 1
 }
 
 https_lanport_allow_443() {
@@ -181,7 +181,7 @@ https_lanport_allow_443() {
             fi
         ;;
     esac
-    [ -z "$_applied" ] && return 1
+    [ -n "$_applied" ] && return 0 || return 1
 }
 
 www_override() {
