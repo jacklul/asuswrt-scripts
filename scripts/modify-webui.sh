@@ -12,7 +12,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
-TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443" # list of tweaks to apply
+TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443 no_https_redirect" # list of tweaks to apply
 TMP_WWW_DIR="$TMP_DIR/$script_name-www" # directory to store modified files in
 
 load_script_config
@@ -184,6 +184,30 @@ https_lanport_allow_443() {
     [ -n "$_applied" ] && return 0 || return 1
 }
 
+no_https_redirect() {
+    local _applied
+    case "$1" in
+        "set")
+            if ! mount | grep -Fq /www/js/https_redirect/https_redirect.js; then
+                mkdir -p "$TMP_WWW_DIR/js/https_redirect"
+                [ ! -f "$TMP_WWW_DIR/js/https_redirect/https_redirect.js" ] && cp -f /www/js/https_redirect/https_redirect.js "$TMP_WWW_DIR/js/https_redirect/https_redirect.js"
+
+                sed_and_check replace 'Initial_Https_Redirect();' '//Initial_Https_Redirect();' "$TMP_WWW_DIR/js/https_redirect/https_redirect.js" && \
+                _applied=1
+
+                mount --bind "$TMP_WWW_DIR/js/https_redirect/https_redirect.js" /www/js/https_redirect/https_redirect.js
+            fi
+        ;;
+        "unset")
+            if mount | grep -Fq /www/js/https_redirect/https_redirect.js; then
+                umount /www/js/https_redirect/https_redirect.js
+                rm -f "$TMP_WWW_DIR/js/https_redirect/https_redirect.js"
+            fi
+        ;;
+    esac
+    [ -n "$_applied" ] && return 0 || return 1
+}
+
 www_override() {
     case "$1" in
         "set")
@@ -206,6 +230,7 @@ www_override() {
             guest_wifi_qr_code unset
             notrendmicro_support unset
             https_lanport_allow_443 unset
+            no_https_redirect unset
 
             rm -fr "$TMP_WWW_DIR"
         ;;
