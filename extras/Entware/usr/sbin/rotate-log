@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+[ "$(id -u)" -ne 0 ] && { echo "This script must run as root."; exit 1; }
+[ -z "$1" ] && { echo "Log file not provided" >&2; exit 1; }
+[ ! -f "$1" ] && { echo "File not found: $1"; exit 1; }
+
+logfile="$1"
+
+rm -f "${logfile}.3.gz"
+[ -e "${logfile}.2.gz" ] && mv "${logfile}.2.gz" "${logfile}.3.gz"
+[ -e "${logfile}.1.gz" ] && mv "${logfile}.1.gz" "${logfile}.2.gz"
+
+gzip -c -- "$logfile" > "${logfile}.1.gz"
+
+if command -v stat >/dev/null; then
+    chown "$(stat -c '%u:%g' -- "$logfile")" "${logfile}.1.gz"
+    chmod "$(stat -c '%a'  -- "$logfile")" "${logfile}.1.gz"
+else
+    chown 0:0 "${logfile}.1.gz"
+    chmod 0640 "${logfile}.1.gz"
+fi
+
+: > "$logfile"
+
+echo "Rotated $(basename "$logfile") at $(date '+%Y-%m-%d %H:%M:%S')"
