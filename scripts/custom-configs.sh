@@ -21,10 +21,10 @@ KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if the process does not
 load_script_config
 
 [ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
-readonly FILES="/etc/profile /etc/hosts /etc/resolv.conf" # files we can modify
-readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot be appended to
-readonly NO_REPLACE_FILES="/etc/profile /etc/stubby/stubby.yml" # files that cannot be replaced
-readonly NO_POSTCONF_FILES="/etc/profile" # files that cannot run postconf script
+readonly FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/hosts /etc/resolv.conf " # files we can modify
+readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot appended to
+readonly NO_REPLACE_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/stubby/stubby.yml" # files that cannot be replaced
+readonly NO_POSTCONF_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot run postconf script
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided" >&2; exit 1; }
@@ -117,6 +117,28 @@ is_file_postconf_supported() {
 is_config_file_modified() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
     [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
+
+    local _basename="$(basename "$1" | cut -d '.' -f 1)"
+
+    case "$_basename" in
+        "passwd"|"shadow"|"group"|"gshadow")
+            if [ -f "$1.new" ] && ! is_config_file_different "$1"; then
+                return 0
+            fi
+        ;;
+        *)
+            if grep -Fq "Modified by $script_name script" "$1"; then
+                return 0
+            fi
+        ;;
+    esac
+
+    return 1
+}
+
+is_config_file_different() {
+    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
     [ ! -f "$1.new" ] && { echo "File '$1.new' does not exist" >&2; return 1; }
 
     if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
@@ -175,10 +197,15 @@ add_modified_mark() {
         "zebra")
             _comment="!"
         ;;
+        "passwd"|"shadow"|"group"|"gshadow")
+            _comment= # unsupported
+        ;;
     esac
 
-    echo "" >> "$1"
-    echo "$_comment Modified by $script_name script" >> "$1"
+    if [ -n "$_comment" ]; then
+        echo "" >> "$1"
+        echo "$_comment Modified by $script_name script" >> "$1"
+    fi
 }
 
 commit_new_file() {
@@ -192,7 +219,7 @@ commit_new_file() {
 modify_files() {
     local _file
     for _file in $FILES; do
-        if [ -f "$_file" ] && ! grep -Fq "Modified by $script_name script" "$_file"; then
+        if [ -f "$_file" ] && ! is_config_file_modified "$_file"; then
             [ ! -f "$_file.bak" ] && cp "$_file" "$_file.bak"
 
             modify_config_file "$_file"
@@ -200,7 +227,7 @@ modify_files() {
 
             if [ -f "$_file.new" ]; then
                 add_modified_mark "$_file.new"
-                is_config_file_modified "$_file" && commit_new_file "$_file"
+                is_config_file_different "$_file" && commit_new_file "$_file"
             fi
         fi
     done
@@ -229,7 +256,7 @@ modify_service_config_file() {
         ;;
     esac
 
-    if /bin/ps w | grep -v "grep" | grep -q "$_match" && [ -f "$1" ] && ! grep -Fq "Modified by $script_name script" "$1"; then
+    if /bin/ps w | grep -v "grep" | grep -q "$_match" && [ -f "$1" ] && ! is_config_file_modified "$1"; then
         if [ -n "$3" ]; then
             modify_config_file "$1" "$3"
         else
@@ -241,7 +268,7 @@ modify_service_config_file() {
         if [ -f "$1.new" ] && [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
             add_modified_mark "$1.new"
 
-            if is_config_file_modified "$1"; then
+            if is_config_file_different "$1"; then
                 commit_new_file "$1"
 
                 case "$2" in
