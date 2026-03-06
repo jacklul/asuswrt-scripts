@@ -3,12 +3,14 @@
 #
 # /opt/etc/init.d/S90replace-samba
 #
-# This script mounts /opt/usr/sbin/samba_multicall to /usr/sbin/samba_multicall
+# This script mounts /opt/usr/sbin/samba_multicall as /usr/sbin/samba_multicall
+# and prevents service startup through S91smb init script
 #
 
 [ ! -x /opt/usr/sbin/samba_multicall ] && exit 0
 { [ ! -x /opt/sbin/smbd ] || [ ! -x /opt/sbin/nmbd ] ; } && exit 0
 
+# Directories required by Entware's Samba (taken from S91smb)
 mkdir -p /opt/var/log/samba
 mkdir -p /opt/var/lib/samba/private
 mkdir -p /opt/var/cache/samba
@@ -19,9 +21,13 @@ case $1 in
         chmod -x /opt/etc/init.d/S91smb # Disable Entware's smb init script
 
         if ! mount | grep -Fq "on /usr/sbin/samba_multicall "; then
-            cp /usr/sbin/smbpasswd /opt/var/run/smbpasswd
+            # Copy firmware's smbpasswd as without it firmware won't be able to manage users
+            if [ ! -f /opt/var/run/smbpasswd ] || [ "$(md5sum /opt/var/run/smbpasswd | awk '{print $1}')" != "$(md5sum /usr/sbin/smbpasswd | awk '{print $1}')" ]; then
+                cp -f /usr/sbin/smbpasswd /opt/var/run/smbpasswd
+            fi
+
             mount -o bind /opt/usr/sbin/samba_multicall /usr/sbin/samba_multicall
-            service restart_samba
+            service restart_samba # immediately restart through firmware service command
         fi
     ;;
     stop|kill)
@@ -29,8 +35,6 @@ case $1 in
             umount /usr/sbin/samba_multicall
             service restart_samba
         fi
-
-        rm -f /opt/var/run/smbpasswd
     ;;
     check)
         if ! mount | grep -Fq "on /usr/sbin/samba_multicall "; then

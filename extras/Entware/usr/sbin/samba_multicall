@@ -36,7 +36,7 @@ if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep 
     [ "$timeout" -le 0 ] && exit 1
 
     # Manually call custom-configs script if it exists
-    if [ "$(uname -o)" != "ASUSWRT-Merlin" ] && [ -x "$custom_configs" ] && ! grep -Fq "Modified by" /etc/smb.conf; then
+    if [ "$(uname -o)" != "ASUSWRT-Merlin" ] && [ -x "$custom_configs" ] && ! grep -Fq "Modified by $(basename "$custom_configs" .sh) script" /etc/smb.conf; then
         "$custom_configs" modify /etc/smb.conf
     fi
 
@@ -72,6 +72,7 @@ if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep 
     fi
 
     echo "# Modified by samba_multicall" >> /etc/smb.conf
+
     flock -u "$fd"
     rm -f "$lockfile"
 fi

@@ -9,7 +9,7 @@
 [ -z "$1" ] && exit 1
 tag="$(basename "$0")"
 netboot_root="/tmp/netboot.xyz"
-netboot_baseurl="https://boot.netboot.xyz/ipxe/"
+netboot_baseurl="https://github.com/netbootxyz/netboot.xyz/releases/latest/download/"
 netboot_files="netboot.xyz.efi netboot.xyz.kpxe"
 
 if [ -n "$netboot_root" ]; then

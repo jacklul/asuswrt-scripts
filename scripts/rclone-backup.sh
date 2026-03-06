@@ -68,7 +68,7 @@ case "$1" in
         logecho "Backing up now..." alert
 
         #shellcheck disable=SC2086
-        "$RCLONE_PATH" sync --config "$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" $PARAMETERS
+        "$RCLONE_PATH" sync --config="$CONFIG_FILE" --filter-from="$FILTER_FILE" / "$REMOTE" $PARAMETERS
         status="$?"
 
         if [ -n "$SCRIPT_POST" ] && [ -x "$SCRIPT_POST" ]; then

@@ -16,8 +16,8 @@
 + /opt/etc/**
 
 # Created by script-pre.sh
-+ /tmp/nvram.txt
-+ /tmp/nvram.cfg
++ /root/nvram.txt
++ /root/nvram.cfg
 
 # Exclude everything else
 - **
