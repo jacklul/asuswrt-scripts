@@ -86,6 +86,12 @@ trap trapexit EXIT HUP INT QUIT TERM
 
 ####################
 
+# Fix for segfaults after Entware update on 2026-04-06
+# See this post for more info: https://www.snbforums.com/threads/okay-to-install-entware-update.97056/page-2#post-989654
+unset LD_LIBRARY_PATH
+
+####################
+
 # ANSI colors
 #shellcheck disable=SC2034
 if [ "$NO_COLORS" != true ]; then
