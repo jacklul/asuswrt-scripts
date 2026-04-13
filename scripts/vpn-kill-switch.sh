@@ -24,8 +24,6 @@ RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 load_script_config
 
 firewall_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
-
     if [ -z "$TARGET_INTERFACES" ]; then
         TARGET_INTERFACES="$(nvram get lan_ifname)"
     elif echo "$TARGET_INTERFACES" | grep -Fq "br+"; then
@@ -38,6 +36,9 @@ firewall_rules() {
 
         [ -z "$WAN_INTERFACES" ] && { logecho "Error: WAN_INTERFACES is not set" error; exit 1; }
     fi
+
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 
@@ -53,10 +54,10 @@ firewall_rules() {
                     for _wan_interface in $WAN_INTERFACES; do
                         if
                             ! $_iptables -C FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT \
-                                -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} > /dev/null 2>&1
                         then
                             $_iptables -I FORWARD -i "$_target_interface" -o "$_wan_interface" -j REJECT \
-                                -m comment --comment "jas-$script_name" \
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                     && _rules_action=1 || _rules_error=1
                         fi
                     done

@@ -126,19 +126,19 @@ iptables_rule() {
 
     if echo "$_interface" | grep -Fq 'wgs'; then
         $_iptables "$_action" "$_chain_wgs" -i "$_interface" -j "$_target_chain" \
-            -m comment --comment "jas-$script_name" \
+            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                 || _has_error=1
     elif echo "$_interface" | grep -q 'tun1\|tap1'; then     
         $_iptables "$_action" "$_chain_ovpn" -i "$_interface" -j "$_target_chain" \
-            -m comment --comment "jas-$script_name" \
+            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                 || _has_error=1    
     elif [ -n "$_num" ]; then
         $_iptables "$_action" "$_chain" "$_num" -i "$_interface" -j "$_target_chain" \
-            -m comment --comment "jas-$script_name" \
+            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                 || _has_error=1
     else
         $_iptables "$_action" "$_chain" -i "$_interface" -j "$_target_chain" \
-            -m comment --comment "jas-$script_name" \
+            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                 || _has_error=1
     fi
 
@@ -146,8 +146,6 @@ iptables_rule() {
 }
 
 firewall_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
-
     if [ -z "$VPN_INTERFACES" ]; then
         local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2}' | grep "^1")" # get only active ones
 
@@ -161,6 +159,9 @@ firewall_rules() {
 
         [ -z "$VPN_INTERFACES" ] && return # silently exit
     fi
+
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 

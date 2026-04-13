@@ -21,8 +21,6 @@ RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 load_script_config
 
 firewall_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
-
     if [ -z "$WG_INTERFACES" ]; then
         if [ "$(nvram get wgs_enable)" = "1" ]; then
             WG_INTERFACES="wgs+"
@@ -32,6 +30,9 @@ firewall_rules() {
     fi
 
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
+
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 
@@ -46,10 +47,10 @@ firewall_rules() {
                 for _wg_interface in $WG_INTERFACES; do
                     if
                         ! $_iptables -C "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT \
-                            -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                            ${iptables_comment:+-m comment --comment "$iptables_comment"} > /dev/null 2>&1
                     then
                         $_iptables -I "WGSF" -i "$_wg_interface" ! -o "$BRIDGE_INTERFACE" -j REJECT \
-                            -m comment --comment "jas-$script_name" \
+                            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                 && _rules_action=1 || _rules_error=1
                     fi
                 done

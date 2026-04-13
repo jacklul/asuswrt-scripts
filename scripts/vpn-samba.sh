@@ -27,8 +27,6 @@ load_script_config
 readonly CHAIN="jas-${script_name}"
 
 firewall_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
-
     if { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; }; then
         if [ "$(nvram get wgs_enable)" = "1" ]; then
             local _wgs_addr="$(nvram get wgs_addr)" # WireGuard - 10.6.0.1/32
@@ -69,6 +67,9 @@ firewall_rules() {
     fi
 
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
+
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 
@@ -114,7 +115,7 @@ firewall_rules() {
 
                     for _vpn_network in $_vpn_networks; do
                         $_iptables -t nat -A POSTROUTING -s "$_vpn_network" -d "$_lan_network" -o "$BRIDGE_INTERFACE" -j "$CHAIN" \
-                            -m comment --comment "jas-$script_name" \
+                            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                 && _rules_action=1 || _rules_error=1
                     done
                 fi

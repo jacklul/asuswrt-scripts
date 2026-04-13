@@ -86,10 +86,11 @@ cleanup_ip_rules() {
 }
 
 iptables_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
-
     local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
+
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
 
     local _iptables _route_ips _ip _chain _route_ip _idx _ip_addr _fwmark _priority
 
@@ -112,8 +113,8 @@ iptables_rules() {
                 fi
 
                 for _chain in PREROUTING OUTPUT POSTROUTING; do
-                    if ! $_iptables -t mangle -C "$_chain" -j "$CHAIN" -m comment --comment "jas-$script_name" > /dev/null 2>&1; then
-                        $_iptables -t mangle -A "$_chain" -j "$CHAIN" -m comment --comment "jas-$script_name"
+                    if ! $_iptables -t mangle -C "$_chain" -j "$CHAIN" ${iptables_comment:+-m comment --comment "$iptables_comment"} > /dev/null 2>&1; then
+                        $_iptables -t mangle -A "$_chain" -j "$CHAIN" ${iptables_comment:+-m comment --comment "$iptables_comment"}
                     fi
                 done
 

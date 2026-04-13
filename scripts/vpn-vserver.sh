@@ -28,8 +28,6 @@ get_interface_address() {
 }
 
 firewall_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
-
     if { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; }; then
         local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3}' | grep "^1" | cut -d ' ' -f 2-)"
         local _entry _type _id _ifname _address
@@ -64,6 +62,9 @@ firewall_rules() {
         { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; } && return # silently exit
     fi
 
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
+
     lockfile lockwait
 
     local _for_iptables="iptables"
@@ -90,12 +91,12 @@ firewall_rules() {
                 for _vpn_address in $_vpn_addresses; do
                     if
                         ! $_iptables -t nat -C PREROUTING -d "$_vpn_address" -j VSERVER \
-                            -m comment --comment "jas-$script_name" > /dev/null 2>&1
+                            ${iptables_comment:+-m comment --comment "$iptables_comment"} > /dev/null 2>&1
                     then
                         _vserver_start=$((_vserver_start+1))
 
                         $_iptables -t nat -I PREROUTING "$_vserver_start" -d "$_vpn_address" -j VSERVER \
-                            -m comment --comment "jas-$script_name" \
+                            ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                 && _rules_action=1 || _rules_error=1
                     fi
                 done

@@ -95,7 +95,7 @@ iptables_chains() {
 
                         for _target_interface in $TARGET_INTERFACES; do
                             $_iptables -I FORWARD "$_forward_start" -i "$_target_interface" -p tcp -m tcp --dport 853 -j "$CHAIN_DOT" \
-                                -m comment --comment "jas-$script_name" \
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                     || _has_error=1
 
                             _forward_start="$((_forward_start+1))"
@@ -116,11 +116,11 @@ iptables_chains() {
 
                         for _target_interface in $TARGET_INTERFACES; do
                             $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -j "$CHAIN_DNAT" \
-                                -m comment --comment "jas-$script_name" \
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                     || _has_error=1
 
                             $_iptables -t nat -I PREROUTING "$_prerouting_start" -i "$_target_interface" -p udp -m udp --dport 53 -j "$CHAIN_DNAT" \
-                                -m comment --comment "jas-$script_name" \
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                     || _has_error=1
 
                             _prerouting_start="$((_prerouting_start+2))"
@@ -147,11 +147,11 @@ iptables_chains() {
 
                         for _target_interface in $TARGET_INTERFACES; do
                             $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p tcp -m tcp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" \
-                                -m comment --comment "jas-$script_name" \
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                     || _has_error=1
 
                             $_iptables -I INPUT "$_input_start" -i "$_target_interface" -p udp -m udp --dport 53 -d "$_router_ip" -j "$CHAIN_BLOCK" \
-                                -m comment --comment "jas-$script_name" \
+                                ${iptables_comment:+-m comment --comment "$iptables_comment"} \
                                     || _has_error=1
 
                             _input_start="$((_input_start+2))"
@@ -303,9 +303,11 @@ rules_exist() {
 }
 
 firewall_rules() {
-    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
     [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set" error; exit 1; }
     [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set" error; exit 1; }
+
+    # If xt_comment module is not available, disable comments to avoid errors and continue working without them
+    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 
