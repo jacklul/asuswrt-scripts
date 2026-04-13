@@ -86,10 +86,10 @@ cleanup_ip_rules() {
 }
 
 iptables_rules() {
+    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
+
     local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
-
-    modprobe xt_comment
 
     local _iptables _route_ips _ip _chain _route_ip _idx _ip_addr _fwmark _priority
 

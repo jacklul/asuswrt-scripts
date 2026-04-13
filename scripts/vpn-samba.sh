@@ -27,6 +27,8 @@ load_script_config
 readonly CHAIN="jas-${script_name}"
 
 firewall_rules() {
+    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
+
     if { [ -z "$VPN_NETWORKS" ] && [ -z "$VPN_NETWORKS6" ] ; }; then
         if [ "$(nvram get wgs_enable)" = "1" ]; then
             local _wgs_addr="$(nvram get wgs_addr)" # WireGuard - 10.6.0.1/32
@@ -69,8 +71,6 @@ firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
 
     lockfile lockwait
-
-    modprobe xt_comment
 
     local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"

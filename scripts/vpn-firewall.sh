@@ -146,6 +146,8 @@ iptables_rule() {
 }
 
 firewall_rules() {
+    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
+
     if [ -z "$VPN_INTERFACES" ]; then
         local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2}' | grep "^1")" # get only active ones
 
@@ -161,8 +163,6 @@ firewall_rules() {
     fi
 
     lockfile lockwait
-
-    modprobe xt_comment
 
     local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"

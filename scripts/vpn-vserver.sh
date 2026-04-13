@@ -28,6 +28,8 @@ get_interface_address() {
 }
 
 firewall_rules() {
+    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
+
     if { [ -z "$VPN_ADDRESSES" ] && [ -z "$VPN_ADDRESSES6" ] ; }; then
         local _vpnc_profiles="$(get_vpnc_clientlist | awk -F '>' '{print $6, $2, $3}' | grep "^1" | cut -d ' ' -f 2-)"
         local _entry _type _id _ifname _address
@@ -63,8 +65,6 @@ firewall_rules() {
     fi
 
     lockfile lockwait
-
-    modprobe xt_comment
 
     local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"

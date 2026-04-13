@@ -303,12 +303,11 @@ rules_exist() {
 }
 
 firewall_rules() {
+    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
     [ -z "$DNS_SERVER" ] && { logecho "Error: DNS_SERVER is not set" error; exit 1; }
     [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set" error; exit 1; }
 
     lockfile lockwait
-
-    modprobe xt_comment
 
     for_iptables="iptables"
     [ "$ipv6_service" != "disabled" ] && for_iptables="$for_iptables ip6tables"

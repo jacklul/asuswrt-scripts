@@ -21,6 +21,8 @@ RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 load_script_config
 
 firewall_rules() {
+    modprobe xt_comment || { logecho "Error: Unable to load xt_comment module" error; exit 1; }
+
     if [ -z "$WG_INTERFACES" ]; then
         if [ "$(nvram get wgs_enable)" = "1" ]; then
             WG_INTERFACES="wgs+"
@@ -32,8 +34,6 @@ firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
 
     lockfile lockwait
-
-    modprobe xt_comment
 
     local _for_iptables="iptables"
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
