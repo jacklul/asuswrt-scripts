@@ -307,7 +307,7 @@ firewall_rules() {
     [ -z "$TARGET_INTERFACES" ] && { logecho "Error: TARGET_INTERFACES is not set" error; exit 1; }
 
     # If xt_comment module is not available, disable comments to avoid errors and continue working without them
-    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
+    modprobe xt_comment 2> /dev/null && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 

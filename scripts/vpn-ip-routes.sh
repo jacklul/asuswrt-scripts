@@ -90,7 +90,7 @@ iptables_rules() {
     [ "$(nvram get ipv6_service)" != "disabled" ] && _for_iptables="$_for_iptables ip6tables"
 
     # If xt_comment module is not available, disable comments to avoid errors and continue working without them
-    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
+    modprobe xt_comment 2> /dev/null && iptables_comment="jas-$script_name" || iptables_comment=""
 
     local _iptables _route_ips _ip _chain _route_ip _idx _ip_addr _fwmark _priority
 

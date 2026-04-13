@@ -32,7 +32,7 @@ firewall_rules() {
     [ -z "$BRIDGE_INTERFACE" ] && BRIDGE_INTERFACE="$(nvram get lan_ifname)"
 
     # If xt_comment module is not available, disable comments to avoid errors and continue working without them
-    modprobe xt_comment && iptables_comment="jas-$script_name" || iptables_comment=""
+    modprobe xt_comment 2> /dev/null && iptables_comment="jas-$script_name" || iptables_comment=""
 
     lockfile lockwait
 
