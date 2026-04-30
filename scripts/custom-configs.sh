@@ -22,8 +22,8 @@ load_script_config
 
 [ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
 readonly FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/hosts /etc/resolv.conf " # files we can modify
-readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot appended to
-readonly NO_REPLACE_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/stubby/stubby.yml" # files that cannot be replaced
+readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot be appended to
+readonly NO_REPLACE_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot be replaced
 readonly NO_POSTCONF_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot run postconf script
 
 get_binary_location() {

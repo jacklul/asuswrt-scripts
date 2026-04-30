@@ -150,12 +150,12 @@ This script implements [custom config files from Asuswrt-Merlin firmware](https:
 - passwd (`passwd.add` only)
 - pptpd.conf *
 - profile (`profile.add` only)
-- resolv.conf
+- resolv.conf (no `.add` support) 
 - ripd.conf *
 - shadow (`shadow.add` only)
 - smb.conf
 - snmpd.conf *
-- stubby.yml (`stubby.yml.add` only)
+- stubby.yml
 - torrc *
 - upnp
 - vsftpd.conf
