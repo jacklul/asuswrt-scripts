@@ -45,9 +45,6 @@ if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep 
     sed '/^use spnego/ s/^/#/' -i /etc/smb.conf
     sed '/^auth methods/ s/^/#/' -i /etc/smb.conf
 
-    # Do not limit max protocol
-    sed '/^max protocol =/ s/^/#/' -i /etc/smb.conf
-
     # Logging is not enabled by default in Samba 4
     if ! grep -q "^logging =" /etc/smb.conf; then
         sed "/^log file/a logging = file" -i /etc/smb.conf
