@@ -16,7 +16,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
-CRON="0 3 * * 7" # schedule as cron string
+CRON="0 3 * * 0" # schedule as cron string
 CHANGE_PROVISIONING_MODE=false # set provisioning mode to 'unset' for applicable block devices, needed for some storage devices
 CHANGE_DISCARD_MAX_BYTES=false # automatically set discard_max_bytes to the correct value, requires 'sg_vpd' command (Entware's 'sg3_utils' package)
 FILTER_IDVENDOR="" # only affect devices with specific idVendor values, separated by spaces

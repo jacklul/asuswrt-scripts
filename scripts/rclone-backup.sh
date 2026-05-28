@@ -20,7 +20,7 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 REMOTE="remote:" # remote to use
 PARAMETERS="--buffer-size 1M --progress --stats 1s --verbose --log-file=/tmp/rclone-backup.log" # optional parameters
-CRON="0 6 * * 7" # schedule as cron string
+CRON="0 6 * * 6" # schedule as cron string
 CONFIG_FILE="/jffs/rclone-backup/rclone.conf" # Rclone configuration file
 FILTER_FILE="/jffs/rclone-backup/filter.list" # Rclone filter/list file
 SCRIPT_PRE="/jffs/rclone-backup/script-pre.sh" # execute a command before running rclone command
