@@ -20,6 +20,6 @@ dir="$(readlink -f "$1")"
 
 set -e
 
-echo "" > "$2"
+: > "$2"
 /opt/bin/find "$dir" -exec /opt/bin/stat --format="%a %U %G %n" {} \; >> "$2"
 echo "Permissions have been saved to $2"

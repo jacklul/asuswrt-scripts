@@ -19,11 +19,14 @@
 # Path to custom-configs script from https://github.com/jacklul/asuswrt-scripts
 custom_configs=/jffs/scripts/jas/custom-configs.sh
 
+# Comment to check whenever this script has modified smb.conf for Samba 4
+modified_comment="Modified by samba_multicall"
+
 #########################
 
 # Modify config for Samba 4 compatibility if not already done
-# Check for '--version' is added just to let us use 'smbd --version' in the postconf script
-if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep -q "\-\-version"; then
+# Check for '--version' is added just to let us use 'smbd --version' in the postconf script without causing infinite loop
+if ! grep -Fq "$modified_comment" /etc/smb.conf && ! echo "$*" | grep -q "\-\-version"; then
     fd=1000
     lockfile=/var/lock/samba_multicall.lock
     eval exec "$fd>$lockfile"
@@ -68,7 +71,7 @@ if ! grep -Fq "Modified by samba_multicall" /etc/smb.conf && ! echo "$*" | grep 
         sed "/^\[global\]/a pid directory = /var/run/samba" -i /etc/smb.conf
     fi
 
-    echo "# Modified by samba_multicall" >> /etc/smb.conf
+    echo "# $modified_comment" >> /etc/smb.conf
 
     flock -u "$fd"
     rm -f "$lockfile"
@@ -82,7 +85,7 @@ case "$(basename "$0")" in
         exec /opt/sbin/nmbd "$@"
     ;;
     smbpasswd)
-        [ -x /opt/var/run/smbpasswd ] && exec /opt/var/run/smbpasswd "$@"
+        [ -x /opt/var/lib/firmware-samba/smbpasswd ] && exec /opt/var/lib/firmware-samba/smbpasswd "$@"
         exec /opt/sbin/smbpasswd "$@"
     ;;
 esac

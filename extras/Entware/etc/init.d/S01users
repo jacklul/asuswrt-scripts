@@ -8,9 +8,11 @@
 # See a warning at the end of this file about firmware events that can undo changes
 # made by this script on stock firmware
 #
+# When possible, it's recommended to use custom-configs script!
+#
 
 users="" # Space separated list of users to create
-min_uid=1001 # On AsusWRT users added from fileshare UI start at 501, 'asd' sometimes switches to UID 1000 so 1001 should be safe value to use
+min_uid=1501 # On AsusWRT users added from fileshare UI start at 501, so 1501 should be safe value to use
 
 ##################################################
 
@@ -36,8 +38,8 @@ case $1 in
         tag="$(basename "$0")"
 
         for new_user in $users; do
-            if ! grep -q "$new_user:" /opt/etc/passwd; then
-                used_uids=$(cut -d ':' -f 3 /opt/etc/passwd)
+            if ! grep -q "$new_user:" /etc/passwd; then
+                used_uids=$(cut -d ':' -f 3 /etc/passwd)
                 next_uid=$min_uid
 
                 while is_uid_in_use "$next_uid" "$used_uids"; do
@@ -46,10 +48,10 @@ case $1 in
 
                 logger -st "$tag" "Adding user '$new_user' with UID $next_uid..."
 
-                echo "$new_user:x:$next_uid:$next_uid::/dev/null:/dev/null" >> /opt/etc/passwd
-                echo "$new_user:x:$next_uid:" >> /opt/etc/group
-                echo "$new_user:*:0:0:99999:7:::" >> /opt/etc/shadow
-                echo "$new_user:*::" >> /opt/etc/gshadow
+                echo "$new_user:x:$next_uid:$next_uid::/dev/null:/dev/null" >> /etc/passwd
+                echo "$new_user:x:$next_uid:" >> /etc/group
+                echo "$new_user:*:0:0:99999:7:::" >> /etc/shadow
+                echo "$new_user:*::" >> /etc/gshadow
             fi
         done
     ;;
@@ -59,7 +61,7 @@ case $1 in
     ;;
     check)
         for new_user in $users; do
-            if ! grep -q "$new_user:" /opt/etc/passwd; then
+            if ! grep -q "$new_user:" /etc/passwd; then
                 echo "User $new_user is missing"
                 echo "dead"
                 exit 1

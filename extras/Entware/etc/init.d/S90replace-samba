@@ -21,9 +21,12 @@ case $1 in
         chmod -x /opt/etc/init.d/S91smb # Disable Entware's smb init script
 
         if ! mount | grep -Fq "on /usr/sbin/samba_multicall "; then
-            # Copy firmware's smbpasswd as without it firmware won't be able to manage users
-            if [ ! -f /opt/var/run/smbpasswd ] || [ "$(md5sum /opt/var/run/smbpasswd | awk '{print $1}')" != "$(md5sum /usr/sbin/smbpasswd | awk '{print $1}')" ]; then
-                cp -f /usr/sbin/smbpasswd /opt/var/run/smbpasswd
+            # Copy firmware's samba_multicall as without it firmware won't be able to manage users (smbpasswd)
+            if [ ! -f /opt/var/lib/firmware-samba/samba_multicall ] || [ "$(md5sum /opt/var/lib/firmware-samba/samba_multicall | awk '{print $1}')" != "$(md5sum /usr/sbin/samba_multicall | awk '{print $1}')" ]; then
+                mkdir -p /opt/var/lib/firmware-samba
+                cp -f /usr/sbin/samba_multicall /opt/var/lib/firmware-samba/samba_multicall
+                chmod +x /opt/var/lib/firmware-samba/samba_multicall
+                ln -s /opt/var/lib/firmware-samba/samba_multicall /opt/var/lib/firmware-samba/smbpasswd
             fi
 
             mount -o bind /opt/usr/sbin/samba_multicall /usr/sbin/samba_multicall
