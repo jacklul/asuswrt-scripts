@@ -38,6 +38,7 @@ fi
 
 # Shared configuration variables
 TMP_DIR=/tmp/jas # used by the scripts to store temporary data
+CPU_AFFINITY= # change CPU affinity, empty means no changes
 NO_COLORS=false # set to true to disable ANSI colors
 NO_LOGGER=false # disable messages sent via logger command
 CAPTURE_STDOUT=false # set to true to enable logging of stdout when not running interactively
@@ -76,6 +77,10 @@ if [ -z "$IS_INTERACTIVE" ]; then
     fi
 
     [ -n "$common_log_file" ] && common_log_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
+fi
+
+if [ -n "$CPU_AFFINITY" ] && type taskset > /dev/null 2>&1; then
+    taskset -p "$CPU_AFFINITY" $$ > /dev/null || { echo "Failed to set CPU affinity mask $CPU_AFFINITY for PID $$" >&2; }
 fi
 
 if [ "$REMOVE_OPT_FROM_PATH" = true ]; then
