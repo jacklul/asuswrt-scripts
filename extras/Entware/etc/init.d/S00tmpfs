@@ -46,7 +46,7 @@ EOF
                 fi
 
                 if mount -o bind "$tmpfs_dir/$path" "$mount"; then
-                    logger -st "$tag" "Mounted $tmpfs_dir/$path on $mount"
+                    echo "Mounted $tmpfs_dir/$path on $mount"
                 else
                     logger -st "$tag" "Failed to mount $tmpfs_dir/$path on $mount"
                 fi
