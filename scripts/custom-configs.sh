@@ -25,6 +25,7 @@ readonly FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /et
 readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot be appended to
 readonly NO_REPLACE_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot be replaced
 readonly NO_POSTCONF_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot run postconf script
+readonly self_affinity="$(taskset -p $$ 2> /dev/null | sed 's/.*: //')"
 
 get_binary_location() {
     [ -z "$1" ] && { echo "Binary name not provided" >&2; exit 1; }
@@ -40,11 +41,13 @@ get_binary_location() {
 restart_process() {
     [ -z "$1" ] && { echo "Process name not provided" >&2; exit 1; }
 
-    local _pid _cmdline _timeout _started _full_binary_path
+    local _pid _cmdline _affinity _timeout _started _full_binary_path _affinity_changed
 
     for _pid in $(/bin/ps w | grep -F "$1" | grep -v "grep\|/jffs/scripts" | awk '{print $1}'); do
         [ ! -f "/proc/$_pid/cmdline" ] && continue
         _cmdline="$(tr '\0' ' ' < "/proc/$_pid/cmdline")"
+        _affinity="$(taskset -p "$_pid" 2> /dev/null | sed 's/.*: //')"
+        _affinity_changed=
 
         kill -s SIGTERM "$_pid" 2> /dev/null
 
@@ -63,6 +66,12 @@ restart_process() {
                 _full_binary_path="$(get_binary_location "$_cmdline")"
             fi
 
+            # Change affinity to the same as the killed process
+            if [ -n "$_affinity" ] && echo "$_affinity" | grep -Eq '^[0-9f]+' && [ "$_affinity" != "$self_affinity" ]; then
+                echo "Changing script CPU affinity to $_affinity"
+                taskset -p "$_affinity" $$ > /dev/null && _affinity_changed=1
+            fi
+
             if [ -n "$_full_binary_path" ]; then
                 _cmdline="$(echo "$_cmdline" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')"
 
@@ -70,6 +79,12 @@ restart_process() {
                 "$_full_binary_path" $_cmdline && _started=1 && logecho "Restarted process: $_full_binary_path $_cmdline" alert
             else
                 $_cmdline && _started=1 && logecho "Restarted process: $_cmdline" alert
+            fi
+
+            # Restore affinity of this script if it was changed to match the killed process
+            if [ -n "$self_affinity" ] && [ -n "$_affinity_changed" ]; then
+                echo "Restoring script CPU affinity to $self_affinity"
+                taskset -p "$self_affinity" $$ > /dev/null
             fi
         fi
     done

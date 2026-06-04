@@ -18,7 +18,7 @@ load_script_config
 
 init_affinity="$(taskset -p 1 2> /dev/null | sed 's/.*: //')"
 [ -n "$init_affinity" ] && init_affinity=$((0x$init_affinity))
-if ! echo "$init_affinity" | grep -q '^[0-9]\+$'; then
+if ! echo "$init_affinity" | grep -q '^[0-9f]\+$'; then
     unset init_affinity
 fi
 
@@ -47,9 +47,9 @@ set_affinity() {
             continue
         fi
 
-        _pid_affinity="$(taskset -p "$_pid" | sed 's/.*: //')"
+        _pid_affinity="$(taskset -p "$_pid" 2> /dev/null | sed 's/.*: //')"
 
-        if ! echo "$_pid_affinity" | grep -Eq '^[0-9]+$'; then
+        if ! echo "$_pid_affinity" | grep -Eq '^[0-9f]+'; then
             echo "Failed to get CPU affinity mask of '$_process_basename' (PID $_pid)" >&2
             continue
         fi

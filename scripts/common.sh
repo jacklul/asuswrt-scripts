@@ -628,3 +628,32 @@ remove_iptables_rules_by_comment() {
     [ -n "$_remove_rules_success" ] && return 0
     return 1
 }
+
+reset_cpu_affinity() {
+    ! type taskset > /dev/null 2>&1 && return
+
+    local _init_affinity="$(taskset -p 1 2> /dev/null | sed 's/.*: //')"
+
+    if [ -z "$current_cpu_affinity" ]; then
+        current_cpu_affinity="$(taskset -p $$ 2> /dev/null | sed 's/.*: //')"
+
+        # No change needed
+        if [ "$current_cpu_affinity" = "$_init_affinity" ]; then
+            current_cpu_affinity=
+            return
+        fi
+    fi
+
+    if [ -n "$_init_affinity" ] && echo "$_init_affinity" | grep -q '^[0-9f]\+$'; then
+        echo "Resetting CPU affinity to $_init_affinity"
+        taskset -p "$_init_affinity" $$ > /dev/null
+    fi
+}
+
+restore_cpu_affinity() {
+    ! type taskset > /dev/null 2>&1 && return
+    [ -z "$current_cpu_affinity" ] && return
+
+    echo "Restoring CPU affinity to $current_cpu_affinity"
+    taskset -p "$current_cpu_affinity" $$ > /dev/null
+}

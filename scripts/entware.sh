@@ -178,7 +178,9 @@ services() {
                 if [ -f /opt/etc/init.d/rc.unslung ]; then
                     logecho "Starting services..." alert
 
+                    reset_cpu_affinity
                     /opt/etc/init.d/rc.unslung start "$script_path"
+                    restore_cpu_affinity
 
                     # this currently has been disabled due to some caveats...
                     #[ -z "$IN_RAM" ] && backup_initd_scripts
@@ -353,9 +355,13 @@ entware_in_ram() {
 
         logecho "Starting services..."
 
+        reset_cpu_affinity
+
         if ! /opt/etc/init.d/rc.unslung start "$script_path" >> "$INSTALL_LOG" 2>&1; then
             logecho "Failed to start services, check '$INSTALL_LOG' for details"
         fi
+
+        restore_cpu_affinity
 
         echo "---------- Services started at $(date "+%Y-%m-%d %H:%M:%S") ----------" >> "$INSTALL_LOG"
     fi
