@@ -27,11 +27,9 @@ PERSISTENT=false # should the LED status be persistent between reboots (makes ex
 
 load_script_config
 
-is_merlin_firmware && merlin=true
-readonly merlin
 [ "$PERSISTENT" = true ] && persistent_state=" (preserved)"
 
-if [ -n "$persistent_state" ] && [ -z "$merlin" ]; then
+if [ -n "$persistent_state" ] && ! is_merlin_firmware; then
     PERSISTENT=false
     persistent_state=""
     logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware" error
@@ -70,7 +68,7 @@ loop_led_ctrl() {
 switch_leds() {
     case "$1" in
         "on")
-            if [ -n "$merlin" ]; then
+            if is_merlin_firmware; then
                 nvram set led_disable=0
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
@@ -84,7 +82,7 @@ switch_leds() {
             logecho "LEDs are now ON$persistent_state" alert
         ;;
         "off")
-            if [ -n "$merlin" ]; then
+            if is_merlin_firmware; then
                 nvram set led_disable=1
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
@@ -121,13 +119,13 @@ run_schedule() {
             fi
 
             if [ "$_set_leds_on" = 1 ]; then
-                if [ -n "$merlin" ]; then
+                if is_merlin_firmware; then
                     [ "$(nvram get led_disable)" = 1 ] && sh "$script_path" off
                 else
                     sh "$script_path" off
                 fi
             elif [ "$_set_leds_on" = 0 ]; then
-                if [ -n "$merlin" ]; then
+                if is_merlin_firmware; then
                     [ "$(nvram get led_disable)" = 0 ] && sh "$script_path" on
                 else
                     sh "$script_path" on
@@ -165,7 +163,7 @@ case "$1" in
         crontab_entry delete "${script_name}-On"
         crontab_entry delete "${script_name}-Off"
 
-        if [ -n "$merlin" ] && [ "$(nvram get led_disable)" = "1" ]; then
+        if is_merlin_firmware && [ "$(nvram get led_disable)" = "1" ]; then
             PERSISTENT=true
             switch_leds on
         fi

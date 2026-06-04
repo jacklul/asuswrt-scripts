@@ -30,8 +30,6 @@ load_script_config
 [ -z "$SLEEP" ] && SLEEP=1 # this cannot be empty, set to the lowest possible value
 readonly CHECK_CHAIN="jas-$script_name"
 readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
-is_merlin_firmware && merlin=true
-readonly merlin
 readonly state_file="$TMP_DIR/$script_name"
 
 custom_checks() {
@@ -177,7 +175,7 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
-    [ -z "$merlin" ] && [ -n "$SLEEP_INTEGRATION" ] && sleep "$SLEEP_INTEGRATION"
+    ! is_merlin_firmware && [ -n "$SLEEP_INTEGRATION" ] && sleep "$SLEEP_INTEGRATION"
 
     local _tmp_script_path
 
@@ -209,7 +207,7 @@ integrated_event() {
             # this service event recreates rc_support so we have to re-run this script
             _tmp_script_path="$(resolve_script_basename "modify-features.sh")"
             if [ -n "$_tmp_script_path" ] && [ -x "$_tmp_script_path" ]; then
-                if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
+                if ! is_merlin_firmware && [ "$4" != "ccheck" ]; then
                     local timer=30; while { # wait till rc_support is modified
                         sh "$_tmp_script_path" check
                     } && [ "$timer" -ge 0 ]; do
@@ -227,7 +225,7 @@ integrated_event() {
         ;;
         "custom_configs")
             _tmp_script_path="$(resolve_script_basename "custom-configs.sh")"
-            if [ -n "$_tmp_script_path" ] && [ -x "$_tmp_script_path" ] && [ -z "$merlin" ]; then
+            if [ -n "$_tmp_script_path" ] && [ -x "$_tmp_script_path" ] && ! is_merlin_firmware; then
                 # delay the execution to let the calling service create their config
                 { sleep 10 && sh "$_tmp_script_path" run; } &
             fi
@@ -236,7 +234,7 @@ integrated_event() {
 }
 
 run_in_background() {
-    [ -n "$merlin" ] && exit # Do not run on Asuswrt-Merlin firmware
+    is_merlin_firmware && exit # Do not run on Asuswrt-Merlin firmware
     lockfile check && { [ -n "$IS_INTERACTIVE" ] && echo "Already running! ($lockpid)" >&2; exit 1; }
 
     if is_started_by_system && [ "$PPID" -ne 1 ]; then
@@ -264,7 +262,7 @@ case "$1" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 event=firewall
 
-                if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
+                if ! is_merlin_firmware && [ "$4" != "ccheck" ]; then
                     timer=10; while { # wait till our chains disappear
                         iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1
                     } && [ "$timer" -ge 0 ]; do
@@ -278,7 +276,7 @@ case "$1" in
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 event=network
 
-                if [ -z "$merlin" ] && [ "$4" != "ccheck" ]; then
+                if ! is_merlin_firmware && [ "$4" != "ccheck" ]; then
                     timer=10; while { # wait until wan goes down
                         { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
                         { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
@@ -323,7 +321,7 @@ case "$1" in
         exit
     ;;
     "start")
-        if [ -n "$merlin" ]; then # use service-event-end on Asuswrt-Merlin firmware
+        if is_merlin_firmware; then # use service-event-end on Asuswrt-Merlin firmware
             if [ ! -f /jffs/scripts/service-event-end ]; then
                 cat <<EOT > /jffs/scripts/service-event-end
 #!/bin/sh

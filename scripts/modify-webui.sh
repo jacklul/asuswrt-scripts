@@ -17,9 +17,6 @@ TMP_WWW_DIR="$TMP_DIR/$script_name-www" # directory to store modified files in
 
 load_script_config
 
-is_merlin_firmware && merlin=true
-readonly merlin
-
 sed_and_check() {
     local _md5sum="$(md5sum "$4" | awk '{print $1}')"
 
@@ -133,7 +130,7 @@ notrendmicro_support() {
                 sed_and_check prepend 'return menuTree;' 'menuTree.exclude.menus=function(){var t=menuTree.exclude.menus;return function(){var e=t.apply(this,arguments);return!ParentalCtrl2_support&&notrendmicro_support&&e.push("menu_ParentalControl"),notrendmicro_support&&(e.push("menu_AiProtection"),e.push("menu_BandwidthMonitor")),e}}(),menuTree.exclude.tabs=function(){var t=menuTree.exclude.tabs;return function(){var e=t.apply(this,arguments);return notrendmicro_support&&(e.push("AiProtection_HomeProtection.asp"),e.push("AiProtection_MaliciousSitesBlocking.asp"),e.push("AiProtection_IntrusionPreventionSystem.asp"),e.push("AiProtection_InfectedDevicePreventBlock.asp"),e.push("AiProtection_AdBlock.asp"),e.push("AiProtection_Key_Guard.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("AiProtection_WebProtector.asp"),e.push("AdaptiveQoS_Bandwidth_Monitor.asp"),e.push("QoS_EZQoS.asp"),e.push("AdaptiveQoS_WebHistory.asp"),e.push("AdaptiveQoS_ROG.asp"),e.push("Advanced_QOSUserPrio_Content.asp"),e.push("Advanced_QOSUserRules_Content.asp"),e.push("AdaptiveQoS_Adaptive.asp"),e.push("TrafficAnalyzer_Statistic.asp"),e.push("AdaptiveQoS_TrafficLimiter.asp")),e}}();' "$TMP_WWW_DIR/require/modules/menuTree.js" && \
                     _applied=1
 
-                if [ -n "$merlin" ]; then # but copy our modification to /tmp/menuTree.js and remount it
+                if is_merlin_firmware; then # but copy our modification to /tmp/menuTree.js and remount it
                     cp -f "$TMP_WWW_DIR/require/modules/menuTree.js" /tmp/menuTree.js
                     umount /www/require/modules/menuTree.js 2> /dev/null
                     mount --bind /tmp/menuTree.js /www/require/modules/menuTree.js
@@ -143,7 +140,7 @@ notrendmicro_support() {
             fi
         ;;
         "unset")
-            if [ -n "$merlin" ] || [ -f /tmp/menuTree.js ]; then
+            if is_merlin_firmware || [ -f /tmp/menuTree.js ]; then
                 logecho "Unable to revert 'notrendmicro_support' tweak on Asuswrt-Merlin firmware - reboot is required!" error
                 return
             fi
