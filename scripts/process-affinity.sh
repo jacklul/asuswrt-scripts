@@ -18,9 +18,8 @@ load_script_config
 
 init_affinity="$(taskset -p 1 2> /dev/null | sed 's/.*: //')"
 [ -n "$init_affinity" ] && init_affinity=$((0x$init_affinity))
-if ! echo "$init_affinity" | grep -q '^[0-9f]\+$'; then
-    unset init_affinity
-fi
+! echo "$init_affinity" | grep -q '^[0-9f]\+$' && unset init_affinity
+readonly init_affinity
 
 set_affinity() {
     [ -z "$1" ] && { echo "You must specify a process name" >&2; exit 1; }

@@ -28,6 +28,7 @@ PERSISTENT=false # should the LED status be persistent between reboots (makes ex
 load_script_config
 
 is_merlin_firmware && merlin=true
+readonly merlin
 [ "$PERSISTENT" = true ] && persistent_state=" (preserved)"
 
 if [ -n "$persistent_state" ] && [ -z "$merlin" ]; then
@@ -35,6 +36,8 @@ if [ -n "$persistent_state" ] && [ -z "$merlin" ]; then
     persistent_state=""
     logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware" error
 fi
+
+readonly persistent_state
 
 set_wl_leds() {
     local _state=0

@@ -27,11 +27,12 @@ EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives
 
 load_script_config
 
-is_merlin_firmware && merlin=true
 [ -z "$SLEEP" ] && SLEEP=1 # this cannot be empty, set to the lowest possible value
-state_file="$TMP_DIR/$script_name"
 readonly CHECK_CHAIN="jas-$script_name"
 readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
+is_merlin_firmware && merlin=true
+readonly merlin
+readonly state_file="$TMP_DIR/$script_name"
 
 custom_checks() {
     change_interface=false

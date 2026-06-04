@@ -28,17 +28,18 @@ ENTWARE_DIR=entware # in case you want to change the directory name on the stora
 
 load_script_config
 
-default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
-state_file="$TMP_DIR/$script_name"
-opt=/opt
-last_entware_device=""
-[ -f "$state_file" ] && last_entware_device="$(cat "$state_file")"
+[ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
 [ -z "$BASE_URL" ] && BASE_URL="$default_base_url"
+readonly default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
+readonly state_file="$TMP_DIR/$script_name"
+[ -f "$state_file" ] && last_entware_device="$(cat "$state_file")"
+readonly last_entware_device
 check_url="$BASE_URL"
 [ "$USE_HTTPS" = true ] && check_url="$(echo "$check_url" | sed 's/http:/https:/')"
-[ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
+readonly check_url
 
 # Resolve /opt if it is a symlink
+opt=/opt
 if [ -L "$opt" ]; then
     opt_symlink="$(readlink "$opt")"
     [ -z "$opt_symlink" ] && { echo "Unable to read $opt symlink" >&2; exit 1; }
@@ -52,7 +53,10 @@ if [ -L "$opt" ]; then
             opt="${opt_dirname}${opt_symlink}"
         ;;
     esac
+
+    unset opt_symlink
 fi
+readonly opt
 
 is_opt_mounted() {
     if mount | grep -Fq "on $opt "; then

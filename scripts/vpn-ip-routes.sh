@@ -30,8 +30,8 @@ FWMARK_MASK="0xf000" # fwmark mask to use, it must be compatible with all entrie
 
 load_script_config
 
-state_file="$TMP_DIR/$script_name"
 readonly CHAIN="jas-${script_name}"
+readonly state_file="$TMP_DIR/$script_name"
 
 is_vpnc_active() {
     get_vpnc_clientlist | awk -F '>' '{print $7, $6}' | grep -Fq "$1 1"

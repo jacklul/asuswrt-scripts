@@ -33,12 +33,13 @@ CUSTOM_COMMAND="" # command will receive the new firmware version as its first p
 
 load_script_config
 
-state_file="$TMP_DIR/$script_name"
-tmp_file="$TMP_DIR/$script_name.tmp"
-router_ip="$(nvram get lan_ipaddr)"
+readonly state_file="$TMP_DIR/$script_name"
+readonly tmp_file="$TMP_DIR/$script_name.tmp"
+readonly router_ip="$(nvram get lan_ipaddr)"
 router_name="$(nvram get lan_hostname)"
 [ -z "$router_name" ] && router_name="$router_ip"
-curl_binary="$(get_curl_binary)"
+readonly router_name
+readonly curl_binary="$(get_curl_binary)"
 [ -z "$curl_binary" ] && { echo "curl not found"; exit 1; }
 
 send_email_message() {

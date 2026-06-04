@@ -66,17 +66,17 @@ readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FR
 
 if [ -z "$IS_INTERACTIVE" ]; then
     if [ "$CAPTURE_STDOUT" = true ] && [ "$CAPTURE_STDERR" = true ]; then
-        common_log_file="$TMP_DIR/$script_name-out.log"
+        readonly common_log_file="$TMP_DIR/$script_name-out.log"
         exec 1>> "$common_log_file" 2>&1
     elif [ "$CAPTURE_STDOUT" = true ]; then
-        common_log_file="$TMP_DIR/$script_name-stdout.log"
+        readonly common_log_file="$TMP_DIR/$script_name-stdout.log"
         exec 1>> "$common_log_file"
     elif [ "$CAPTURE_STDERR" = true ]; then
-        common_log_file="$TMP_DIR/$script_name-stderr.log"
+        readonly common_log_file="$TMP_DIR/$script_name-stderr.log"
         exec 2>> "$common_log_file"
     fi
 
-    [ -n "$common_log_file" ] && common_log_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
+    [ -n "$common_log_file" ] && readonly common_log_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
 fi
 
 if [ -n "$CPU_AFFINITY" ] && type taskset > /dev/null 2>&1; then
@@ -159,9 +159,9 @@ logecho() {
 }
 
 is_merlin_firmware() {
-    [ -z "$merlin_uname_check" ] && merlin_uname_check="$(uname -o)" # cache in case of multiple calls
+    [ -z "$merlin_uname_check" ] && readonly merlin_uname_check="$([ "$(uname -o)" = "ASUSWRT-Merlin" ] && echo "true" || echo "false")"
 
-    if [ "$merlin_uname_check" = "ASUSWRT-Merlin" ]; then
+    if [ "$merlin_uname_check" = "true" ]; then
         return 0
     fi
 
@@ -408,7 +408,7 @@ fetch() {
     _timeout="$3"
 
     if [ -z "$curl_binary" ] && type get_curl_binary > /dev/null 2>&1; then
-        curl_binary="$(get_curl_binary)"
+        readonly curl_binary="$(get_curl_binary)"
     fi
 
     if [ -n "$curl_binary" ]; then
@@ -597,7 +597,7 @@ calculate_network() {
 }
 
 get_vpnc_clientlist() {
-    [ -z "$vpnc_clientlist" ] && vpnc_clientlist="$(nvram get vpnc_clientlist | tr '<' '\n')"
+    [ -z "$vpnc_clientlist" ] && readonly vpnc_clientlist="$(nvram get vpnc_clientlist | tr '<' '\n')"
     echo "$vpnc_clientlist"
 }
 
@@ -642,6 +642,8 @@ reset_cpu_affinity() {
             current_cpu_affinity=
             return
         fi
+
+        readonly current_cpu_affinity
     fi
 
     if [ -n "$_init_affinity" ] && echo "$_init_affinity" | grep -q '^[0-9f]\+$'; then

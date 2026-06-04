@@ -21,7 +21,7 @@ RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
 
-state_file="$TMP_DIR/$script_name"
+readonly state_file="$TMP_DIR/$script_name"
 
 get_interface_address() {
     ip addr show "$1" | grep inet | awk '{print $2}' | cut -d '/' -f 1

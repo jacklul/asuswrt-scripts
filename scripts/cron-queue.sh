@@ -13,7 +13,7 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
-state_file="$TMP_DIR/$script_name"
+readonly state_file="$TMP_DIR/$script_name"
 
 case "$1" in
     "run")

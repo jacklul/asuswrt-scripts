@@ -18,6 +18,7 @@ TMP_WWW_DIR="$TMP_DIR/$script_name-www" # directory to store modified files in
 load_script_config
 
 is_merlin_firmware && merlin=true
+readonly merlin
 
 sed_and_check() {
     local _md5sum="$(md5sum "$4" | awk '{print $1}')"

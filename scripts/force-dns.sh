@@ -40,9 +40,9 @@ load_script_config
 readonly CHAIN_DNAT="jas-${script_name}-dnat"
 readonly CHAIN_DOT="jas-${script_name}-dot"
 readonly CHAIN_BLOCK="jas-${script_name}-block"
-router_ip="$(nvram get lan_ipaddr)"
-router_ip6="$(nvram get ipv6_rtr_addr)"
-ipv6_service="$(nvram get ipv6_service)"
+readonly router_ip="$(nvram get lan_ipaddr)"
+readonly router_ip6="$(nvram get ipv6_rtr_addr)"
+readonly ipv6_service="$(nvram get ipv6_service)"
 
 if [ -z "$DNS_SERVER" ]; then
     dhcp_dns1="$(nvram get dhcp_dns1_x)"

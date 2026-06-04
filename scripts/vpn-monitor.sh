@@ -43,10 +43,9 @@ EXECUTE_COMMAND="" # execute a command after connection is restarted (receives a
 
 load_script_config
 
-state_file="$TMP_DIR/$script_name"
-
 [ -z "$TEST_RETRIES" ] && TEST_RETRIES=1 # this cannot be empty, set to the lowest possible value
 [ -z "$RESTART_LIMIT" ] && RESTART_LIMIT=0 # this cannot be empty, set to 0 (no limit)
+readonly state_file="$TMP_DIR/$script_name"
 
 script_trapexit() {
     ip rule del prio 55 > /dev/null 2>&1
