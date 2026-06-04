@@ -30,7 +30,8 @@ load_script_config
 is_merlin_firmware && merlin=true
 [ "$PERSISTENT" = true ] && persistent_state=" (preserved)"
 
-if [ -n "$persistent_state" ] && [ -n "$merlin" ]; then
+if [ -n "$persistent_state" ] && [ -z "$merlin" ]; then
+    PERSISTENT=false
     persistent_state=""
     logecho "Persistent LED state is only supported on Asuswrt-Merlin firmware" error
 fi
@@ -67,6 +68,7 @@ switch_leds() {
     case "$1" in
         "on")
             if [ -n "$merlin" ]; then
+                nvram set led_disable=0
                 [ "$PERSISTENT" = true ] && nvram commit
                 service restart_leds > /dev/null
             else
