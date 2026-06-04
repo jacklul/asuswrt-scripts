@@ -21,10 +21,10 @@ KILL_TIMEOUT=5 # how many seconds to wait before SIGKILL if the process does not
 load_script_config
 
 [ -z "$KILL_TIMEOUT" ] && KILL_TIMEOUT=-1 # empty value disables timeout
-readonly FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/hosts /etc/resolv.conf " # files we can modify
-readonly NO_ADD_FILES="/etc/resolv.conf" # files that cannot be appended to
-readonly NO_REPLACE_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot be replaced
-readonly NO_POSTCONF_FILES="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot run postconf script
+readonly files="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/hosts /etc/resolv.conf " # files we can modify
+readonly no_add_files="/etc/resolv.conf" # files that cannot be appended to
+readonly no_replace_files="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot be replaced
+readonly no_postconf_files="/etc/profile /etc/passwd /etc/shadow /etc/group /etc/gshadow" # files that cannot run postconf script
 readonly self_affinity="$(taskset -p $$ 2> /dev/null | sed 's/.*: //')"
 
 get_binary_location() {
@@ -92,11 +92,11 @@ restart_process() {
 
 is_file_add_supported() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ -z "$NO_ADD_FILES" ] && return 0
+    [ -z "$no_add_files" ] && return 0
     local _new="$(echo "$1" | sed 's/\.new$//')"
 
     local _no_add_file
-    for _no_add_file in $NO_ADD_FILES; do
+    for _no_add_file in $no_add_files; do
         [ "$_no_add_file" = "$_new" ] && return 1
     done
 
@@ -105,11 +105,11 @@ is_file_add_supported() {
 
 is_file_replace_supported() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ -z "$NO_REPLACE_FILES" ] && return 0
+    [ -z "$no_replace_files" ] && return 0
     local _new="$(echo "$1" | sed 's/\.new$//')"
 
     local _no_replace_file
-    for _no_replace_file in $NO_REPLACE_FILES; do
+    for _no_replace_file in $no_replace_files; do
         [ "$_no_replace_file" = "$_new" ] && return 1
     done
 
@@ -118,11 +118,11 @@ is_file_replace_supported() {
 
 is_file_postconf_supported() {
     [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ -z "$NO_POSTCONF_FILES" ] && return 0
+    [ -z "$no_postconf_files" ] && return 0
     local _new="$(echo "$1" | sed 's/\.new$//')"
 
     local _no_postconf_file
-    for _no_postconf_file in $NO_POSTCONF_FILES; do
+    for _no_postconf_file in $no_postconf_files; do
         [ "$_no_postconf_file" = "$_new" ] && return 1
     done
 
@@ -233,7 +233,7 @@ commit_new_file() {
 
 modify_files() {
     local _file
-    for _file in $FILES; do
+    for _file in $files; do
         if [ -f "$_file" ] && ! is_config_file_modified "$_file"; then
             [ ! -f "$_file.bak" ] && cp "$_file" "$_file.bak"
 
@@ -250,7 +250,7 @@ modify_files() {
 
 restore_files() {
     local _file
-    for _file in $FILES; do
+    for _file in $files; do
         if  [ -f "$_file.bak" ] && [ -f "$_file.new" ]; then
             cp -f "$_file.bak" "$_file"
             rm -f "$_file.new"
