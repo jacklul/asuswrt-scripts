@@ -56,7 +56,7 @@ firewall_rules() {
                 done
             ;;
             "remove")
-                 "$_iptables" "filter" && _rules_action=-1
+                remove_iptables_rules_by_comment "$_iptables" "filter" && _rules_action=-1
             ;;
         esac
     done
