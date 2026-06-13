@@ -18,7 +18,8 @@ if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script
 
 CRON="0 3 * * 0" # schedule as cron string
 CHANGE_PROVISIONING_MODE=false # set provisioning mode to 'unset' for applicable block devices, needed for some storage devices
-CHANGE_DISCARD_MAX_BYTES=false # automatically set discard_max_bytes to the correct value, requires 'sg_vpd' command (Entware's 'sg3_utils' package)
+CHANGE_DISCARD_MAX_BYTES=false # automatically set discard_max_bytes to the correct value, automatic calculation requires 'sg_vpd' command (Entware's 'sg3_utils' package)
+DISCARD_MAX_BYTES_OVERRIDE= # set discard_max_bytes to a specific value (in bytes), overrides automatic calculation
 FILTER_IDVENDOR="" # only affect devices with specific idVendor values, separated by spaces
 FILTER_IDPRODUCT="" # only affect devices with specific idProduct values, separated by spaces
 
@@ -95,11 +96,18 @@ is_valid_ssd_device() {
         return 1
     fi
 
-    # Check if TRIM is supported
+    return 0
+}
+
+is_discard_supported() {
+    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
+
+    # Check if discard/TRIM is supported
     local _max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2> /dev/null || echo "N/A")
     case "$_max_discard" in
         ''|0|*[!0-9]*)
-            echo "Device does not support discard: $_dev"
+            echo "Device does not support discard: /sys/block/$1"
             return 1
         ;;
     esac
@@ -111,19 +119,10 @@ change_provisioning_mode() {
     [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
     [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
-    if type sg_vpd > /dev/null 2>&1; then
-        local _unmap_supported="$(sg_vpd -p lbpv "/dev/$1" | grep "Unmap command supported" | cut -d ': ' -f 2)"
-
-        if [ "$_unmap_supported" != "1" ]; then
-            echo "Unmap command is not supported on device: /sys/block/$1"
-            return 1
-        fi
-    fi
-
     local _file _contents
 
     # Set provisioning_mode to 'unmap' to allow TRIM commands to go through
-    find "/sys/block/$1/device" -name "provisioning_mode" | while read -r _file; do
+    find "/sys/block/$1/device/" -name "provisioning_mode" | while read -r _file; do
         [ -z "$_file" ] && continue
 
         _contents=$(cat "$_file" 2> /dev/null || echo "")
@@ -131,6 +130,8 @@ change_provisioning_mode() {
         if [ "$_contents" != "unmap" ]; then
             echo "Writing 'unmap' to '$_file'"
             echo "unmap" > "$_file"
+
+            logecho "Changed provisioning_mode to 'unmap' for /sys/block/$1" alert
         fi
     done
 }
@@ -139,32 +140,44 @@ change_discard_max_bytes() {
     [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
     [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
 
-    if ! type sg_vpd > /dev/null 2>&1 || ! type sg_readcap > /dev/null 2>&1; then
-        logecho "Missing required commands ('sg_vpd', 'sg_readcap')" error
-        return 0
-    fi
-
-    local _lba_count="$(sg_vpd -p bl "/dev/$1" | grep "Maximum unmap LBA count" | cut -d ': ' -f 2)"
-    local _block_length="$(cat "/sys/block/$1/queue/logical_block_size")"
-    local _value=$((_lba_count *_block_length))
     local _file="/sys/block/$1/queue/discard_max_bytes"
     local _contents=$(cat "$_file" 2> /dev/null || echo "")
+
+    if [ -z "$DISCARD_MAX_BYTES_OVERRIDE" ] || [ "$DISCARD_MAX_BYTES_OVERRIDE" -le 0 ]; then
+        if [ ! -x /opt/bin/sg_vpd ]; then
+            logecho "Error: Missing 'sg_vpd' command" error
+            return 1
+        fi
+
+        local _lba_count="$(printf "%d\n" "$(/opt/bin/sg_vpd -p bl "/dev/$1" | grep "Maximum unmap LBA count" | cut -d ':' -f 2)")"
+        local _block_length="$(cat "/sys/block/$1/queue/logical_block_size")"
+        local _value=$((_lba_count *_block_length))
+
+        if [ "$_value" -le 0 ]; then
+            logecho "Error: Failed to calculate discard_max_bytes [/sys/block/$1]" error
+            return 1
+        fi
+    else
+        local _value="$DISCARD_MAX_BYTES_OVERRIDE"
+    fi
 
     if [ "$_contents" != "$_value" ]; then
         local _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
         if [ "$((_value % _discard_granularity))" -ne 0 ]; then
-            logecho "Calculated value is not divisible by discard_granularity (/sys/block/$1)" error
+            logecho "Calculated value ($_value) is not divisible by discard_granularity ($_discard_granularity) [/sys/block/$1]" error
             return 1
         fi
 
         local _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
         if [ "$_value" -gt "$_discard_max_hw_bytes" ]; then
-            logecho "Calculated value exceeded discard_max_hw_bytes (/sys/block/$1)" error
+            logecho "Calculated value ($_value) exceeded discard_max_hw_bytes ($_discard_max_hw_bytes) [/sys/block/$1]" error
             return 1
         fi
 
         echo "Writing '$_value' to '$_file'"
         echo "$_value" > "$_file"
+
+        logecho "Changed discard_max_bytes to '$_value' for /sys/block/$1" alert
     fi
 }
 
@@ -173,7 +186,10 @@ process_device() {
 
     is_valid_ssd_device "$1" || return 1
     [ "$CHANGE_PROVISIONING_MODE" = true ] && { change_provisioning_mode "$1" || return 1; }
+    is_discard_supported "$1" || return 1
     [ "$CHANGE_DISCARD_MAX_BYTES" = true ] && { change_discard_max_bytes "$1" || return 1; }
+
+    return 0
 }
 
 case "$1" in
@@ -186,9 +202,7 @@ case "$1" in
             name=$(basename "$dev")
 
             if is_ssd_device_name "$name"; then
-                is_valid_ssd_device "$name" || continue
-                [ "$CHANGE_PROVISIONING_MODE" = true ] && { change_provisioning_mode "$name" || continue; }
-                [ "$CHANGE_DISCARD_MAX_BYTES" = true ] && { change_discard_max_bytes "$name" || continue; }
+                process_device "$name" || continue
 
                 trimmed=""
                 mount | grep "/dev/$name" | while read -r line; do
