@@ -241,7 +241,6 @@ entware() {
             fi
 
             echo "" > "$state_file"
-            last_entware_device=""
         ;;
     esac
 
