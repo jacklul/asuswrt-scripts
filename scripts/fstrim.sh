@@ -210,11 +210,11 @@ case "$1" in
                     mount_point="$(echo "$line" | awk '{print $3}')"
 
                     # Avoid trimming same block device multiple times
-                    if echo "$trimmed" | grep -Fq "$mount_device"; then
+                    if echo "$trimmed" | grep -Fq " $mount_device "; then
                         continue
                     fi
 
-                    trimmed="$trimmed $mount_device"
+                    trimmed="$trimmed $mount_device "
                     output="$(fstrim -v "$mount_point" 2>&1)"
                     status=$?
                     log="/tmp/fstrim_$name.log"
@@ -223,9 +223,9 @@ case "$1" in
 
                     #shellcheck disable=SC2181
                     if [ "$status" -eq 0 ]; then
-                        logecho "Executed fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" alert
+                        logecho "Executed fstrim on $mount_device: $(echo "$output" | tr '\n' ' ')" alert
                     else
-                        logecho "Failed to execute fstrim on '$mount_device': $(echo "$output" | tr '\n' ' ')" error
+                        logecho "Failed to execute fstrim on $mount_device: $(echo "$output" | tr '\n' ' ')" error
                     fi
                 done
             fi
