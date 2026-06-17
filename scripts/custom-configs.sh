@@ -67,7 +67,7 @@ restart_process() {
             fi
 
             # Change affinity to the same as the killed process
-            if [ -n "$_affinity" ] && echo "$_affinity" | grep -Eq '^[0-9f]+' && [ "$_affinity" != "$self_affinity" ]; then
+            if [ -n "$_affinity" ] && echo "$_affinity" | grep -Eq '^[0-9A-Fa-f]+$' && [ "$_affinity" != "$self_affinity" ]; then
                 echo "Changing script CPU affinity to $_affinity"
                 taskset -p "$_affinity" $$ > /dev/null && _affinity_changed=1
             fi

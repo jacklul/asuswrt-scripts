@@ -17,8 +17,16 @@ PROCESS_AFFINITIES="" # List of processes and affinity masks, in format 'process
 load_script_config
 
 init_affinity="$(taskset -p 1 2> /dev/null | sed 's/.*: //')"
-[ -n "$init_affinity" ] && init_affinity=$((0x$init_affinity))
-! echo "$init_affinity" | grep -q '^[0-9f]\+$' && unset init_affinity
+if [ -n "$init_affinity" ]; then
+    [ -n "$init_affinity" ] && init_affinity=$((0x$init_affinity)) # store as decimal
+    init_affinity_minus_one=$((init_affinity - 1))
+    if [ "$init_affinity_minus_one" -gt 0 ]; then
+        readonly init_affinity_minus_one=$(printf '%x\n' "$init_affinity_minus_one")
+    else
+        unset init_affinity_minus_one
+    fi
+fi
+! echo "$init_affinity" | grep -Eq  '^[0-9A-Fa-f]+$' && unset init_affinity
 readonly init_affinity
 
 set_affinity() {
@@ -48,12 +56,12 @@ set_affinity() {
 
         _pid_affinity="$(taskset -p "$_pid" 2> /dev/null | sed 's/.*: //')"
 
-        if ! echo "$_pid_affinity" | grep -Eq '^[0-9f]+'; then
+        if ! echo "$_pid_affinity" | grep -Eq  '^[0-9A-Fa-f]+$'; then
             echo "Failed to get CPU affinity mask of '$_process_basename' (PID $_pid)" >&2
             continue
         fi
 
-        if [ "$_pid_affinity" -ne "$2" ]; then
+        if [ "$_pid_affinity" != "$2" ]; then
             if taskset -p "$2" "$_pid" > /dev/null; then
                 logecho "Changed CPU affinity mask of '$_process_basename' (PID $_pid) from $_pid_affinity to $2" alert
             else
@@ -67,22 +75,10 @@ process_affinity() {
     type taskset > /dev/null 2>&1 || { logecho "Error: Command 'taskset' not found" error; exit 1; }
     [ -z "$PROCESS_AFFINITIES" ] && { logecho "Error: PROCESS_AFFINITIES is not set" error; exit 1; }
 
-    local _init_affinity_minus_one
-
-    if [ -n "$init_affinity" ]; then
-        _init_affinity_minus_one=$((init_affinity - 1))
-
-        if [ "$_init_affinity_minus_one" -le 0 ]; then
-            unset _init_affinity_minus_one
-        else
-            _init_affinity_minus_one=$(printf '%x\n' "$_init_affinity_minus_one")
-        fi
-    fi
-
     local _process _affinity
 
     for _process in $PROCESS_AFFINITIES; do
-        _affinity=$_init_affinity_minus_one
+        _affinity=$init_affinity_minus_one
 
         case $1 in
             "set")

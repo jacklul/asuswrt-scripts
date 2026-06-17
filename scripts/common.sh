@@ -646,7 +646,7 @@ reset_cpu_affinity() {
         readonly current_cpu_affinity
     fi
 
-    if [ -n "$_init_affinity" ] && echo "$_init_affinity" | grep -q '^[0-9f]\+$'; then
+    if [ -n "$_init_affinity" ] && echo "$_init_affinity" | grep -Eq '^[0-9A-Fa-f]+$'; then
         echo "Resetting CPU affinity to $_init_affinity"
         taskset -p "$_init_affinity" $$ > /dev/null
     fi
