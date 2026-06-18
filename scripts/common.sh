@@ -185,88 +185,91 @@ is_started_by_system() {
     return 1
 }
 
+#shellcheck disable=SC2034
 lockfile() {
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
-    local _lockfile="/var/lock/jas-$script_name.lock"
-    [ -n "$2" ] && _lockfile="/var/lock/jas-$script_name-$2.lock"
-    [ -f "$_lockfile" ] && lockpid="$(cat "$_lockfile")"
-
-    local _min_fd=100
-    local _fd
+    local _file="/var/lock/jas-$script_name.lock"
+    [ -n "$2" ] && _file="/var/lock/jas-$script_name-$2.lock"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
             if [ -n "$lockfd" ]; then
-                logecho "Lockfile is already locked by this process ($_lockfile)" error
+                logecho "Error: Lockfile is already locked by this process ($_file)" error
                 exit 1
             fi
 
-            for _fd in "/proc/$$/fd"/*; do
-                _fd="$(basename "$_fd")"
-                [ "$_fd" -lt "$_min_fd" ] && continue
+            # Clean up stale lockfile
+            if [ -f "$_file" ]; then
+                local _pid="$(cat "$_file" 2> /dev/null)"
 
-                if [ "$(readlink -f "/proc/$$/fd/$_fd")" = "$_lockfile" ]; then
-                    logecho "File descriptor ($(basename "$_fd")) is already open for the same lockfile ($_lockfile)" error
-                    exit 1
+                if [ -n "$_pid" ] && [ ! -f "/proc/$_pid/stat" ]; then
+                    echo "Removing stale lockfile: $_file" >&2
+                    rm -f "$_file"
                 fi
-            done
-
-            # Remove stale lockfile if the process does not exist anymore
-            if [ -n "$lockpid" ] && [ ! -f "/proc/$lockpid/stat" ]; then
-                rm -f "$_lockfile"
-                lockpid=
             fi
 
-            _fd=$(lockfile_fd "$_min_fd")
-            eval exec "$_fd>$_lockfile"
+            local _fd=$(get_file_descriptor) || return 1
+            eval exec "$_fd>$_file" 2> /dev/null
 
             case "$1" in
                 "lockwait")
-                    local _lockwait=60
+                    local _timeout=60
                     while ! flock -nx "$_fd"; do
-                        eval exec "$_fd>&-"
-                        _lockwait=$((_lockwait-1))
+                        _timeout=$((_timeout - 1))
 
-                        if [ "$_lockwait" -lt 0 ]; then
-                            logecho "Failed to acquire a lock after 60 seconds ($_lockfile)" error
+                        if [ "$_timeout" -lt 0 ]; then
+                            logecho "Error: Failed to acquire lock after 60 seconds ($_file)" error
+                            eval exec "$_fd>&-" 2> /dev/null
                             exit 1
                         fi
 
                         sleep 1
-                        _fd=$(lockfile_fd "$_min_fd")
-                        eval exec "$_fd>$_lockfile"
+
+                        # Re-open in case it was deleted during the wait
+                        eval exec "$_fd>$_file" 2> /dev/null
                     done
                 ;;
-                "lockfail")
-                    flock -nx "$_fd" || return 1
-                ;;
-                "lockexit")
-                    flock -nx "$_fd" || exit 1
+                "lockfail"|"lockexit")
+                    if ! flock -nx "$_fd"; then
+                        eval exec "$_fd>&-" 2> /dev/null
+
+                        [ "$1" = "lockexit" ] && exit 1
+                        return 1
+                    fi
                 ;;
             esac
 
-            echo $$ > "$_lockfile"
-            chmod 644 "$_lockfile"
+            if [ ! -f "$_file" ]; then
+                logecho "Error: Lockfile was deleted after acquiring lock ($_file)" error
+                exit 1
+            fi
+
+            echo "$$" > "$_file"
             lockfd="$_fd"
-            #lockfile="$_lockfile"
+            lockfile="$_file"
+            return 0
         ;;
         "unlock")
             [ -z "$lockfd" ] && return 1
-            _lockfile="$(readlink -f "/proc/$$/fd/$lockfd")"
-            flock -u "$lockfd"
-            eval exec "$lockfd>&-"
+
+            flock -u "$lockfd" 2> /dev/null
+            eval exec "$lockfd>&-" 2> /dev/null
+            rm -f "$lockfile"
+
             lockfd=
-            rm -f "$_lockfile"
+            lockfile=
             return 0
         ;;
-        "check")
-            [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ] && return 0
-            return 1
-        ;;
-        "kill")
-            if [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ]; then
-                kill -9 "$lockpid"
-                rm -f "$_lockfile"
+        "check"|"kill")
+            [ ! -f "$_file" ] && return 1
+            local _pid="$(cat "$_file" 2> /dev/null)"
+
+            if [ -n "$_pid" ] && [ -f "/proc/$_pid/stat" ]; then
+                if [ "$1" = "kill" ]; then
+                    kill -9 "$_pid" 2> /dev/null
+                    rm -f "$_file"
+                fi
+
                 return 0
             fi
 
@@ -275,17 +278,21 @@ lockfile() {
     esac
 }
 
-lockfile_fd() {
-    local _min="$1"
-    [ -z "$_min" ] && _min=100
-    local _max=$((_min+100))
+get_file_descriptor() {
+    local _min="${1:-100}"
+    local _max=$((_min + 100))
 
-    while [ -f "/proc/$$/fd/$_min" ]; do
-        _min=$((_min+1))
-        [ "$_min" -gt "$_max" ] && { logecho "Error: No free file descriptors available" error; exit 1; }
+    while [ "$_min" -le "$_max" ]; do
+        if [ ! -e "/proc/$$/fd/$_min" ]; then
+            echo "$_min"
+            return 0
+        fi
+
+        _min=$((_min + 1))
     done
 
-    echo "$_min"
+    logecho "Error: No free file descriptors available (tried ${_min}..${_max})" error
+    return 1
 }
 
 crontab_entry() {
