@@ -74,7 +74,7 @@ trigger_event() {
     local _action="$1"
     local _target="$2"
 
-    if [ "$3" = "ccheck" ]; then # this argument disables event verification timers in the event handler
+    if [ "$3" = "quick" ]; then # this argument disables event verification timers in the event handler
         lockfile check "event_${_action}_${_target}" && return # already processing this event
 
         logecho "Running script (args: '$_action' '$_target') *" alert
@@ -153,11 +153,11 @@ service_monitor() {
 
         if [ -z "$_event_triggered" ] && ! custom_checks; then
             if [ "$change_interface" = true ]; then # || [ "$change_wan" = true ]
-                trigger_event "restart" "net" "ccheck"
+                trigger_event "restart" "net" "quick"
             fi
 
             if [ "$change_firewall" = true ]; then
-                trigger_event "restart" "firewall" "ccheck"
+                trigger_event "restart" "firewall" "quick"
             fi
         fi
 
@@ -207,7 +207,7 @@ integrated_event() {
             # this service event recreates rc_support so we have to re-run this script
             _tmp_script_path="$(resolve_script_basename "modify-features.sh")"
             if [ -n "$_tmp_script_path" ] && [ -x "$_tmp_script_path" ]; then
-                if ! is_merlin_firmware && [ "$4" != "ccheck" ]; then
+                if ! is_merlin_firmware && [ "$4" != "quick" ]; then
                     local timer=30; while { # wait till rc_support is modified
                         sh "$_tmp_script_path" check
                     } && [ "$timer" -ge 0 ]; do
@@ -249,7 +249,7 @@ case "$1" in
         run_in_background
     ;;
     "event")
-        if [ "$4" = "ccheck" ]; then
+        if [ "$4" = "quick" ]; then # quick = run without any delays but only if not already running
             lockfile lockfail "event_${2}_${3}" || { echo "Error: This event is already being processed (args: '$2' '$3')" >&2; exit 1; }
         else
             lockfile lockwait "event_${2}_${3}"
@@ -262,7 +262,7 @@ case "$1" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 event=firewall
 
-                if ! is_merlin_firmware && [ "$4" != "ccheck" ]; then
+                if ! is_merlin_firmware && [ "$4" != "quick" ]; then
                     timer=10; while { # wait till our chains disappear
                         iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1
                     } && [ "$timer" -ge 0 ]; do
@@ -276,7 +276,7 @@ case "$1" in
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 event=network
 
-                if ! is_merlin_firmware && [ "$4" != "ccheck" ]; then
+                if ! is_merlin_firmware && [ "$4" != "quick" ]; then
                     timer=10; while { # wait until wan goes down
                         { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
                         { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
