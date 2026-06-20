@@ -276,9 +276,6 @@ _Recommended to use [`service-event`](#user-content-service-event) as well for b
 
 ## [`fstrim`](/scripts/fstrim.sh)
 
-> [!CAUTION]
-> This script is currently untested.
-
 This script will run `fstrim` command on a schedule for all mounted SSD devices.
 
 By default, it runs at <ins>03:00 every Sunday</ins>.
