@@ -268,7 +268,7 @@ check_connection_by_ifname() {
         if [ -n "$TEST_URL" ];then 
             echo "Fetching URL $TEST_URL via $1"
 
-            if curl -sf --retry 3 --retry-delay 2 --retry-all-errors --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
+            if curl --silent --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
                 _url_success=true
             else
                 echo "Failed to fetch URL ($1)" >&2
