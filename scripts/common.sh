@@ -190,6 +190,7 @@ lockfile() {
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
     local _file="/var/lock/jas-$script_name.lock"
     [ -n "$2" ] && _file="/var/lock/jas-$script_name-$2.lock"
+    [ -f "$_file" ] && lockpid="$(cat "$_file" 2> /dev/null)"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
@@ -199,13 +200,9 @@ lockfile() {
             fi
 
             # Clean up stale lockfile
-            if [ -f "$_file" ]; then
-                local _pid="$(cat "$_file" 2> /dev/null)"
-
-                if [ -n "$_pid" ] && [ ! -f "/proc/$_pid/stat" ]; then
-                    echo "Removing stale lockfile: $_file" >&2
-                    rm -f "$_file"
-                fi
+            if [ -n "$lockpid" ] && [ ! -f "/proc/$lockpid/stat" ]; then
+                echo "Removing stale lockfile: $_file" >&2
+                rm -f "$_file"
             fi
 
             local _fd=$(get_file_descriptor) || return 1
@@ -247,6 +244,7 @@ lockfile() {
             echo "$$" > "$_file"
             lockfd="$_fd"
             lockfile="$_file"
+            lockpid="$$"
             return 0
         ;;
         "unlock")
@@ -258,16 +256,14 @@ lockfile() {
 
             lockfd=
             lockfile=
+            lockpid=
             return 0
         ;;
         "check"|"kill")
-            [ ! -f "$_file" ] && return 1
-            local _pid="$(cat "$_file" 2> /dev/null)"
-
-            if [ -n "$_pid" ] && [ -f "/proc/$_pid/stat" ]; then
+            if [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ]; then
                 if [ "$1" = "kill" ]; then
-                    kill -9 "$_pid" 2> /dev/null
-                    rm -f "$_file"
+                    kill -9 "$lockpid" 2> /dev/null
+                    rm -f "$lockfile"
                 fi
 
                 return 0
