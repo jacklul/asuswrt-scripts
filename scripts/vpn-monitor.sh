@@ -77,7 +77,7 @@ restart_counter() {
 
             if [ "$RESTART_LIMIT" -gt 0 ] && [ "$_counter" -eq "$RESTART_LIMIT" ]; then
                 restart_counter increment "$2"
-                logecho "Restart limit of $RESTART_LIMIT reached for $2" error
+                logecho "Restart limit of $RESTART_LIMIT reached for '$2'" error
                 return 1
             fi
 
@@ -151,7 +151,7 @@ restart_connection_by_ifname() {
 
         if [ "$_type" = "WireGuard" ]; then
             if [ "$(echo "$_line" | grep -o ',' | wc -l)" -lt 4 ]; then
-                echo "Invalid line in $_file: $_line" >&2
+                echo "Invalid line in '$_file': $_line" >&2
                 return 1
             fi
 

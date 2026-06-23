@@ -131,7 +131,7 @@ change_provisioning_mode() {
             echo "Writing 'unmap' to '$_file'"
             echo "unmap" > "$_file"
 
-            logecho "Changed provisioning_mode to 'unmap' for /sys/block/$1" alert
+            logecho "Changed provisioning_mode from '$_contents' to 'unmap' for /sys/block/$1" alert
         fi
     done
 }
@@ -154,7 +154,7 @@ change_discard_max_bytes() {
         local _value=$((_lba_count *_block_length))
 
         if [ "$_value" -le 0 ]; then
-            logecho "Error: Failed to calculate discard_max_bytes [/sys/block/$1]" error
+            logecho "Error: Failed to calculate discard_max_bytes for /sys/block/$1" error
             return 1
         fi
     else
@@ -164,13 +164,13 @@ change_discard_max_bytes() {
     if [ "$_contents" != "$_value" ]; then
         local _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
         if [ "$((_value % _discard_granularity))" -ne 0 ]; then
-            logecho "Calculated value ($_value) is not divisible by discard_granularity ($_discard_granularity) [/sys/block/$1]" error
+            logecho "Calculated value ($_value) is not divisible by discard_granularity ($_discard_granularity) for /sys/block/$1" error
             return 1
         fi
 
         local _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
         if [ "$_value" -gt "$_discard_max_hw_bytes" ]; then
-            logecho "Calculated value ($_value) exceeded discard_max_hw_bytes ($_discard_max_hw_bytes) [/sys/block/$1]" error
+            logecho "Calculated value ($_value) exceeded discard_max_hw_bytes ($_discard_max_hw_bytes) for /sys/block/$1" error
             return 1
         fi
 
