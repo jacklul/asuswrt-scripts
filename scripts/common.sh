@@ -541,7 +541,18 @@ get_wan_interface() {
     local _id="$1"
     [ -z "$_id" ] && _id=0
 
-    local _interface="$(nvram get "wan${_id}_ifname")"
+    local _proto="$(nvram get "wan${_id}_proto")"
+    local _interface=""
+
+    case $_proto in
+        "pppoe"|"pptp"|"l2tp")
+            _interface="$(nvram get "wan${_id}_pppoe_ifname")"
+        ;;
+        *)
+            _interface="$(nvram get "wan${_id}_ifname")"
+        ;;
+    esac
+
     local _test="$(nvram get "wan${_id}_gw_ifname")"
 
     if [ "$_test" != "$_interface" ]; then
