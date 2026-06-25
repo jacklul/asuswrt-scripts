@@ -94,7 +94,7 @@ case "$1" in
     ;;
     "start")
         [ ! -f "$CONFIG_FILE" ] && { logecho "Error: Rclone configuration file '$CONFIG_FILE' not found" error; exit 1; }
-        type rclone > /dev/null 2>&1 || { echo "Warning: Command 'rclone' not found" >&2; }
+        type rclone > /dev/null 2>&1 || echo "Warning: Command 'rclone' not found" >&2
         [ -n "$CRON" ] && crontab_entry add "$CRON $script_path run"
     ;;
     "stop")
