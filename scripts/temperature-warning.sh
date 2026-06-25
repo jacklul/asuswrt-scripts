@@ -18,8 +18,6 @@ EXECUTE_COMMAND="" # execute a command each time warning is issued (receives arg
 
 load_script_config
 
-readonly state_file="$TMP_DIR/$script_name"
-
 validate_config() {
     [ -z "$TRIGGER_TEMPERATURE" ] && { logecho "Error: TRIGGER_TEMPERATURE is not set" error; exit 1; }
     [ -z "$WARNING_COOLDOWN" ] && { logecho "Error: WARNING_COOLDOWN is not set" error; exit 1; }

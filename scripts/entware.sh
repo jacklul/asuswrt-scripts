@@ -31,7 +31,6 @@ load_script_config
 [ -z "$WAIT_LIMIT" ] && WAIT_LIMIT=0 # only one attempt
 [ -z "$BASE_URL" ] && BASE_URL="$default_base_url"
 readonly default_base_url="http://bin.entware.net" # hardcoded in opkg.conf
-readonly state_file="$TMP_DIR/$script_name"
 [ -f "$state_file" ] && last_entware_device="$(cat "$state_file")"
 readonly last_entware_device
 check_url="$BASE_URL"

@@ -21,8 +21,6 @@ RETRY_ON_ERROR=false # retry setting the rules on error (once per run)
 
 load_script_config
 
-readonly state_file="$TMP_DIR/$script_name"
-
 get_interface_address() {
     ip addr show "$1" | grep inet | awk '{print $2}' | cut -d '/' -f 1
 }
@@ -75,10 +73,10 @@ firewall_rules() {
     for _iptables in $_for_iptables; do
         if [ "$_iptables" = "ip6tables" ]; then
             _vpn_addresses="$VPN_ADDRESSES6"
-            _state_file="$state_file.ipv6"
+            _state_file="$state_file-ipv6"
         else
             _vpn_addresses="$VPN_ADDRESSES"
-            _state_file="$state_file"
+            _state_file="$state_file-ipv4"
         fi
 
         [ -z "$_vpn_addresses" ] && continue

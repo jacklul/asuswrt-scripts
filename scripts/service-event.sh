@@ -30,7 +30,6 @@ load_script_config
 [ -z "$SLEEP" ] && SLEEP=1 # this cannot be empty, set to the lowest possible value
 readonly CHECK_CHAIN="jas-$script_name"
 readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
-readonly state_file="$TMP_DIR/$script_name"
 
 custom_checks() {
     change_interface=false

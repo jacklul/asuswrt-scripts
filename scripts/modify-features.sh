@@ -19,8 +19,7 @@ RUN_EVERY_MINUTE= # verify that the features list is still modified (true/false)
 
 load_script_config
 
-readonly state_file="$TMP_DIR/$script_name"
-readonly backup_file="$TMP_DIR/$script_name.bak"
+readonly backup_file="$state_file.bak"
 
 rc_support() {
     local _rc_support _rc_support_last

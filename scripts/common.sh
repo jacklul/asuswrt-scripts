@@ -61,6 +61,7 @@ readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FR
 
 [ -t 0 ] && readonly IS_INTERACTIVE=true
 
+[ -z "$TMP_DIR" ] && TMP_DIR=/tmp/jas # restore default if left empty
 #shellcheck disable=SC2174
 [ ! -d "$TMP_DIR" ] && mkdir -pm 755 "$TMP_DIR"
 
@@ -94,6 +95,9 @@ trap trapexit EXIT HUP INT QUIT TERM
 # Fix for segfaults after Entware update on 2026-04-06
 # See this post for more info: https://www.snbforums.com/threads/okay-to-install-entware-update.97056/page-2#post-989654
 unset LD_LIBRARY_PATH
+
+#shellcheck disable=SC2034
+readonly state_file="$TMP_DIR/$script_name"
 
 ####################
 

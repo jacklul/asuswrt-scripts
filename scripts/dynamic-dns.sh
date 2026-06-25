@@ -22,7 +22,6 @@ IPECHO_TIMEOUT=10 # maximum time in seconds to wait for loading IPECHO_URL addre
 load_script_config
 
 [ -z "$IPECHO_TIMEOUT" ] && IPECHO_TIMEOUT=1 # this cannot be empty, set to the lowest possible value
-readonly state_file="$TMP_DIR/$script_name"
 [ -f "$state_file" ] && last_wan_ip="$(cat "$state_file")"
 readonly last_wan_ip
 

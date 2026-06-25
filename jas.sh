@@ -33,10 +33,10 @@ if [ -f "$common_script" ]; then
     . "$common_script"
 fi
 
-download_url="$BASE_URL/$BRANCH"
-[ -z "$TMP_DIR" ] && TMP_DIR=/tmp
-check_file="$TMP_DIR/$script_name"
-tmp_file="$TMP_DIR/$script_name.tmp"
+readonly download_url="$BASE_URL/$BRANCH"
+[ -z "$TMP_DIR" ] && readonly TMP_DIR=/tmp
+[ -z "$state_file" ] && readonly state_file="$TMP_DIR/$script_name"
+readonly tmp_file="$state_file.tmp"
 
 call_action() {
     local _entry="$1"
@@ -44,11 +44,11 @@ call_action() {
 
     case "$_action" in
         "start")
-            if [ -f "$check_file" ]; then
-                if grep -Fq "$_entry" "$check_file"; then
+            if [ -f "$state_file" ]; then
+                if grep -Fq "$_entry" "$state_file"; then
                     return # already started
                 else
-                    echo "$_entry" >> "$check_file"
+                    echo "$_entry" >> "$state_file"
                 fi
             fi
 
@@ -215,8 +215,8 @@ esac
 
 case "$1" in
     "start")
-        if [ ! -f "$check_file" ]; then
-            date "+%Y-%m-%d %H:%M:%S" > "$check_file"
+        if [ ! -f "$state_file" ]; then
+            date "+%Y-%m-%d %H:%M:%S" > "$state_file"
             [ -z "$IS_INTERACTIVE" ] && export JAS_BOOT=1 # Assume started by system when non-interactive
         fi
 
@@ -238,7 +238,7 @@ case "$1" in
         echo "Stopping scripts (${fwe}$SCRIPTS_DIR${frt})..."
 
         scripts_action stop
-        [ -f "$check_file" ] && rm -f "$check_file"
+        [ -f "$state_file" ] && rm -f "$state_file"
     ;;
     "restart")
         [ -z "$IS_INTERACTIVE" ] && logger -t "$script_name" "Restarting scripts ($SCRIPTS_DIR)..."
@@ -268,7 +268,7 @@ case "$1" in
         echo "Directory: ${fwe}${SCRIPTS_DIR}${frt}"
 
         status="${frd}not started${frt}"
-        [ -f "$check_file" ] && status="${fgn}started${frt}"
+        [ -f "$state_file" ] && status="${fgn}started${frt}"
         echo "Status: $status"
         echo
 
@@ -406,10 +406,10 @@ case "$1" in
                 status=$?
 
                 if [ "$status" -eq 0 ]; then
-                    cp "$tmp_file" "$tmp_file.selfupdate"
+                    cp "$tmp_file" "$state_file-selfupdate"
 
                     # hacky way to avoid issues while running script that has changed on disk
-                    { sleep 1 && cat "$tmp_file.selfupdate" > "$script_path"; rm -f "$tmp_file.selfupdate"; } &
+                    { sleep 1 && cat "$state_file-selfupdate" > "$script_path"; rm -f "$state_file-selfupdate"; } &
 
                     printf "%s! updated - please re-run!%s\n" "$fcn" "$frt"
                     exit 0
