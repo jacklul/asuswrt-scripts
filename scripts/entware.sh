@@ -89,7 +89,7 @@ retry_command() {
 }
 
 mount_opt() {
-    [ -z "$1" ] && { echo "Target path not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "Target path not provided [mount_opt]" >&2; exit 1; }
     [ -L "$opt" ] && rm -f "$opt" # remove existing symlink
     [ ! -d "$opt" ] && mkdir -p "$opt" # recreate the mountpoint if missing
 
@@ -108,7 +108,7 @@ unmount_opt() {
 }
 
 init_opt() {
-    [ -z "$1" ] && { echo "Target path not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "Target path not provided [init_opt]" >&2; exit 1; }
 
     # Wait for app_init_run.sh to finish before messing with /opt mount
     local _timeout=60
@@ -247,8 +247,8 @@ entware() {
 }
 
 echo_and_log() {
-    [ -z "$1" ] && { echo "Message is empty" >&2; return 1; }
-    [ -z "$2" ] && { echo "File is empty" >&2; return 1; }
+    [ -z "$1" ] && { echo "Message is empty [echo_and_log]" >&2; return 1; }
+    [ -z "$2" ] && { echo "File is empty [echo_and_log]" >&2; return 1; }
 
     echo "$1"
     echo "$1" >> "$2"

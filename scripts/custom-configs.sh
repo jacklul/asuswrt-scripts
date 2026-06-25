@@ -28,7 +28,7 @@ readonly no_postconf_files="/etc/profile /etc/passwd /etc/shadow /etc/group /etc
 readonly self_affinity="$(taskset -p $$ 2> /dev/null | sed 's/.*: //')"
 
 get_binary_location() {
-    [ -z "$1" ] && { echo "Binary name not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "Binary name not provided [get_binary_location]" >&2; exit 1; }
 
     local _binary_name="$(echo "$1"| awk '{print $1}')"
     local _base_path
@@ -39,7 +39,7 @@ get_binary_location() {
 }
 
 restart_process() {
-    [ -z "$1" ] && { echo "Process name not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "Process name not provided [restart_process]" >&2; exit 1; }
 
     local _pid _cmdline _affinity _timeout _started _full_binary_path _affinity_changed
 
@@ -91,7 +91,7 @@ restart_process() {
 }
 
 is_file_add_supported() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [is_file_add_supported]" >&2; exit 1; }
     [ -z "$no_add_files" ] && return 0
     local _new="$(echo "$1" | sed 's/\.new$//')"
 
@@ -104,7 +104,7 @@ is_file_add_supported() {
 }
 
 is_file_replace_supported() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [is_file_replace_supported]" >&2; exit 1; }
     [ -z "$no_replace_files" ] && return 0
     local _new="$(echo "$1" | sed 's/\.new$//')"
 
@@ -117,7 +117,7 @@ is_file_replace_supported() {
 }
 
 is_file_postconf_supported() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [is_file_postconf_supported]" >&2; exit 1; }
     [ -z "$no_postconf_files" ] && return 0
     local _new="$(echo "$1" | sed 's/\.new$//')"
 
@@ -130,8 +130,8 @@ is_file_postconf_supported() {
 }
 
 is_config_file_modified() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
+    [ -z "$1" ] && { echo "File path not provided [is_config_file_modified]" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist [is_config_file_modified]" >&2; return 1; }
 
     local _basename="$(basename "$1" | cut -d '.' -f 1)"
 
@@ -152,9 +152,9 @@ is_config_file_modified() {
 }
 
 is_config_file_different() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
-    [ ! -f "$1.new" ] && { echo "File '$1.new' does not exist" >&2; return 1; }
+    [ -z "$1" ] && { echo "File path not provided [is_config_file_different]" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist [is_config_file_different]" >&2; return 1; }
+    [ ! -f "$1.new" ] && { echo "File '$1.new' does not exist [is_config_file_different]" >&2; return 1; }
 
     if [ "$(md5sum "$1" | awk '{print $1}')" != "$(md5sum "$1.new" | awk '{print $1}')" ]; then
         return 0
@@ -164,8 +164,8 @@ is_config_file_different() {
 }
 
 modify_config_file() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; return 1; }
+    [ -z "$1" ] && { echo "File path not provided [modify_config_file]" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist [modify_config_file]" >&2; return 1; }
     # $2 = custom /jffs/configs/[NAME.conf]
 
     local _basename="$(basename "$1")"
@@ -184,8 +184,8 @@ modify_config_file() {
 }
 
 run_postconf_script() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [run_postconf_script]" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist [run_postconf_script]" >&2; exit 1; }
 
     if ! is_file_postconf_supported "$1"; then
         return
@@ -202,8 +202,8 @@ run_postconf_script() {
 }
 
 add_modified_mark() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [add_modified_mark]" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist [add_modified_mark]" >&2; exit 1; }
 
     local _basename="$(basename "$1" | cut -d '.' -f 1)"
     local _comment="#"
@@ -224,9 +224,9 @@ add_modified_mark() {
 }
 
 commit_new_file() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ ! -f "$1" ] && { echo "File '$1' does not exist" >&2; exit 1; }
-    [ !  -f "$1.new" ] && { echo "File '$1.new' does not exist" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [commit_new_file]" >&2; exit 1; }
+    [ ! -f "$1" ] && { echo "File '$1' does not exist [commit_new_file]" >&2; exit 1; }
+    [ !  -f "$1.new" ] && { echo "File '$1.new' does not exist [commit_new_file]" >&2; exit 1; }
 
     cp -f "$1.new" "$1"
 }
@@ -260,8 +260,8 @@ restore_files() {
 }
 
 modify_service_config_file() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ -z "$2" ] && { echo "Process name not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [modify_service_config_file]" >&2; exit 1; }
+    [ -z "$2" ] && { echo "Process name not provided [modify_service_config_file]" >&2; exit 1; }
     # $3 = custom /jffs/configs/[NAME.conf]
 
     local _match="$2"
@@ -311,8 +311,8 @@ modify_service_config_file() {
 }
 
 restore_service_config_file() {
-    [ -z "$1" ] && { echo "File path not provided" >&2; exit 1; }
-    [ -z "$2" ] && { echo "Process/service name not provided" >&2; exit 1; }
+    [ -z "$1" ] && { echo "File path not provided [restore_service_config_file]" >&2; exit 1; }
+    [ -z "$2" ] && { echo "Process/service name not provided [restore_service_config_file]" >&2; exit 1; }
 
     local _match="$2"
     local _service="$2"

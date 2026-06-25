@@ -62,8 +62,8 @@ filter_device() {
 }
 
 is_valid_ssd_device() {
-    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided [is_valid_ssd_device]" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1 [is_valid_ssd_device]" >&2; return 1; }
 
     local _dev="/sys/block/$1"
 
@@ -100,8 +100,8 @@ is_valid_ssd_device() {
 }
 
 is_discard_supported() {
-    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided [is_discard_supported]" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1 [is_discard_supported]" >&2; return 1; }
 
     # Check if discard/TRIM is supported
     local _max_discard=$(cat "$dev/queue/discard_max_hw_bytes" 2> /dev/null || echo "N/A")
@@ -116,8 +116,8 @@ is_discard_supported() {
 }
 
 change_provisioning_mode() {
-    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided [change_provisioning_mode]" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1 [change_provisioning_mode]" >&2; return 1; }
 
     local _file _contents
 
@@ -137,8 +137,8 @@ change_provisioning_mode() {
 }
 
 change_discard_max_bytes() {
-    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
-    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1" >&2; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided [change_discard_max_bytes]" >&2; return 1; }
+    [ ! -d "/sys/block/$1" ] && { echo "Device not found: /sys/block/$1 [change_discard_max_bytes]" >&2; return 1; }
 
     local _file="/sys/block/$1/queue/discard_max_bytes"
     local _contents=$(cat "$_file" 2> /dev/null || echo "")
@@ -164,13 +164,13 @@ change_discard_max_bytes() {
     if [ "$_contents" != "$_value" ]; then
         local _discard_granularity="$(cat "/sys/block/$1/queue/discard_granularity")"
         if [ "$((_value % _discard_granularity))" -ne 0 ]; then
-            logecho "Calculated value ($_value) is not divisible by discard_granularity ($_discard_granularity) for /sys/block/$1" error
+            logecho "Error: Calculated value ($_value) is not divisible by discard_granularity ($_discard_granularity) for /sys/block/$1" error
             return 1
         fi
 
         local _discard_max_hw_bytes="$(cat "/sys/block/$1/queue/discard_max_hw_bytes")"
         if [ "$_value" -gt "$_discard_max_hw_bytes" ]; then
-            logecho "Calculated value ($_value) exceeded discard_max_hw_bytes ($_discard_max_hw_bytes) for /sys/block/$1" error
+            logecho "Error: Calculated value ($_value) exceeded discard_max_hw_bytes ($_discard_max_hw_bytes) for /sys/block/$1" error
             return 1
         fi
 
@@ -182,7 +182,7 @@ change_discard_max_bytes() {
 }
 
 process_device() {
-    [ -z "$1" ] && { echo "Device name not provided" >&2; return 1; }
+    [ -z "$1" ] && { echo "Device name not provided [process_device]" >&2; return 1; }
 
     is_valid_ssd_device "$1" || return 1
     [ "$CHANGE_PROVISIONING_MODE" = true ] && { change_provisioning_mode "$1" || return 1; }
