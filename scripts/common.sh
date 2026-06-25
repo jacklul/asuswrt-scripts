@@ -234,7 +234,11 @@ lockfile() {
                     if ! flock -nx "$_fd"; then
                         eval exec "$_fd>&-" 2> /dev/null
 
-                        [ "$1" = "lockexit" ] && exit 1
+                        if [ "$1" = "lockexit" ]; then
+                            [ -n "$IS_INTERACTIVE" ] && echo "Already running! ($lockpid)" >&2
+                            exit 1
+                        fi
+
                         return 1
                     fi
                 ;;
