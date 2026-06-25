@@ -67,7 +67,7 @@ cleanup_ip_rules() {
     local _ip="$1"
     [ -z "$_ip" ] && _ip="ip -4"
 
-    local _idx _priority removed_idx
+    local _idx _priority
 
     # Clean up any existing ip rules for inactive profiles
     for _idx in 5 6 7 8 9 10 11 12 13 14 15 16; do # VPNC_UNIT_BASIC - MAX_VPNC_PROFILE (max 12 profiles)
