@@ -75,7 +75,7 @@ restart_counter() {
             fi
 
             if [ "$RESTART_LIMIT" -gt 0 ] && [ "$_counter" -eq "$RESTART_LIMIT" ]; then
-                restart_counter increment "$2"
+                restart_counter increment "$2" # to not send this message to the log again
                 logecho "Restart limit of $RESTART_LIMIT reached for '$2'" error
                 return 1
             fi
@@ -207,7 +207,7 @@ restart_connection_by_ifname() {
             else
                 logecho "Set new server address for $_type client $_id: $_new_addr" alert
             fi
-        else
+        else # technically this should never be reached
             logecho "Error: Failed to set new server address for $_type client $_id" error
         fi
     elif interface_exists "$1"; then
