@@ -158,7 +158,7 @@ logecho() {
 
     [ "$NO_LOGGER" = true ] && _logecho_alert= # disable output to logger if configured
 
-    [ -n "$_logecho_alert" ] && logger -t "$script_name" "$1"
+    [ -n "$_logecho_alert" ] && logger -t "jas-$script_name" "$1"
     [ -z "$_logecho_error" ] && echo "$1" || echo "$1" >&2
 }
 
