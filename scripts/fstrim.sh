@@ -196,7 +196,7 @@ case "$1" in
     "run")
         type fstrim > /dev/null 2>&1 || { logecho "Error: Command 'fstrim' not found" error; exit 1; }
 
-        lockfile lockfail
+        lockfile lockexit
 
         for dev in /sys/block/*; do
             name=$(basename "$dev")

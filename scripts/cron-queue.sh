@@ -13,10 +13,11 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
-
 case "$1" in
     "run")
-        lockfile lockfail run
+        [ ! -f "$state_file" ] && exit 0
+
+        lockfile lockexit run
 
         #( sh "$state_file" < /dev/null )
         while IFS= read -r line; do

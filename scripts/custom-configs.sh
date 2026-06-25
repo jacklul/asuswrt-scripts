@@ -441,7 +441,7 @@ case "$1" in
         configs modify
     ;;
     "modify")
-        lockfile lockfail modify
+        lockfile lockexit modify
         modify_config_file "$2"
         run_postconf_script "$2"
         add_modified_mark "$2.new"
