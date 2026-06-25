@@ -24,6 +24,9 @@ SLEEP=1 # how to long to wait between each syslog reading iteration, increase to
 SLEEP_INTEGRATION=3 # how many seconds to wait before executing integration related scripts, this also delays execution of EXECUTE_COMMAND when applicable, set to empty to disable
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target, $3 = normalized event name)
+CUSTOM_CHECKS_INTERFACE=true # should we perform custom check on the interfaces? (creates dummy address on lo interface and triggers when it disappears)
+CUSTOM_CHECKS_FIREWALL=true # should we perform custom check on the firewall? (creates empty filter chain and triggers when it disappears)
+CUSTOM_CHECKS_WAN=false # should we perform custom check on the wan status? (stores wan0 and wan1 states and triggers when they change)
 
 load_script_config
 
@@ -34,35 +37,43 @@ readonly CHECK_IP="127.83.69.33/8" # asci SE! = service event !
 custom_checks() {
     change_interface=false
     change_firewall=false
-    #change_wan=false
+    change_wan=false
 
-    if ! ip addr show dev lo 2> /dev/null | grep -Fq "inet $CHECK_IP "; then
-        ip -4 addr add "$CHECK_IP" dev lo label lo:se
-        change_interface_detected=true
-    elif [ -n "$change_interface_detected" ]; then
-        change_interface=true
-        change_interface_detected=
+    if [ "$CUSTOM_CHECKS_INTERFACE" = true ]; then
+        if ! ip addr show dev lo 2> /dev/null | grep -Fq "inet $CHECK_IP "; then
+            change_interface_detected=true
+
+            ip -4 addr add "$CHECK_IP" dev lo label lo:se
+        elif [ -n "$change_interface_detected" ]; then
+            change_interface_detected=
+            change_interface=true
+        fi
     fi
 
-    if ! iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1; then
-        iptables -N "$CHECK_CHAIN"
-        change_firewall_detected=true
-    elif [ -n "$change_firewall_detected" ]; then
-        change_firewall=true
-        change_firewall_detected=
+    if [ "$CUSTOM_CHECKS_FIREWALL" = true ]; then
+        if ! iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1; then
+            change_firewall_detected=true
+
+            iptables -N "$CHECK_CHAIN"
+        elif [ -n "$change_firewall_detected" ]; then
+            change_firewall_detected=
+            change_firewall=true
+        fi
     fi
 
-    # Currently disabled as it triggers on script start because $wan_state_last is not stored persistently
-    #wan_state="$(nvram get wan0_state_t 2> /dev/null)$(nvram get wan1_state_t 2> /dev/null)"
-    #if [ "$wan_state" != "$wan_state_last" ]; then
-    #    wan_state_last="$wan_state"
-    #    change_wan_detected=true
-    #elif [ -n "$change_wan_detected" ]; then
-    #    change_wan=true
-    #    change_wan_detected=
-    #fi
+    if [ "$CUSTOM_CHECKS_WAN" = true ]; then
+        wan_state="$(nvram get wan0_state_t 2> /dev/null)-$(nvram get wan1_state_t 2> /dev/null)"
+        if [ "$wan_state" != "$wan_state_last" ]; then
+            [ -n "$wan_state_last" ] && change_wan_detected=true
 
-    if [ "$change_interface" = true ] || [ "$change_firewall" = true ]; then # || [ "$change_wan" = true ]
+            wan_state_last="$wan_state"
+        elif [ -n "$change_wan_detected" ]; then
+            change_wan_detected=
+            change_wan=true
+        fi
+    fi
+
+    if [ "$change_interface" = true ] || [ "$change_firewall" = true ] || [ "$change_wan" = true ]; then
         return 1
     fi
 
@@ -73,8 +84,11 @@ trigger_event() {
     local _action="$1"
     local _target="$2"
 
-    if [ "$3" = "quick" ]; then # this argument disables event verification timers in the event handler
-        lockfile check "event_${_action}_${_target}" && return # already processing this event
+    if [ "$3" = "custom_check" ]; then # this argument disables event verification timers in the event handler
+        if lockfile check "event_${_action}_${_target}"; then # discard when already processing this event
+            #echo "Event triggered by custom check is already being processed: ${_action}_${_target}" >&2
+            return
+        fi
 
         logecho "Running script (args: '$_action' '$_target') *" alert
     else
@@ -85,15 +99,13 @@ trigger_event() {
 }
 
 service_monitor() {
-    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog log file does not exist: $SYSLOG_FILE" error; exit 1; }
+    [ ! -f "$SYSLOG_FILE" ] && { logecho "Error: Syslog file '$SYSLOG_FILE' not found" error; exit 1; }
 
-    lockfile lockfail || { echo "Failed to start - already running! ($lockpid)" >&2; exit 1; }
+    lockfile lockfail || { echo "Failed to run - already running! ($lockpid)" >&2; exit 1; }
 
     set -e
 
-    logecho "Started service event monitoring..." alert
-
-    local _last_line _initialized 
+    local _last_line _initialized
 
     if [ -f "$state_file" ]; then
         _last_line="$(cat "$state_file")"
@@ -104,9 +116,18 @@ service_monitor() {
         custom_checks || true
     fi
 
-    local _total_lines _new_lines _matching_lines  _last_line_old _new_line _line_number _events _oldIFS _event _event_action _event_target _event_triggered
+    local _checksum="$(md5sum "$script_path" | awk '{print $1}')"
+
+    logecho "Started service event monitoring..." alert
+
+    local _total_lines _new_lines _matching_lines  _last_line_old _new_line _line_number _events _oldIFS _event _event_action _event_target
 
     while true; do
+        if [ "$_checksum" != "$(md5sum "$script_path" | awk '{print $1}')" ]; then
+            logecho "Script has been updated, exiting..." alert
+            break
+        fi
+
         _total_lines="$(wc -l < "$SYSLOG_FILE")"
         if [ "$_total_lines" -lt "$((_last_line-1))" ]; then
             logecho "Log file has been rotated, resetting line pointer..." alert
@@ -138,7 +159,6 @@ service_monitor() {
                                 _event_target="$(echo "$_event" | cut -d '_' -f 2- | cut -d ' ' -f 1)"
 
                                 trigger_event "$_event_action" "$_event_target"
-                                _event_triggered=true
                             fi
                         done
                         IFS=$_oldIFS
@@ -150,20 +170,18 @@ service_monitor() {
             fi
         fi
 
-        if [ -z "$_event_triggered" ] && ! custom_checks; then
-            if [ "$change_interface" = true ]; then # || [ "$change_wan" = true ]
-                trigger_event "restart" "net" "quick"
+        if ! custom_checks; then
+            if [ "$change_interface" = true ] || [ "$change_wan" = true ]; then
+                trigger_event "restart" "net" "custom_check"
             fi
 
             if [ "$change_firewall" = true ]; then
-                trigger_event "restart" "firewall" "quick"
+                trigger_event "restart" "firewall" "custom_check"
             fi
         fi
 
         echo "$_last_line" > "$state_file"
-
         [ -z "$_initialized" ] && _initialized=true
-        _event_triggered=
 
         sleep "$SLEEP"
     done
@@ -174,11 +192,11 @@ service_monitor() {
 integrated_event() {
     [ "$NO_INTEGRATION" = true ] && return
 
-    ! is_merlin_firmware && [ -n "$SLEEP_INTEGRATION" ] && sleep "$SLEEP_INTEGRATION"
+    [ -z "$3" ] && ! is_merlin_firmware && [ -n "$SLEEP_INTEGRATION" ] && sleep "$SLEEP_INTEGRATION"
 
     local _tmp_script_path
 
-    # $1 = type, $2 = event, $3 = target, $4 = extra
+    # $1 = type, $2 = extra, $3 = (skip SLEEP_INTEGRATION sleep if not empty)
     case "$1" in
         "firewall")
             execute_script_basename "vpn-kill-switch.sh" run
@@ -195,9 +213,9 @@ integrated_event() {
             execute_script_basename "dynamic-dns.sh" run
 
             # most services here also restart firewall, wireless and/or recreate configs so execute these too
-            integrated_event firewall "$2" "$3" "$4"
-            integrated_event wireless "$2" "$3" "$4"
-            integrated_event custom_configs "$2" "$3" "$4"
+            integrated_event firewall "$2" self
+            integrated_event wireless "$2" self
+            integrated_event custom_configs "$2" self
         ;;
         "wireless")
             # probably a good idea to run this just in case
@@ -206,7 +224,7 @@ integrated_event() {
             # this service event recreates rc_support so we have to re-run this script
             _tmp_script_path="$(resolve_script_basename "modify-features.sh")"
             if [ -n "$_tmp_script_path" ] && [ -x "$_tmp_script_path" ]; then
-                if ! is_merlin_firmware && [ "$4" != "quick" ]; then
+                if ! is_merlin_firmware && [ "$2" != "custom_check" ]; then
                     local timer=30; while { # wait till rc_support is modified
                         sh "$_tmp_script_path" check
                     } && [ "$timer" -ge 0 ]; do
@@ -248,20 +266,20 @@ case "$1" in
         run_in_background
     ;;
     "event")
-        if [ "$4" = "quick" ]; then # quick = run without any delays but only if not already running
-            lockfile lockfail "event_${2}_${3}" || { echo "Error: This event is already being processed (args: '$2' '$3')" >&2; exit 1; }
+        if [ "$4" = "custom_check" ]; then # run without any delays but only if not already running
+            lockfile lockfail "event_${2}_${3}" || { echo "This event is already being processed (args: '$2' '$3')" >&2; exit 1; }
         else
             lockfile lockwait "event_${2}_${3}"
         fi
 
         event="$3"
 
-        # $2 = event, $3 = target, $4 = extra
+        # $2 = action, $3 = service, $4 = extra
         case "$3" in
             "firewall"|"vpnc_dev_policy"|"pms_device"|"ftpd"|"ftpd_force"|"tftpd"|"aupnpc"|"chilli"|"CP"|"radiusd"|"webdav"|"enable_webdav"|"time"|"snmpd"|"vpnc"|"vpnd"|"pptpd"|"openvpnd"|"wgs"|"yadns"|"dnsfilter"|"tr"|"tor")
                 event=firewall
 
-                if ! is_merlin_firmware && [ "$4" != "quick" ]; then
+                if ! is_merlin_firmware && [ "$4" != "custom_check" ]; then
                     timer=10; while { # wait till our chains disappear
                         iptables -nL "$CHECK_CHAIN" > /dev/null 2>&1
                     } && [ "$timer" -ge 0 ]; do
@@ -270,12 +288,12 @@ case "$1" in
                     done
                 fi
 
-                integrated_event firewall "$2" "$3" "$4"
+                integrated_event firewall "$4"
             ;;
             "allnet"|"net_and_phy"|"net"|"multipath"|"subnet"|"wan"|"wan_if"|"dslwan_if"|"dslwan_qis"|"dsl_wireless"|"wan_line"|"wan6"|"wan_connect"|"wan_disconnect"|"isp_meter")
                 event=network
 
-                if ! is_merlin_firmware && [ "$4" != "quick" ]; then
+                if ! is_merlin_firmware && [ "$4" != "custom_check" ]; then
                     timer=10; while { # wait until wan goes down
                         { [ "$(nvram get wan0_state_t)" = "2" ] || [ "$(nvram get wan0_state_t)" = "0" ] || [ "$(nvram get wan0_state_t)" = "5" ] ; } &&
                         { [ "$(nvram get wan1_state_t)" = "2" ] || [ "$(nvram get wan1_state_t)" = "0" ] || [ "$(nvram get wan1_state_t)" = "5" ] ; };
@@ -293,24 +311,24 @@ case "$1" in
                     done
                 fi
 
-                integrated_event network "$2" "$3" "$4"
+                integrated_event network "$4"
             ;;
             "wireless")
-                integrated_event wireless "$2" "$3" "$4"
+                integrated_event wireless "$4"
             ;;
             "usb_idle")
-                integrated_event usb_idle "$2" "$3" "$4"
+                integrated_event usb_idle "$4"
             ;;
             "custom_configs"|"nasapps"|"ftpsamba"|"samba"|"samba_force"|"pms_account"|"media"|"dms"|"mt_daapd"|"upgrade_ate"|"mdns"|"dnsmasq"|"dhcpd"|"stubby"|"upnp"|"quagga")
                 event=custom_configs
-                integrated_event custom_configs "$2" "$3" "$4"
+                integrated_event custom_configs "$4"
             ;;
         esac
 
         case "${2}_${3}" in
             "ipsec_set"|"ipsec_start"|"ipsec_restart") # these do not follow the naming scheme ("<ACTION>_<SERVICE>")
                 event=firewall
-                integrated_event firewall "$2" "$3" "$4"
+                integrated_event firewall "$4"
             ;;
         esac
 
