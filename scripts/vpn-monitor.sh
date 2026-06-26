@@ -218,6 +218,14 @@ restart_connection_by_ifname() {
     fi
 }
 
+add_reason() {
+    if [ -z "$reason" ]; then
+        reason="$1"
+    else
+        reason="$reason, $1"
+    fi
+}
+
 check_connection_by_ifname() {
     local _retries="$TEST_RETRIES"
     local _addr
@@ -227,11 +235,10 @@ check_connection_by_ifname() {
         [ -n "$_addr" ] && ip rule add from "$_addr" lookup "$2" prio 55 > /dev/null 2>&1
     fi
 
-    local _success _ping_success _url_success _ping
+    local _success _ping
 
     while [ "$_retries" -gt 0 ]; do
-        _ping_success=
-        _url_success=
+        reason=
 
         if [ -n "$TEST_PING" ]; then
             echo "Pinging $TEST_PING via $1"
@@ -239,58 +246,44 @@ check_connection_by_ifname() {
             _output="$(ping -I "$1" -c 1 -W 2 "$TEST_PING" 2> /dev/null | awk -F 'time=| ms' 'NF==3{print $(NF-1)}' | sort -rn)"
 
             if [ -n "$_output" ]; then
-                _ping_success=true
-
                 if [ -n "$TEST_PING_LIMIT" ] && [ "$TEST_PING_LIMIT" -gt 0 ]; then
                     _ping=
                     [ -n "$_output" ] && _ping="$(awk "BEGIN {printf \"%0.0f\", ${_output}}")"
 
                     if [ -z "$_ping" ] || [ "$_ping" = "" ]; then
                         echo "Invalid ping output ($1): $_output" >&2
-                        _ping_success=
-                    fi
-
-                    if [ "$_ping" -gt "$TEST_PING_LIMIT" ]; then
-                        echo "Ping time ${_ping}ms is higher than limit of ${TEST_PING_LIMIT}ms ($1)" >&2
-                        _ping_success=
                     else
-                        echo "Ping time ${_ping}ms is within limit of ${TEST_PING_LIMIT}ms ($1)"
+                        if [ "$_ping" -gt "$TEST_PING_LIMIT" ]; then
+                            echo "Ping time ${_ping}ms is higher than limit of ${TEST_PING_LIMIT}ms ($1)" >&2
+                            add_reason "${_ping}ms ping"
+                        else
+                            echo "Ping time ${_ping}ms is within limit of ${TEST_PING_LIMIT}ms ($1)"
+                        fi
                     fi
                 fi
             else
                 echo "Failed to ping target ($1)" >&2
+                add_reason "ping fail"
             fi
-        else
-            _ping_success=true
         fi
 
         if [ -n "$TEST_URL" ];then 
             echo "Fetching URL $TEST_URL via $1"
 
-            if curl --silent --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
-                _url_success=true
-            else
+            if ! curl --silent --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
                 echo "Failed to fetch URL ($1)" >&2
+                add_reason "URL fetch fail"
             fi
-        else
-            _url_success=true
         fi
 
-        if [ -n "$_ping_success" ] && [ -n "$_url_success" ]; then
-            _success=true
-            break
-        fi
+        [ -z "$reason" ] && break
 
         _retries=$((_retries-1))
         sleep 1
     done
 
-    reason=
-    [ -z "$_ping_success" ] && reason="ping"
-    [ -z "$_url_success" ] && reason="$(echo "$reason url" | sed 's/^ *//g')"
-
     [ -n "$_addr" ] && ip rule del prio 55 > /dev/null 2>&1
-    [ -n "$_success" ] && return 0
+    [ -z "$reason" ] && return 0
     return 1;
 }
 
