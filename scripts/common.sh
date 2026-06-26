@@ -194,23 +194,23 @@ lockfile() {
     [ -z "$script_name" ] && script_name="$(basename "$0" .sh)"
     local _file="/var/lock/jas-$script_name.lock"
     [ -n "$2" ] && _file="/var/lock/jas-$script_name-$2.lock"
-    [ -f "$_file" ] && lockpid="$(cat "$_file" 2> /dev/null)"
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$lockfd" ]; then
+            if [ -n "$lockfd" ]; then # Only one lock per process is supported
                 logecho "Error: Lockfile is already locked by this process ($_file)" error
                 exit 1
             fi
 
-            # Clean up stale lockfile
+            lockpid="$(cat "$_file" 2> /dev/null)"
             if [ -n "$lockpid" ] && [ ! -f "/proc/$lockpid/stat" ]; then
                 echo "Removing stale lockfile: $_file" >&2
                 rm -f "$_file"
+                lockpid=
             fi
 
             local _fd=$(get_file_descriptor) || return 1
-            eval exec "$_fd>$_file" 2> /dev/null
+            eval exec "$_fd>$_file"
 
             case "$1" in
                 "lockwait")
@@ -227,12 +227,12 @@ lockfile() {
                         sleep 1
 
                         # Re-open in case it was deleted during the wait
-                        eval exec "$_fd>$_file" 2> /dev/null
+                        eval exec "$_fd>$_file"
                     done
                 ;;
                 "lockfail"|"lockexit")
                     if ! flock -nx "$_fd"; then
-                        eval exec "$_fd>&-" 2> /dev/null
+                        eval exec "$_fd>&-"
 
                         if [ "$1" = "lockexit" ]; then
                             [ -n "$IS_INTERACTIVE" ] && echo "Already running! ($lockpid)" >&2
@@ -255,7 +255,7 @@ lockfile() {
             lockpid="$$"
             return 0
         ;;
-        "unlock")
+        "unlock") # Only works on currently held lock
             [ -z "$lockfd" ] && return 1
 
             flock -u "$lockfd" 2> /dev/null
@@ -268,10 +268,18 @@ lockfile() {
             return 0
         ;;
         "check"|"kill")
+            lockpid="$(cat "$_file" 2> /dev/null)"
+
             if [ -n "$lockpid" ] && [ -f "/proc/$lockpid/stat" ]; then
                 if [ "$1" = "kill" ]; then
+                    if [ "$lockpid" = "$$" ]; then
+                        echo "Prevented attempt to terminate own process" >&2
+                        return 1
+                    fi
+
                     kill -9 "$lockpid" 2> /dev/null
-                    rm -f "$lockfile"
+                    rm -f "$_file"
+                    lockpid=
                 fi
 
                 return 0
