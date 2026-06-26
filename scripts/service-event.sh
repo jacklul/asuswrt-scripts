@@ -173,9 +173,7 @@ service_monitor() {
         if ! custom_checks; then
             if [ "$change_interface" = true ] || [ "$change_wan" = true ]; then
                 trigger_event "restart" "net" "custom_check"
-            fi
-
-            if [ "$change_firewall" = true ]; then
+            elif [ "$change_firewall" = true ]; then # network event also runs firewall event, no need to trigger both
                 trigger_event "restart" "firewall" "custom_check"
             fi
         fi
