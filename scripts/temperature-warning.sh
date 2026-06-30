@@ -24,10 +24,6 @@ validate_config() {
 }
 
 get_temperatures() {
-    local _eth_24g=""
-    local _eth_5g=""
-    local _eth_6g=""
-
     local _interface _status
 
     for _interface in /sys/class/net/eth*; do
@@ -37,20 +33,20 @@ get_temperatures() {
         _status="$(wl -i "$_interface" status 2> /dev/null)"
 
         if echo "$_status" | grep -Fq "2.4GHz"; then
-            _eth_24g="$_interface"
+            eth_24g="$_interface"
         elif echo "$_status" | grep -Fq "5GHz"; then
-            _eth_5g="$_interface"
+            eth_5g="$_interface"
         elif echo "$_status" | grep -Fq "6GHz"; then
-            _eth_6g="$_interface"
+            eth_6g="$_interface"
         fi
 
-        [ -n "$_eth_24g" ] && [ -n "$_eth_5g" ] && break
+        [ -n "$eth_24g" ] && [ -n "$eth_5g" ] && break
     done
 
     [ -f /sys/class/thermal/thermal_zone0/temp ] && cpu_temperature="$(awk '{print $1 / 1000}' < /sys/class/thermal/thermal_zone0/temp)"
-    [ -n "$_eth_24g" ] && wifi_24g_temperature="$(wl -i "$_eth_24g" phy_tempsense | awk '{print $1 / 2 + 20}')"
-    [ -n "$_eth_5g" ] && wifi_5g_temperature="$(wl -i "$_eth_5g" phy_tempsense | awk '{print $1 / 2 + 20}')"
-    [ -n "$_eth_6g" ] && wifi_6g_temperature="$(wl -i "$_eth_6g" phy_tempsense | awk '{print $1 / 2 + 20}')"
+    [ -n "$eth_24g" ] && wifi_24g_temperature="$(wl -i "$eth_24g" phy_tempsense | awk '{print $1 / 2 + 20}')"
+    [ -n "$eth_5g" ] && wifi_5g_temperature="$(wl -i "$eth_5g" phy_tempsense | awk '{print $1 / 2 + 20}')"
+    [ -n "$eth_6g" ] && wifi_6g_temperature="$(wl -i "$eth_6g" phy_tempsense | awk '{print $1 / 2 + 20}')"
 }
 
 case "$1" in
@@ -94,9 +90,9 @@ case "$1" in
         get_temperatures
 
         [ -n "$cpu_temperature" ] && echo "CPU temperature: $cpu_temperature C"
-        [ -n "$wifi_24g_temperature" ] && echo "WiFi 2.4G temperature: $wifi_24g_temperature C ($_eth_24g)"
-        [ -n "$wifi_5g_temperature" ] && echo "WiFi 5G temperature: $wifi_5g_temperature C ($_eth_5g)"
-        [ -n "$wifi_6g_temperature" ] && echo "WiFi 6G temperature: $wifi_6g_temperature C ($_eth_5g)"
+        [ -n "$wifi_24g_temperature" ] && echo "WiFi 2.4G temperature: $wifi_24g_temperature C ($eth_24g)"
+        [ -n "$wifi_5g_temperature" ] && echo "WiFi 5G temperature: $wifi_5g_temperature C ($eth_5g)"
+        [ -n "$wifi_6g_temperature" ] && echo "WiFi 6G temperature: $wifi_6g_temperature C ($eth_6g)"
     ;;
     "start")
         validate_config
