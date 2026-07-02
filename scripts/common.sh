@@ -486,7 +486,7 @@ fetch() {
             _interface_val="$_interface"
         fi
 
-        $curl_binary -fsL "$_url" -o "$_output" $_timeout_opt $_timeout_val $_interface_opt $_interface_val
+        $curl_binary -fsSL "$_url" -o "$_output" $_timeout_opt $_timeout_val $_interface_opt $_interface_val
         return $?
     elif type wget > /dev/null 2>&1; then
         if [ -n "$_timeout" ]; then
