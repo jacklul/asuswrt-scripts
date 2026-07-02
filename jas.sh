@@ -190,6 +190,8 @@ download_and_check() {
             else
                 echo "Downloaded file is not valid"
             fi
+        else
+            echo "Failed to download file"
         fi
     else
         echo "No file specified to download"
