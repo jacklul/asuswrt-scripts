@@ -272,7 +272,7 @@ check_connection_by_ifname() {
         if [ -n "$TEST_URL" ];then 
             echo "Fetching URL $TEST_URL via $1"
 
-            if ! $curl_binary --silent --interface "$1" "$TEST_URL" > /dev/null; then
+            if ! $curl_binary --silent --max-time 10 --interface "$1" "$TEST_URL" > /dev/null; then
                 echo "Failed to fetch URL ($1)" >&2
                 add_reason "URL fetch fail"
             fi

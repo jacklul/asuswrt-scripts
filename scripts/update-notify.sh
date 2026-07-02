@@ -52,7 +52,7 @@ Content-Transfer-Encoding: quoted-printable
 New firmware version <b>$1</b> is now available for your router at <a href="$router_ip">$router_ip</a>.
 EOT
 
-    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$tmp_file" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" || logecho "Failed to send an email message" error
+    $curl_binary --url "smtps://$EMAIL_SMTP:$EMAIL_PORT" --mail-from "$EMAIL_FROM_ADDRESS" --mail-rcpt "$EMAIL_TO_ADDRESS" --upload-file "$tmp_file" --ssl-reqd --user "$EMAIL_USERNAME:$EMAIL_PASSWORD" --max-time 30 || logecho "Failed to send an email message" error
     rm -f "$tmp_file"
 }
 
