@@ -76,7 +76,7 @@ send_pushover_message() {
 }
 
 send_pushbullet_message () {
-    $curl_binary -request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logecho "Failed to send Pushbullet message" error
+    $curl_binary --request POST --user "$PUSHBULLET_TOKEN": --header 'Content-Type: application/json' --data-binary '{"type": "note", "title": "'"New router firmware notification @ $router_name"'", "body": "'"New firmware version $1 is now available for your router at $router_ip."'"}' "https://api.pushbullet.com/v2/pushes" || logecho "Failed to send Pushbullet message" error
 }
 
 send_notification() {
