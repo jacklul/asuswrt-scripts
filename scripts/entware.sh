@@ -603,17 +603,25 @@ case "$1" in
         echo "Installing package manager..."
 
         if [ ! -f /opt/bin/opkg ]; then
-            fetch "$install_url/opkg" /opt/bin/opkg
-            chmod 755 /opt/bin/opkg
-            echo "'$install_url/opkg' -> '/opt/bin/opkg'"
+            if fetch "$install_url/opkg" /opt/bin/opkg; then
+                echo "'$install_url/opkg' -> '/opt/bin/opkg'"
+                chmod 755 /opt/bin/opkg
+            else
+                echo "Failed to fetch '$install_url/opkg'" >&2
+                exit 1
+            fi
         fi
 
         if [ ! -f /opt/etc/opkg.conf ]; then
             if [ -n "$IN_RAM" ] && [ -f /jffs/entware/etc/opkg.conf ]; then
                 ln -sv /jffs/entware/etc/opkg.conf /opt/etc/opkg.conf
             else
-                fetch "$install_url/opkg.conf" /opt/etc/opkg.conf
-                echo "'$install_url/opkg.conf' -> '/opt/etc/opkg.conf'"
+                if fetch "$install_url/opkg.conf" /opt/etc/opkg.conf; then
+                    echo "'$install_url/opkg.conf' -> '/opt/etc/opkg.conf'"
+                else
+                    echo "Failed to fetch '$install_url/opkg.conf'" >&2
+                    exit 1
+                fi
 
                 [ "$BASE_URL" != "$default_base_url" ] && sed_helper replace "$default_base_url" "$BASE_URL" /opt/etc/opkg.conf
                 [ "$USE_HTTPS" = true ] && sed 's/http:/https:/g' -i /opt/etc/opkg.conf
