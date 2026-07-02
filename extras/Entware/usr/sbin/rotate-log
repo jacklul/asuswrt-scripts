@@ -12,7 +12,7 @@ rm -f "${logfile}.3.gz"
 
 gzip -c -- "$logfile" > "${logfile}.1.gz"
 
-if command -v stat >/dev/null; then
+if command -v stat > /dev/null; then
     chown "$(stat -c '%u:%g' -- "$logfile")" "${logfile}.1.gz"
     chmod "$(stat -c '%a'  -- "$logfile")" "${logfile}.1.gz"
 else

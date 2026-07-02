@@ -202,7 +202,7 @@ restart_connection_by_ifname() {
             nvram_commit=true # mark that we need to commit nvram changes on script exit
 
             if [ -n "$_is_active" ]; then
-                service "restart_${_service}" >/dev/null 2>&1
+                service "restart_${_service}" > /dev/null 2>&1
                 [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $_unit $_new_addr"
 
                 logecho "Restarted $_type client $_id ($reason) with new server address: $_new_addr" alert
@@ -213,7 +213,7 @@ restart_connection_by_ifname() {
             logecho "Error: Failed to set new server address for $_type client $_id" error
         fi
     elif interface_exists "$1"; then
-        service "restart_${_service}" >/dev/null 2>&1
+        service "restart_${_service}" > /dev/null 2>&1
         [ -n "$EXECUTE_COMMAND" ] && eval "$EXECUTE_COMMAND $_unit"
 
         logecho "Restarted $_type client $_id ($reason)" alert

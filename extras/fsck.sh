@@ -150,7 +150,7 @@ run_fsck() {
 
 case "$1" in
     install|update)
-        type opkg >/dev/null 2>&1 || { logger_echo "Entware is not installed"; exit 1; }
+        type opkg > /dev/null 2>&1 || { logger_echo "Entware is not installed"; exit 1; }
 
         target_dir="$2"
         if [ -z "$target_dir" ]; then

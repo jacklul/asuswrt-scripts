@@ -23,7 +23,7 @@ disable_wps() {
     [ "$(nvram get wps_enable)" != "0" ] && nvram set wps_enable=0 && _changed=1
     [ "$(nvram get wps_enable_x)" != "0" ] && nvram set wps_enable_x=0 && _changed=1
 
-    local _wps_mode_not_disabled="$(nvram show 2>/dev/null | grep "_wps_mode" | grep -v "=disabled" | cut -d '=' -f 1)"
+    local _wps_mode_not_disabled="$(nvram show 2> /dev/null | grep "_wps_mode" | grep -v "=disabled" | cut -d '=' -f 1)"
     local _variable _value _changed
 
     IFS="$(printf '\n\b')"
