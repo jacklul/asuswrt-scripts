@@ -356,7 +356,7 @@ case "$1" in
             esac
         done
 
-        [ -n "$failure" ] && exit 1
+        [ -n "$failure" ] && { echo ""; exit 1; }
     ;;
     "update")
         if [ ! -f "$SCRIPTS_DIR/common.sh" ]; then
