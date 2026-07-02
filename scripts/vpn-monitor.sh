@@ -45,6 +45,8 @@ load_script_config
 
 [ -z "$TEST_RETRIES" ] && TEST_RETRIES=1 # this cannot be empty, set to the lowest possible value
 [ -z "$RESTART_LIMIT" ] && RESTART_LIMIT=0 # this cannot be empty, set to 0 (no limit)
+readonly curl_binary="$(get_curl_binary)"
+[ -z "$curl_binary" ] && { echo "curl not found"; exit 1; }
 
 script_trapexit() {
     ip rule del prio 55 > /dev/null 2>&1
@@ -270,7 +272,7 @@ check_connection_by_ifname() {
         if [ -n "$TEST_URL" ];then 
             echo "Fetching URL $TEST_URL via $1"
 
-            if ! curl --silent --interface "$1" "$TEST_URL" > /dev/null 2>&1; then
+            if ! $curl_binary --silent --interface "$1" "$TEST_URL" > /dev/null; then
                 echo "Failed to fetch URL ($1)" >&2
                 add_reason "URL fetch fail"
             fi
