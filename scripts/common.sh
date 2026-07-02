@@ -45,6 +45,7 @@ CAPTURE_STDOUT=false # set to true to enable logging of stdout when not running 
 CAPTURE_STDERR=false # set to true to enable logging of stderr when not running interactively
 REMOVE_OPT_FROM_PATH=false # set to true to remove /opt paths from PATH temporarily while running
 RENAMED_SCRIPTS_SUPPORT=false # set to true to enable support for renamed scripts
+LOCKFILE_USE_FLOCK=true # use flock command in lockfile function
 
 # Migrate old config.conf to new name if it exists
 if [ -f "$SCRIPTS_DIR/config.conf" ] && [ ! -f "$common_config" ]; then
@@ -55,7 +56,7 @@ fi
 [ -n "$common_config" ] && [ -f "$common_config" ] && . "$common_config"
 
 # Mark these as immutable
-readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FROM_PATH RENAMED_SCRIPTS_SUPPORT
+readonly TMP_DIR NO_COLORS NO_LOGGER CAPTURE_STDOUT CAPTURE_STDERR REMOVE_OPT_FROM_PATH RENAMED_SCRIPTS_SUPPORT LOCKFILE_USE_FLOCK
 
 ####################
 
@@ -127,7 +128,7 @@ load_script_config() {
 trapexit() {
     local _code=$?
     type script_trapexit > /dev/null 2>&1 && script_trapexit
-    [ -n "$lockfd" ] && lockfile unlock
+    [ -n "$lockfile" ] && lockfile unlock
 
     if [ -n "$common_log_file" ] && [ -f "$common_log_file" ]; then
         local _new_lines="$(wc -l < "$common_log_file" 2> /dev/null || echo 0)"
@@ -197,43 +198,54 @@ lockfile() {
 
     case "$1" in
         "lockwait"|"lockfail"|"lockexit")
-            if [ -n "$lockfd" ]; then # Only one lock per process is supported
+            if [ -n "$lockfile" ]; then # Only one lock per process is supported
                 logecho "Error: Lockfile is already locked by this process ($_file)" error
                 exit 1
             fi
 
             lockpid="$(cat "$_file" 2> /dev/null)"
+
             if [ -n "$lockpid" ] && [ ! -f "/proc/$lockpid/stat" ]; then
-                echo "Removing stale lockfile: $_file" >&2
-                rm -f "$_file"
+                lockfile_do unlock "$_file"
                 lockpid=
             fi
 
-            local _fd=$(get_file_descriptor) || return 1
-            eval exec "$_fd>$_file"
+            if [ "$LOCKFILE_USE_FLOCK" = true ]; then
+                local _fd_min="100"
+                local _fd_max=$((_fd_min + 100))
+                local _fd=
+
+                while [ "$_fd_min" -le "$_fd_max" ]; do
+                    if [ ! -e "/proc/$$/fd/$_fd_min" ]; then
+                        _fd="$_fd_min"
+                        break
+                    fi
+
+                    _fd_min=$((_fd_min + 1))
+                done
+
+                if [ -z "$_fd" ]; then
+                    logecho "Error: No free file descriptors available (tried ${_fd_min}..${_fd_max})" error
+                    return 1
+                fi
+            fi
 
             case "$1" in
                 "lockwait")
                     local _timeout=60
-                    while ! flock -nx "$_fd"; do
+                    while ! lockfile_do lock "$_file" "$_fd"; do
                         _timeout=$((_timeout - 1))
 
                         if [ "$_timeout" -lt 0 ]; then
                             logecho "Error: Failed to acquire lock after 60 seconds ($_file)" error
-                            eval exec "$_fd>&-" 2> /dev/null
                             exit 1
                         fi
 
                         sleep 1
-
-                        # Re-open in case it was deleted during the wait
-                        eval exec "$_fd>$_file"
                     done
                 ;;
                 "lockfail"|"lockexit")
-                    if ! flock -nx "$_fd"; then
-                        eval exec "$_fd>&-"
-
+                    if ! lockfile_do lock "$_file" "$_fd"; then
                         if [ "$1" = "lockexit" ]; then
                             [ -n "$IS_INTERACTIVE" ] && echo "Already running! ($lockpid)" >&2
                             exit 1
@@ -249,19 +261,15 @@ lockfile() {
                 exit 1
             fi
 
-            echo "$$" > "$_file"
             lockfd="$_fd"
             lockfile="$_file"
             lockpid="$$"
             return 0
         ;;
-        "unlock") # Only works on currently held lock
-            [ -z "$lockfd" ] && return 1
+        "unlock")
+            [ -z "$lockfile" ] && return 1 # Only works on currently held lock
 
-            flock -u "$lockfd" 2> /dev/null
-            eval exec "$lockfd>&-" 2> /dev/null
-            rm -f "$lockfile"
-
+            lockfile_do unlock "$lockfile" "$lockfd"
             lockfd=
             lockfile=
             lockpid=
@@ -278,7 +286,7 @@ lockfile() {
                     fi
 
                     kill -9 "$lockpid" 2> /dev/null
-                    rm -f "$_file"
+                    lockfile_do unlock "$_file"
                     lockpid=
                 fi
 
@@ -290,21 +298,53 @@ lockfile() {
     esac
 }
 
-get_file_descriptor() {
-    local _min="${1:-100}"
-    local _max=$((_min + 100))
+lockfile_do() {
+    { [ -z "$1" ] || [ -z "$2" ] ; } && return 1
+    local _result=1
 
-    while [ "$_min" -le "$_max" ]; do
-        if [ ! -e "/proc/$$/fd/$_min" ]; then
-            echo "$_min"
-            return 0
-        fi
+    case "$1" in
+        "lock")
+            if [ "$LOCKFILE_USE_FLOCK" = true ]; then # $2 = file, $3 = fd
+                if [ -n "$3" ]; then
+                    eval exec "${3}>${2}"
 
-        _min=$((_min + 1))
-    done
+                    if flock -nx "$3"; then
+                        echo "$$" > "$_file"
+                        _result=0
+                    else
+                        eval exec "${3}>&-"
+                    fi
+                fi
+            else # $2 = file
+                if [ -f "$2" ]; then # must remove stale file
+                    local _pid="$(cat "$2" 2> /dev/null)"
+                    [ -n "$_pid" ] && [ ! -f "/proc/$_pid/stat" ] && rm -f "$2"
+                fi
 
-    logecho "Error: No free file descriptors available (tried ${_min}..${_max})" error
-    return 1
+                if [ ! -f "$2" ]; then
+                    set -C
+                    echo "$$" > "$2" 2> /dev/null && _result=0
+                    set +C
+                fi
+            fi
+        ;;
+        "unlock")
+            if [ "$LOCKFILE_USE_FLOCK" = true ]; then # $2 = file, $3 = fd
+                if [ -n "$3" ]; then
+                    flock -u "$3" 2> /dev/null
+                    eval exec "${3}>&-" 2> /dev/null
+                fi
+
+                : > "$2"
+                _result=0
+            else # $2 = file
+                rm -f "$2"
+                _result=0
+            fi
+        ;;
+    esac
+
+    return "$_result"
 }
 
 crontab_entry() {
