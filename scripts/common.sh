@@ -460,36 +460,48 @@ get_curl_binary() {
 #shellcheck disable=SC2086
 fetch() {
     [ -z "$1" ] && { echo "No URL specified"; return 1; }
-    local _url _output _timeout
+    local _url _output _timeout _interface
 
     _url="$1"
     _output="$2"
     _timeout="$3"
+    _interface="$4"
+
+    [ -z "$_output" ] && _output="-"
 
     if [ -z "$curl_binary" ] && type get_curl_binary > /dev/null 2>&1; then
         readonly curl_binary="$(get_curl_binary)"
     fi
 
+    local _timeout_opt _timeout_val _interface_opt _interface_val
+
     if [ -n "$curl_binary" ]; then
-        [ -n "$_timeout" ] && _timeout="-m $_timeout"
-
-        if [ -n "$_output" ]; then
-            $curl_binary -fsSL "$_url" -o "$_output" $_timeout
-            return $?
-        else
-            $curl_binary -sfL --head "$_url" $_timeout > /dev/null
-            return $?
+        if [ -n "$_timeout" ]; then
+            _timeout_opt="--max-time"
+            _timeout_val="$_timeout"
         fi
+
+        if [ -n "$_interface" ]; then
+            _interface_opt="--interface"
+            _interface_val="$_interface"
+        fi
+
+        $curl_binary -fsL "$_url" -o "$_output" $_timeout_opt $_timeout_val $_interface_opt $_interface_val
+        return $?
     elif type wget > /dev/null 2>&1; then
-        [ -n "$_timeout" ] && _timeout="--timeout=$_timeout"
-
-        if [ -n "$_output" ]; then
-            wget -q "$_url" -O "$_output" $_timeout
-            return $?
-        else
-            wget -q --spider "$_url" -O /dev/null $_timeout
-            return $?
+        if [ -n "$_timeout" ]; then
+            _timeout_opt="--timeout"
+            _timeout_val="$_timeout"
         fi
+
+        if [ -n "$_interface" ]; then
+            _interface_opt="--bind-address"
+            local _interface_address="$(get_interface_ip "$_interface")" || return 1
+            _interface_val="$_interface_address"
+        fi
+
+        wget -q "$_url" -O "$_output" $_timeout_opt $_timeout_val $_interface_opt $_interface_val
+        return $?
     else
         echo "curl or wget not found" >&2
         return 1
@@ -586,7 +598,7 @@ interface_exists() {
         if ip link show | grep -Fq ": $_iface"; then
             return 0
         fi
-    elif ip link show "$_iface" >/dev/null 2>&1; then
+    elif ip link show "$_iface" > /dev/null 2>&1; then
         return 0
     fi
 
@@ -616,6 +628,25 @@ get_wan_interface() {
     fi
 
     echo "$_interface"
+}
+
+get_interface_ip() {
+    [ -z "$1" ] && return 1
+    local _iface="$1"
+
+    if ! interface_exists "$_iface"; then
+        echo "Interface $_iface does not exist" >&2
+        return 1
+    fi
+
+    local _ip="$(ip addr show dev "$_iface" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)"
+
+    if [ -z "$_ip" ]; then
+        echo "No IP address found for interface $_iface" >&2
+        return 1
+    fi
+
+    echo "$_ip"
 }
 
 mask_to_cidr() {
