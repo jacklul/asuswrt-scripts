@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[ "$(id -u)" -ne 0 ] && { echo "This script must run as root."; exit 1; }
+[ "$(id -u)" -ne 0 ] && { echo "This script must run as root!" >&2; exit 1; }
 [ -z "$1" ] && { echo "Log file not provided" >&2; exit 1; }
-[ ! -f "$1" ] && { echo "File not found: $1"; exit 1; }
+[ ! -f "$1" ] && { echo "File not found: $1" >&2; exit 1; }
 
 logfile="$1"
 

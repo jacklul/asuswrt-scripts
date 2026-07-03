@@ -6,7 +6,7 @@
 # Lists orphaned packages only
 #
 
-installed="$(opkg list-installed)"
+installed="$(opkg list-installed 2> /dev/null)"
 
 IFS="$(printf '\n\b')"
 echo "$installed" | while read -r package; do
