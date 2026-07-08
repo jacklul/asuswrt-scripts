@@ -248,6 +248,16 @@ if [ -z "$CALLER" ]; then
     unset _comm _cmdline
 fi
 
+# Do not run override_before when service is disabled
+case "$ACTION" in
+    start|restart)
+        if [ "$ENABLED" != "yes" ]; then
+            echo "Service is disabled, exiting."
+            exit 0
+        fi
+    ;;
+esac
+
 override_before "$ACTION" "$CALLER"
 
 # Override positional arguments and call the original script
