@@ -128,7 +128,7 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
     # Apply priority
     if [ -n "$NICE" ]; then
         if which renice > /dev/null 2>&1; then
-            if renice -n "$NICE" -p $$ > /dev/null; then
+            if renice "$NICE" -p $$ > /dev/null; then
                 [ -n "$VERBOSE" ] && echo "Set niceness to $NICE"
             else
                 echo "Failed to set niceness to $NICE" >&2
