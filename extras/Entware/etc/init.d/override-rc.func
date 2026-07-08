@@ -18,6 +18,7 @@
 #  IOPRIORITY= - see ionice(1) - IO priority of the process, (high) 0-7 (low) for real-time and best-effort only
 #  AFFINITY=   - see taskset(1) - set a process's CPU affinity, negative values substract from the init process's affinity
 #  UMASK=      - see umask(2) - set file mode creation mask before starting the process, not all programs will inherit it
+#  RUNAS=      - set the user to run the process as, requires 'nonroot' command
 #
 # The value of AFFINITY should be hexadecimal accepted by the taskset command, when using
 # substraction it must be decimal instead (e.g. to substract 5th core you would set 16)
@@ -49,6 +50,7 @@ if [ -f "$_rcfunc_config" ]; then
     _rcfunc_iopriority="$IOPRIO"
     _rcfunc_affinity="$AFFINITY"
     _rcfunc_umask="$UMASK"
+    _rcfunc_runas="$RUNAS"
 
     #shellcheck disable=SC1090
     . "$_rcfunc_config"
@@ -67,8 +69,9 @@ if [ -f "$_rcfunc_config" ]; then
     [ -n "$_rcfunc_iopriority" ] && IOPRIO="$_rcfunc_iopriority"
     [ -n "$_rcfunc_affinity" ] && AFFINITY="$_rcfunc_affinity"
     [ -n "$_rcfunc_umask" ] && UMASK="$_rcfunc_umask"
+    [ -n "$_rcfunc_runas" ] && RUNAS="$_rcfunc_runas"
 
-    unset _rcfunc_enabled _rcfunc_critical _rcfunc_procs _rcfunc_args _rcfunc_preargs _rcfunc_desc _rcfunc_precmd _rcfunc_postcmd _rcfunc_nice _rcfunc_ioclass _rcfunc_iopriority _rcfunc_affinity _rcfunc_umask
+    unset _rcfunc_enabled _rcfunc_critical _rcfunc_procs _rcfunc_args _rcfunc_preargs _rcfunc_desc _rcfunc_precmd _rcfunc_postcmd _rcfunc_nice _rcfunc_ioclass _rcfunc_iopriority _rcfunc_affinity _rcfunc_umask _rcfunc_runas
 fi
 
 # Source hook file if it exists
@@ -113,6 +116,7 @@ if [ -n "$OVERRIDE_RCFUNC_TEST" ]; then
     echo "IOPRIO = $IOPRIO"
     echo "AFFINITY = $AFFINITY"
     echo "UMASK = $UMASK"
+    echo "RUNAS = $RUNAS"
     exit
 fi
 
@@ -208,6 +212,15 @@ if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
             [ -n "$VERBOSE" ] && echo "Set umask to $UMASK"
         else
             echo "Failed to set umask to $UMASK" >&2
+        fi
+    fi
+
+    if [ -n "$RUNAS" ]; then
+        if which nonroot > /dev/null 2>&1; then
+            PREARGS="nonroot $RUNAS $PREARGS"
+            [ -n "$VERBOSE" ] && echo "Set user to run as: $RUNAS"
+        else
+            echo "Command 'nonroot' not found!" >&2
         fi
     fi
 fi
