@@ -38,11 +38,11 @@ fi
 
 # Shared configuration variables
 TMP_DIR=/tmp/jas # used by the scripts to store temporary data
-CPU_AFFINITY= # change CPU affinity, empty means no changes
-NO_COLORS=false # set to true to disable ANSI colors
-NO_LOGGER=false # disable messages sent via logger command
-CAPTURE_STDOUT=false # set to true to enable logging of stdout when not running interactively
-CAPTURE_STDERR=false # set to true to enable logging of stderr when not running interactively
+CPU_AFFINITY=${CPU_AFFINITY:-} # change CPU affinity, empty means no changes
+NO_COLORS=${NO_COLORS:-false} # set to true to disable ANSI colors
+NO_LOGGER=${NO_LOGGER:-false} # disable messages sent via logger command
+CAPTURE_STDOUT=${CAPTURE_STDOUT:-false} # set to true to enable logging of stdout when not running interactively
+CAPTURE_STDERR=${CAPTURE_STDERR:-false} # set to true to enable logging of stderr when not running interactively
 REMOVE_OPT_FROM_PATH=false # set to true to remove /opt paths from PATH temporarily while running
 RENAMED_SCRIPTS_SUPPORT=false # set to true to enable support for renamed scripts
 LOCKFILE_USE_FLOCK=true # use flock command in lockfile function
