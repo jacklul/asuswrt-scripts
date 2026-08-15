@@ -12,7 +12,8 @@
 readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
-TWEAKS="cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443 no_https_redirect" # list of tweaks to apply
+# List of all tweaks: cpu_temperature guest_wifi_qr_code notrendmicro_support https_lanport_allow_443 no_https_redirect
+TWEAKS="cpu_temperature guest_wifi_qr_code" # list of tweaks to apply
 TMP_WWW_DIR="$state_file-www" # directory to store modified files in
 
 load_script_config
