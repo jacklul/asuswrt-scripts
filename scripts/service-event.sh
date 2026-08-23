@@ -20,7 +20,7 @@ readonly common_script="$(dirname "$0")/common.sh"
 if [ -f "$common_script" ]; then . "$common_script"; else { echo "$common_script not found" >&2; exit 1; } fi
 
 SYSLOG_FILE="/tmp/syslog.log" # target syslog file to read
-SLEEP=1 # how to long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
+SLEEP=1 # how long to wait between each syslog reading iteration, increase to reduce load but introduce delays in action execution
 SLEEP_INTEGRATION=3 # how many seconds to wait before executing integration related scripts, this also delays execution of EXECUTE_COMMAND when applicable, set to empty to disable
 NO_INTEGRATION=false # set to true to disable integration with jacklul/asuswrt-scripts, this can potentially break their functionality
 EXECUTE_COMMAND="" # command to execute in addition to build-in script (receives arguments: $1 = event, $2 = target, $3 = normalized event name)
@@ -120,12 +120,15 @@ service_monitor() {
 
     logecho "Started service event monitoring..." alert
 
-    local _total_lines _new_lines _matching_lines  _last_line_old _new_line _line_number _events _oldIFS _event _event_action _event_target
+    local _total_lines _matching_lines _new_line _line_number _events _oldIFS _event _event_action _event_target _iter=0
 
     while true; do
-        if [ "$_checksum" != "$(md5sum "$script_path" | awk '{print $1}')" ]; then
-            logecho "Script has been updated, exiting..." alert
-            break
+        _iter="$((_iter+1))"
+        if [ "$((_iter%60))" -eq 0 ]; then
+            if [ "$_checksum" != "$(md5sum "$script_path" | awk '{print $1}')" ]; then
+                logecho "Script has been updated, exiting..." alert
+                break
+            fi
         fi
 
         _total_lines="$(wc -l < "$SYSLOG_FILE")"
@@ -135,28 +138,25 @@ service_monitor() {
             continue
         fi
 
-        _new_lines="$(tail "$SYSLOG_FILE" -n "+$_last_line")"
-
-        if [ -n "$_new_lines" ]; then
-            _matching_lines="$(echo "$_new_lines" | grep -En 'rc_service.*notify_rc' || echo '')"
+        if [ "$_total_lines" -ge "$_last_line" ]; then
+            _matching_lines="$(awk -v start="$_last_line" 'NR >= start && /rc_service.*notify_rc/ {sub(/^.*notify_rc /, "", $0); print NR "|" $0 }' "$SYSLOG_FILE")"
 
             if [ -n "$_matching_lines" ]; then
-                _last_line_old=$_last_line
-
                 IFS="$(printf '\n\b')"
                 for _new_line in $_matching_lines; do
-                    _line_number="$(echo "$_new_line" | cut -d ':' -f 1)"
-                    _last_line="$((_last_line_old+_line_number))"
+                    _line_number="${_new_line%%|*}"
+                    _last_line="$((_line_number+1))"
 
                     if [ -n "$_initialized" ]; then
-                        _events="$(echo "$_new_line" | awk -F 'notify_rc ' '{print $2}')"
+                        _events="${_new_line#*|}"
 
                         _oldIFS=$IFS
                         IFS=';'
                         for _event in $_events; do
                             if [ -n "$_event" ]; then
-                                _event_action="$(echo "$_event" | cut -d '_' -f 1)"
-                                _event_target="$(echo "$_event" | cut -d '_' -f 2- | cut -d ' ' -f 1)"
+                                _event_action="${_event%%_*}"
+                                _event_target="${_event#*_}"
+                                _event_target="${_event_target%% *}"
 
                                 trigger_event "$_event_action" "$_event_target"
                             fi
@@ -165,8 +165,7 @@ service_monitor() {
                     fi
                 done
             else
-                _total_lines="$(echo "$_new_lines" | wc -l)"
-                _last_line="$((_last_line+_total_lines))"
+                _last_line="$((_total_lines+1))"
             fi
         fi
 
